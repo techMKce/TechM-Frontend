@@ -34,6 +34,8 @@ const StudentsPage = () => {
     department: "",
     year: ""
   });
+  // New state for search term
+  const [searchTerm, setSearchTerm] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load students from localStorage on component mount
@@ -234,6 +236,11 @@ const StudentsPage = () => {
     }
   };
 
+  // Filter students based on searchTerm (case-insensitive matching on name)
+  const filteredStudents = students.filter(student =>
+    student.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar currentPage="/admin/students" />
@@ -243,7 +250,7 @@ const StudentsPage = () => {
           <p className="text-gray-600">Manage student records and information</p>
         </div>
 
-        <div className="flex gap-4 mb-6">
+        <div className="flex flex-wrap gap-4 mb-6">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
@@ -325,6 +332,15 @@ const StudentsPage = () => {
             onChange={handleFileUpload}
             className="hidden"
           />
+
+          {/* Search Box */}
+          <Input
+            type="text"
+            placeholder="Search by name"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-xs"
+          />
         </div>
 
         <Card>
@@ -346,7 +362,7 @@ const StudentsPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student) => (
+                {filteredStudents.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell>{student.rollNumber}</TableCell>
                     <TableCell>{student.name}</TableCell>

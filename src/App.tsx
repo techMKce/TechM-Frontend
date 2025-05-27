@@ -22,6 +22,8 @@ import NotFound from "./pages/NotFound";
 import ProfilePage from "@/pages/profile";
 import EditProfile from "@/pages/profile/EditProfile";
 import ViewProfile from "./pages/profile/ViewProfile";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import UpdatePasswordPage from "./pages/auth/UpdatePasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -39,10 +41,12 @@ const App = () => (
           <Route path="/admin/faculty" element={<FacultyPage />} />
           <Route path="/admin/courses" element={<AdminCoursesPage />} />
           <Route path="/admin/assign-students" element={<AssignStudentsPage />} />
+
           <Route path="/faculty/login" element={<FacultyLogin />} />
           <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
           <Route path="/faculty/courses" element={<FacultyCoursesPage />} />
-            <Route path="/faculty/students" element={<FacultyStudentsPage />} />
+          <Route path="/faculty/students" element={<FacultyStudentsPage />} />
+
           <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/available-courses" element={<AvailableCoursesPage />} />
@@ -52,6 +56,10 @@ const App = () => (
           <Route path="/profile/view" element={<ViewProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
+
+          {/* For the Common Forgot Password UI*/}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/changePassword" element={<UpdatePasswordPage />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

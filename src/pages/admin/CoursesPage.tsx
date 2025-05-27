@@ -1,8 +1,22 @@
 import AdminNavbar from "@/components/AdminNavbar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input"; // ✅ NEW: For search input
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
@@ -19,28 +33,42 @@ interface Course {
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [searchTerm, setSearchTerm] = useState(""); // ✅ NEW: Search term
 
   useEffect(() => {
-    const savedCourses = JSON.parse(localStorage.getItem('courses') || '[]');
+    const savedCourses = JSON.parse(localStorage.getItem("courses") || "[]");
     setCourses(savedCourses);
   }, []);
 
   const handleToggle = (courseId: string) => {
-    const updatedCourses = courses.map(course =>
-      course.id === courseId ? { ...course, isEnabled: !course.isEnabled } : course
+    const updatedCourses = courses.map((course) =>
+      course.id === courseId
+        ? { ...course, isEnabled: !course.isEnabled }
+        : course
     );
     setCourses(updatedCourses);
-    localStorage.setItem('courses', JSON.stringify(updatedCourses));
-    toast.success(`Course ${!courses.find(c => c.id === courseId)?.isEnabled ? 'enabled' : 'disabled'} successfully`);
+    localStorage.setItem("courses", JSON.stringify(updatedCourses));
+    toast.success(
+      `Course ${
+        !courses.find((c) => c.id === courseId)?.isEnabled
+          ? "enabled"
+          : "disabled"
+      } successfully`
+    );
   };
 
   const handleDelete = (courseId: string) => {
-    const updatedCourses = courses.filter(course => course.id !== courseId);
+    const updatedCourses = courses.filter((course) => course.id !== courseId);
     setCourses(updatedCourses);
-    localStorage.setItem('courses', JSON.stringify(updatedCourses));
-    window.dispatchEvent(new CustomEvent('coursesUpdated'));
+    localStorage.setItem("courses", JSON.stringify(updatedCourses));
+    window.dispatchEvent(new CustomEvent("coursesUpdated"));
     toast.success("Course deleted successfully");
   };
+
+  // ✅ NEW: Filtered course list
+  const filteredCourses = courses.filter((course) =>
+    course.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,7 +83,18 @@ const CoursesPage = () => {
           <CardHeader>
             <CardTitle>All Courses</CardTitle>
             <CardDescription>List of all courses created by faculty members</CardDescription>
+
+            {/* ✅ Search Input */}
+            <div className="mt-4">
+              <Input
+                type="text"
+                placeholder="Search by course name"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </CardHeader>
+
           <CardContent>
             <Table>
               <TableHeader>
@@ -68,7 +107,7 @@ const CoursesPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {courses.map((course) => (
+                {filteredCourses.map((course) => (
                   <TableRow key={course.id}>
                     <TableCell>{course.courseId}</TableCell>
                     <TableCell>{course.name}</TableCell>
@@ -90,10 +129,10 @@ const CoursesPage = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {courses.length === 0 && (
+                {filteredCourses.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4">
-                      No courses available
+                      No courses found
                     </TableCell>
                   </TableRow>
                 )}
