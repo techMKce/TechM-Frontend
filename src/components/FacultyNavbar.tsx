@@ -52,8 +52,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
   const menuItems = [
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
     { label: "Students", path: "/faculty/students", icon: Users },
-    { label: "Courses", path: "/faculty/courses", icon: BookOpen },
-    { label: "Assigned Students", path: "/faculty/assigned-students", icon: UserCheck }
+    { label: "Courses", path: "/faculty/courses", icon: BookOpen }
   ];
 
   const initials = currentUser.name ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'F';
@@ -64,7 +63,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-green-600">Faculty Portal</h1>
+              <img src="/Zeno.png" alt="Logo" className="h-8 w-auto" />
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
               {menuItems.map((item) => {

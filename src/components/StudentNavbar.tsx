@@ -68,7 +68,7 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-blue-600">Student Portal</h1>
+              <img src="/Zeno.png"  className="h-8 w-auto" />
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
               {menuItems.map((item) => {

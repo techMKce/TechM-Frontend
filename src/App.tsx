@@ -24,6 +24,8 @@ import EditProfile from "@/pages/profile/EditProfile";
 import ViewProfile from "./pages/profile/ViewProfile";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import UpdatePasswordPage from "./pages/auth/UpdatePasswordPage";
+import AssignmentManager from "./pages/faculty/AssignmentManager";
+import SchedulePage from './pages/admin/SchedulePage';
 
 const queryClient = new QueryClient();
 
@@ -41,11 +43,14 @@ const App = () => (
           <Route path="/admin/faculty" element={<FacultyPage />} />
           <Route path="/admin/courses" element={<AdminCoursesPage />} />
           <Route path="/admin/assign-students" element={<AssignStudentsPage />} />
-
+          <Route path="/admin/schedule" element={<SchedulePage />} />
+          
           <Route path="/faculty/login" element={<FacultyLogin />} />
           <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
           <Route path="/faculty/courses" element={<FacultyCoursesPage />} />
           <Route path="/faculty/students" element={<FacultyStudentsPage />} />
+          {/* <Route path="/faculty/attendance" element={<FacultyAttendancePage />} /> */}
+          <Route path="/faculty/assignments" element={<AssignmentManager/>} />
 
           <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/student/dashboard" element={<StudentDashboard />} />

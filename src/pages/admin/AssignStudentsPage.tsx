@@ -1,38 +1,33 @@
-
+import { useState, useEffect } from "react";
 import AdminNavbar from "@/components/AdminNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface Student {
   id: string;
-  rollNumber: string;
   name: string;
   email: string;
+  rollNumber: string;
   department: string;
-  year: string;
 }
 
 interface Faculty {
   id: string;
-  facultyId: string;
   name: string;
   email: string;
+  facultyId: string;
   department: string;
 }
 
 interface Course {
   id: string;
-  courseId: string;
   name: string;
-  description: string;
-  facultyId: string;
-  facultyName: string;
+  code: string;
+  department: string;
   isEnabled: boolean;
 }
 
@@ -40,7 +35,6 @@ interface Enrollment {
   id: string;
   studentId: string;
   courseId: string;
-  enrolledAt: string;
 }
 
 interface Assignment {
@@ -48,7 +42,13 @@ interface Assignment {
   studentId: string;
   facultyId: string;
   courseId: string;
-  assignedAt: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  type: 'student' | 'faculty';
+  status: string;
 }
 
 const AssignStudentsPage = () => {
@@ -57,14 +57,18 @@ const AssignStudentsPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
-  const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]);
+  const [selectedFaculty, setSelectedFaculty] = useState<string[]>([]);
 
-  // Get unique departments
-  const departments = [...new Set(students.map(student => student.department))];
+  // Get unique departments from all data
+  const departments = [...new Set([
+    ...students.map(student => student.department),
+    ...faculty.map(f => f.department),
+    ...courses.map(course => course.department)
+  ])].filter(Boolean);
 
   useEffect(() => {
     // Load data from localStorage
@@ -73,7 +77,7 @@ const AssignStudentsPage = () => {
     const savedCourses = JSON.parse(localStorage.getItem('courses') || '[]');
     const savedEnrollments = JSON.parse(localStorage.getItem('enrollments') || '[]');
     const savedAssignments = JSON.parse(localStorage.getItem('assignments') || '[]');
-    
+
     setStudents(savedStudents);
     setFaculty(savedFaculty);
     setCourses(savedCourses.filter((course: Course) => course.isEnabled));
@@ -82,106 +86,119 @@ const AssignStudentsPage = () => {
   }, []);
 
   useEffect(() => {
-    // Filter students based on selected department and course
-    let filtered = students;
-    
-    if (selectedDepartment && selectedDepartment !== "all") {
-      filtered = filtered.filter(student => student.department === selectedDepartment);
-    }
+    if (selectedCourse) {
+      // Get enrolled students for the selected course
+      const courseEnrollments = enrollments.filter(enrollment => enrollment.courseId === selectedCourse.id);
+      const enrolledStudents = courseEnrollments.map(enrollment => {
+        const student = students.find(s => s.id === enrollment.studentId);
+        return student ? {
+          id: student.id,
+          name: student.name,
+          type: 'student' as const,
+          status: `Roll: ${student.rollNumber}`,
+          rollNumber: student.rollNumber
+        } : null;
+      }).filter(Boolean) as User[];
 
-    setFilteredStudents(filtered);
-    setSelectedStudents([]); // Clear selection when filters change
+      // Get faculty for the same department as the course
+      const courseFaculty = faculty.filter(f => f.department === selectedCourse.department).map(f => ({
+        id: f.id,
+        name: f.name,
+        type: 'faculty' as const,
+        status: `Faculty ID: ${f.facultyId}`,
+        rollNumber: ""
+      }));
 
-    // Set selected faculty based on course
-    if (selectedCourse && selectedCourse !== "all") {
-      const course = courses.find(c => c.id === selectedCourse);
-      if (course) {
-        const courseFaculty = faculty.find(f => f.id === course.facultyId);
-        setSelectedFaculty(courseFaculty || null);
-      }
+      setEnrolledUsers([...enrolledStudents, ...courseFaculty]);
     } else {
-      setSelectedFaculty(null);
+      setEnrolledUsers([]);
     }
-  }, [students, selectedDepartment, selectedCourse, courses, faculty]);
+  }, [selectedCourse, enrollments, students, faculty]);
 
-  const handleStudentSelect = (studentId: string, checked: boolean) => {
+  const handleCourseSelect = (course: Course) => {
+    setSelectedCourse(course);
+    setSelectedUsers([]);
+  };
+
+  const handleUserSelect = (userId: string, checked: boolean) => {
     if (checked) {
-      setSelectedStudents(prev => [...prev, studentId]);
+      setSelectedUsers(prev => [...prev, userId]);
     } else {
-      setSelectedStudents(prev => prev.filter(id => id !== studentId));
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
     }
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleFacultySelect = (facultyId: string, checked: boolean) => {
     if (checked) {
-      // Only select students who are not already enrolled
-      const availableStudents = filteredStudents.filter(student => 
-        !isStudentEnrolled(student.id, selectedCourse)
-      );
-      setSelectedStudents(availableStudents.map(student => student.id));
+      setSelectedFaculty(prev => [...prev, facultyId]);
     } else {
-      setSelectedStudents([]);
+      setSelectedFaculty(prev => prev.filter(id => id !== facultyId));
     }
+  };
+
+  const getDepartmentFaculty = () => {
+    if (!selectedDepartment || selectedDepartment === "all") {
+      return faculty;
+    }
+    return faculty.filter(f => f.department === selectedDepartment);
   };
 
   const handleAssignStudents = () => {
-    if (!selectedCourse || selectedCourse === "all") {
-      toast.error("Please select a course");
+    if (!selectedCourse || selectedUsers.length === 0 || selectedFaculty.length === 0) {
+      toast.error("Please select a course, at least one student, and at least one faculty member");
       return;
     }
 
-    if (selectedStudents.length === 0) {
+    const selectedStudentIds = selectedUsers.filter(userId => 
+      students.some(s => s.id === userId)
+    );
+
+    if (selectedStudentIds.length === 0) {
       toast.error("Please select at least one student");
       return;
     }
 
-    // Create assignments to faculty for selected students (for attendance purposes only)
-    const newAssignments = selectedStudents.map(studentId => ({
-      id: Date.now().toString() + Math.random().toString(),
-      studentId,
-      facultyId: selectedFaculty?.id || '',
-      courseId: selectedCourse,
-      assignedAt: new Date().toISOString()
-    }));
+    // Create new assignments
+    const newAssignments: Assignment[] = [];
+    selectedFaculty.forEach(facultyId => {
+      selectedStudentIds.forEach(studentId => {
+        // Check if assignment already exists
+        const existingAssignment = assignments.find(a => 
+          a.studentId === studentId && 
+          a.facultyId === facultyId && 
+          a.courseId === selectedCourse.id
+        );
 
+        if (!existingAssignment) {
+          newAssignments.push({
+            id: `assignment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            studentId,
+            facultyId,
+            courseId: selectedCourse.id
+          });
+        }
+      });
+    });
+
+    if (newAssignments.length === 0) {
+      toast.warning("All selected assignments already exist");
+      return;
+    }
+
+    // Save new assignments
     const updatedAssignments = [...assignments, ...newAssignments];
-    
     setAssignments(updatedAssignments);
     localStorage.setItem('assignments', JSON.stringify(updatedAssignments));
-    
-    setSelectedStudents([]);
-    toast.success(`Successfully assigned ${selectedStudents.length} student(s) to faculty for attendance tracking`);
-  };
 
-  const isStudentEnrolled = (studentId: string, courseId: string) => {
-    if (!courseId || courseId === "all") return false;
-    return enrollments.some(enrollment => 
-      enrollment.studentId === studentId && enrollment.courseId === courseId
-    );
-  };
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('assignmentsUpdated'));
 
-  const getAssignmentStatus = (studentId: string) => {
-    if (!selectedCourse || selectedCourse === "all") return "Not Selected";
-    const enrolled = isStudentEnrolled(studentId, selectedCourse);
-    const assigned = isStudentAssigned(studentId, selectedCourse);
-    
-    if (assigned) return "Already Assigned";
-    if (enrolled) return "Enrolled";
-    return "Not Assigned";
-  };
+    // Reset selections
+    setSelectedUsers([]);
+    setSelectedFaculty([]);
 
-  const isStudentAssigned = (studentId: string, courseId: string) => {
-    if (!courseId || courseId === "all") return false;
-    return assignments.some(assignment => 
-      assignment.studentId === studentId && assignment.courseId === courseId
-    );
+    toast.success(`Successfully created ${newAssignments.length} new assignments`);
   };
-
-  const canSelectStudent = (studentId: string) => {
-    return !isStudentAssigned(studentId, selectedCourse);
-  };
-
-  const availableStudents = filteredStudents.filter(student => canSelectStudent(student.id));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -189,162 +206,201 @@ const AssignStudentsPage = () => {
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Assign Students</h1>
-          <p className="text-gray-600">Assign students to courses and faculty members</p>
+          <p className="text-gray-600">Assign faculty members to students through course selections</p>
         </div>
 
-        <div className="space-y-6">
-          {/* Filters */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* First Layout - Department and Course Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Filters</CardTitle>
-              <CardDescription>Select course and department to filter students</CardDescription>
+              <CardTitle>Select Department & Course</CardTitle>
+              <CardDescription>Choose a department to view all available courses</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Course</label>
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.courseId} - {course.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Filter by Department</label>
-                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Departments</SelectItem>
-                      {departments.map((department) => (
-                        <SelectItem key={department} value={department}>
-                          {department}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Department
+                </label>
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments.map(dept => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Faculty Information */}
-              {selectedFaculty && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <h3 className="text-sm font-medium text-blue-900">Assigned Faculty</h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <p><strong>Name:</strong> {selectedFaculty.name}</p>
-                    <p><strong>Faculty ID:</strong> {selectedFaculty.facultyId}</p>
-                    <p><strong>Email:</strong> {selectedFaculty.email}</p>
-                    <p><strong>Department:</strong> {selectedFaculty.department}</p>
+              {selectedDepartment && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Available Faculty
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
+                    {getDepartmentFaculty().map(facultyMember => (
+                      <div
+                        key={facultyMember.id}
+                        className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50"
+                      >
+                        <Checkbox
+                          checked={selectedFaculty.includes(facultyMember.id)}
+                          onCheckedChange={(checked) => 
+                            handleFacultySelect(facultyMember.id, checked as boolean)
+                          }
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{facultyMember.name}</h4>
+                          <p className="text-sm text-gray-600">Faculty ID: {facultyMember.facultyId}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+
+            </CardContent>
+          </Card>
+
+          {/* Second Layout - Course Selection and Students */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Select Course and Students</CardTitle>
+              <CardDescription>Choose a course to view enrolled students</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Course
+                </label>
+                <Select 
+                  value={selectedCourse?.id || ""} 
+                  onValueChange={(courseId) => {
+                    const course = courses.find(c => c.id === courseId);
+                    handleCourseSelect(course || null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.map(course => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.code} - {course.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedCourse && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enrolled Students
+                  </label>
+                  <div className="max-h-96 overflow-y-auto">
+                    {enrolledUsers.filter(user => user.type === 'student').length > 0 ? (
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Select
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Student Name
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Roll Number
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Department
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {enrolledUsers
+                              .filter(user => user.type === 'student')
+                              .map(student => {
+                                const studentData = students.find(s => s.id === student.id);
+                                return (
+                                  <tr key={student.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3">
+                                      <Checkbox
+                                        checked={selectedUsers.includes(student.id)}
+                                        onCheckedChange={(checked) => 
+                                          handleUserSelect(student.id, checked as boolean)
+                                        }
+                                      />
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <div className="font-medium text-gray-900">{student.name}</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <div className="text-sm text-gray-600">{student.rollNumber || student.id}</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <div className="text-sm text-gray-600">{studentData?.department || 'N/A'}</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <Badge variant="secondary" className="text-xs">
+                                        Enrolled
+                                      </Badge>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-center text-gray-500 py-8">
+                        No students enrolled in this course
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
+        </div>
 
-          {/* Student Assignment */}
-          <Card>
+        {/* Assignment Summary */}
+        {((selectedCourse && selectedUsers.length > 0) || selectedFaculty.length > 0) && (
+          <Card className="mt-6">
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Student Assignment</CardTitle>
-                  <CardDescription>
-                    {selectedCourse 
-                      ? `Assign students to: ${courses.find(c => c.id === selectedCourse)?.name || 'Selected Course'}`
-                      : 'Select a course to assign students'
-                    }
-                  </CardDescription>
-                </div>
-                {selectedCourse && selectedFaculty && (
-                  <Button 
-                    onClick={handleAssignStudents}
-                    disabled={selectedStudents.length === 0}
-                  >
-                    Assign Selected Students ({selectedStudents.length})
-                  </Button>
-                )}
-              </div>
+              <CardTitle>Assignment Summary</CardTitle>
+              <CardDescription>Review the assignments that will be created</CardDescription>
             </CardHeader>
             <CardContent>
-              {!selectedCourse ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Please select a course to view and assign students</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectedStudents.length === availableStudents.length && availableStudents.length > 0}
-                          onCheckedChange={handleSelectAll}
-                          disabled={availableStudents.length === 0}
-                        />
-                      </TableHead>
-                      <TableHead>Roll Number</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Year</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredStudents.map((student) => {
-                      const status = getAssignmentStatus(student.id);
-                      const canSelect = canSelectStudent(student.id);
-                      
-                      return (
-                        <TableRow key={student.id} className={!canSelect ? "opacity-50" : ""}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedStudents.includes(student.id)}
-                              onCheckedChange={(checked) => handleStudentSelect(student.id, checked as boolean)}
-                              disabled={!canSelect}
-                            />
-                          </TableCell>
-                          <TableCell>{student.rollNumber}</TableCell>
-                          <TableCell>{student.name}</TableCell>
-                          <TableCell>{student.email}</TableCell>
-                          <TableCell>{student.department}</TableCell>
-                          <TableCell>{student.year}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={
-                                status === "Already Assigned" ? "destructive" : 
-                                status === "Enrolled" ? "default" : "secondary"
-                              }
-                            >
-                              {status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {filteredStudents.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-4">
-                          {selectedDepartment && selectedDepartment !== "all"
-                            ? 'No students found in the selected department'
-                            : 'No students available'
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
+              <div className="space-y-2">
+                {selectedCourse && (
+                  <>
+                    <p><strong>Course:</strong> {selectedCourse.name}</p>
+                    <p><strong>Selected Students:</strong> {
+                      selectedUsers.filter(id => students.some(s => s.id === id)).length
+                    }</p>
+                  </>
+                )}
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <Button 
+                  onClick={handleAssignStudents}
+                  className="w-full"
+                  size="lg"
+                >
+                  Assign Selected Students to Faculty
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        </div>
+        )}
       </div>
     </div>
   );
