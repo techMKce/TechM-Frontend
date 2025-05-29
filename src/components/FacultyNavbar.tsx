@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Home, Users, BookOpen, UserCheck } from "lucide-react";
+import { User, LogOut, Home, Users, BookOpen, UserCheck, ListTodoIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface FacultyNavbarProps {
@@ -52,7 +52,8 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
   const menuItems = [
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
     { label: "Students", path: "/faculty/students", icon: Users },
-    { label: "Courses", path: "/faculty/courses", icon: BookOpen }
+    { label: "Courses", path: "/faculty/courses", icon: BookOpen },
+    { label: "Assignments", path: "/faculty/assignments", icon: ListTodoIcon }
   ];
 
   const initials = currentUser.name ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'F';

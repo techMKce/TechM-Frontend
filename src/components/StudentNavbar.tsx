@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Home, BookOpen, Users } from "lucide-react";
+import { User, LogOut, Home, BookOpen, Users, Book } from "lucide-react";
 
 interface StudentNavbarProps {
   currentPage?: string;
@@ -55,7 +55,8 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   const menuItems = [
     { label: "Dashboard", path: "/student/dashboard", icon: Home },
     { label: "Available Courses", path: "/student/available-courses", icon: BookOpen },
-    { label: "Enrolled Courses", path: "/student/enrolled-courses", icon: Users }
+    { label: "Enrolled Courses", path: "/student/enrolled-courses", icon: Users },
+    { label: "Attendance", path: "/student/attendance", icon: Book }
   ];
 
   const userName = currentUser?.name || 'Student';
