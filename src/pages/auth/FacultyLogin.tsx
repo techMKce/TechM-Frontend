@@ -53,7 +53,10 @@ const FacultyLogin = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Label htmlFor="password">Password</Label>
+              <p style={{cursor:'pointer'}} onClick={()=>navigate('/forgot-password')}>Forgot Password?</p>
+            </div>
             <Input
               id="password"
               type="password"

@@ -23,7 +23,8 @@ const AdminNavbar = ({ currentPage }: AdminNavbarProps) => {
     { label: "Students", path: "/admin/students" },
     { label: "Faculty", path: "/admin/faculty" },
     { label: "Courses", path: "/admin/courses" },
-    { label: "Assign Students", path: "/admin/assign-students" }
+    { label: "Assign Students", path: "/admin/assign-students" },
+    { label: "Schedule", path: "/admin/schedule" }
   ];
 
   const handleLogout = () => {
@@ -36,7 +37,7 @@ const AdminNavbar = ({ currentPage }: AdminNavbarProps) => {
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-8">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+              <img src="/Zeno.png" alt="Logo" className="h-8 w-auto" />
             </div>
             <div className="flex space-x-4">
               {menuItems.map((item) => (

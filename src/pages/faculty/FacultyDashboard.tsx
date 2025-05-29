@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -20,11 +22,27 @@ interface Course {
   isEnabled: boolean;
 }
 
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  rollNumber: string;
+  department: string;
+}
+
+interface Assignment {
+  id: string;
+  studentId: string;
+  facultyId: string;
+  courseId: string;
+}
+
 const FacultyDashboard = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [assignedStudents, setAssignedStudents] = useState<Student[]>([]);
   const [stats, setStats] = useState({
     totalCourses: 0,
     activeCourses: 0,
@@ -42,10 +60,51 @@ const FacultyDashboard = () => {
     loadCourses();
   }, [currentUser.id]);
 
+  useEffect(() => {
+    // Listen for assignment changes
+    const handleStorageChange = () => {
+      loadCourses();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('assignmentsUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('assignmentsUpdated', handleStorageChange);
+    };
+  }, []);
+
   const loadCourses = () => {
     const savedCourses = JSON.parse(localStorage.getItem('courses') || '[]');
     const facultyCourses = savedCourses.filter((course: Course) => course.facultyId === currentUser.id);
     setCourses(facultyCourses);
+
+    // Load assigned students
+    try {
+      const assignments = JSON.parse(localStorage.getItem('assignments') || '[]');
+      const students = JSON.parse(localStorage.getItem('students') || '[]');
+      
+      console.log('All assignments:', assignments);
+      console.log('Current faculty ID:', currentUser.id);
+      
+      const myAssignments = assignments.filter((assignment: Assignment) => 
+        assignment.facultyId === currentUser.id
+      );
+      
+      console.log('My assignments:', myAssignments);
+      
+      const uniqueStudentIds = [...new Set(myAssignments.map((assignment: Assignment) => assignment.studentId))];
+      const myAssignedStudents = students.filter((student: Student) => 
+        uniqueStudentIds.includes(student.id)
+      );
+      
+      console.log('Assigned students:', myAssignedStudents);
+      setAssignedStudents(myAssignedStudents);
+    } catch (error) {
+      console.error('Error loading assigned students:', error);
+      setAssignedStudents([]);
+    }
 
     // Calculate stats
     const activeCourses = facultyCourses.filter((course: Course) => course.isEnabled);
@@ -120,6 +179,27 @@ const FacultyDashboard = () => {
     setEditingCourse(null);
     setIsEditDialogOpen(false);
     toast.success("Course updated successfully");
+  };
+
+  const getStudentAssignedCourses = (studentId: string) => {
+    try {
+      const assignments = JSON.parse(localStorage.getItem('assignments') || '[]');
+      const allCourses = JSON.parse(localStorage.getItem('courses') || '[]');
+      
+      const studentAssignments = assignments.filter((assignment: Assignment) => 
+        assignment.studentId === studentId && assignment.facultyId === currentUser.id
+      );
+      
+      const courseNames = studentAssignments.map((assignment: Assignment) => {
+        const course = allCourses.find((c: Course) => c.id === assignment.courseId);
+        return course ? course.name : 'Unknown Course';
+      });
+      
+      return courseNames.length > 0 ? courseNames : ['No courses assigned'];
+    } catch (error) {
+      console.error('Error getting student assigned courses:', error);
+      return ['Error loading courses'];
+    }
   };
 
   return (
@@ -305,6 +385,55 @@ const FacultyDashboard = () => {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Assigned Students</CardTitle>
+            <CardDescription>Students assigned to you by the admin</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {assignedStudents.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Roll Number</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Assigned Courses</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {assignedStudents.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">{student.rollNumber}</TableCell>
+                      <TableCell>{student.name}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      <TableCell>{student.department}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {getStudentAssignedCourses(student.id).map((courseName, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {courseName}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">No assigned students</h3>
+                <p className="text-sm text-gray-500">
+                  Students will appear here when they are assigned to you by the admin
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Home, BookOpen, Users } from "lucide-react";
+import { User, LogOut, Home, BookOpen, Users, Book } from "lucide-react";
 
 interface StudentNavbarProps {
   currentPage?: string;
@@ -55,7 +55,8 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   const menuItems = [
     { label: "Dashboard", path: "/student/dashboard", icon: Home },
     { label: "Available Courses", path: "/student/available-courses", icon: BookOpen },
-    { label: "Enrolled Courses", path: "/student/enrolled-courses", icon: Users }
+    { label: "Enrolled Courses", path: "/student/enrolled-courses", icon: Users },
+    { label: "Attendance", path: "/student/attendance", icon: Book }
   ];
 
   const userName = currentUser?.name || 'Student';
@@ -68,7 +69,7 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-blue-600">Student Portal</h1>
+              <img src="/Zeno.png"  className="h-8 w-auto" />
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
               {menuItems.map((item) => {

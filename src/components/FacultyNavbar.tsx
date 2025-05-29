@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Home, Users, BookOpen, UserCheck } from "lucide-react";
+import { User, LogOut, Home, Users, BookOpen, UserCheck, ListTodoIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface FacultyNavbarProps {
@@ -53,7 +53,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
     { label: "Students", path: "/faculty/students", icon: Users },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
-    { label: "Assigned Students", path: "/faculty/assigned-students", icon: UserCheck }
+    { label: "Assignments", path: "/faculty/assignments", icon: ListTodoIcon }
   ];
 
   const initials = currentUser.name ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'F';
@@ -64,7 +64,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-green-600">Faculty Portal</h1>
+              <img src="/Zeno.png" alt="Logo" className="h-8 w-auto" />
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
               {menuItems.map((item) => {
