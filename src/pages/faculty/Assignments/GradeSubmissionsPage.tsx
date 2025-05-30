@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Clock, User, Search, Download } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import axios from "axios";
-
+// import axios from "axios";
+import api from "@/service/api";
 interface StudentSubmission {
   id: number;
   studentName: string;
@@ -44,13 +44,13 @@ const GradeSubmissionsPage = () => {
     const fetchData = async () => {
       try {
         const [assignmentRes, submissionRes, gradingRes] = await Promise.all([
-          axios.get("https://assignmentservice-2a8o.onrender.com/api/assignments/id", {
+          api.get("https://assignmentservice-2a8o.onrender.com/api/assignments/id", {
             params: { assignmentId },
           }),
-          axios.get("https://assignmentservice-2a8o.onrender.com/api/submissions", {
+          api.get("https://assignmentservice-2a8o.onrender.com/api/submissions", {
             params: { assignmentId },
           }),
-          axios.get("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+          api.get("https://assignmentservice-2a8o.onrender.com/api/gradings", {
             params: { assignmentId },
           }),
         ]);
@@ -113,7 +113,7 @@ const GradeSubmissionsPage = () => {
 
     setIsDownloading(true);
     try {
-      const response = await axios.get("https://assignmentservice-2a8o.onrender.com/api/gradings/download", {
+      const response = await api.get("/gradings/download", {
         params: { assignmentId },
         responseType: "blob",
       });

@@ -65,7 +65,11 @@ const CreateAssignmentPage = () => {
         formPayload.append("file", file);
       });
 
-      const response = await api.post("/assignments", formPayload);
+      const response = await api.post("/assignments", formPayload, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
 
       if (response.status >= 200 && response.status < 300) {
