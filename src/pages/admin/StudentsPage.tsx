@@ -9,10 +9,10 @@ import AdminNavbar from "@/components/AdminNavbar";
 import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
+import api from "@/service/api";
 
 interface Student {
   id: string;
-  rollNumber: string;
   name: string;
   email: string;
   department: string;
@@ -28,42 +28,64 @@ const StudentsPage = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   const [formData, setFormData] = useState({
-    rollNumber: "",
+    id: "",
     name: "",
     email: "",
     department: "",
     year: ""
   });
+  // const [formData, setFormData] = useState<Omit<Student, 'password'>>({
+  //   id: "", name: "", email: "", department: "", year: ""
+  // });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load students from localStorage on component mount
   useEffect(() => {
-    const savedStudents = JSON.parse(localStorage.getItem('students') || '[]');
-    setStudents(savedStudents);
+    const fetchStudents = async () => {
+      try {
+        const response = await api.get('/auth/students/all'); // adjust the URL if different
+        setStudents(response.data);
+      } catch (error) {
+        console.error("Failed to fetch students:", error);
+        toast.error("Failed to fetch students");
+      }
+    };
+
+    fetchStudents();
   }, []);
 
-  // Save to localStorage and dispatch event when students change
-  const updateStudentsStorage = (updatedStudents: Student[]) => {
-    localStorage.setItem('students', JSON.stringify(updatedStudents));
-    window.dispatchEvent(new CustomEvent('studentsUpdated'));
-  };
 
-  const handleSubmit = () => {
-    if (!formData.rollNumber || !formData.name || !formData.email || !formData.department || !formData.year) {
+
+  const handleSubmit = async () => {
+    if (!formData.id || !formData.name || !formData.email || !formData.department || !formData.year) {
       toast.error("Please fill all fields");
       return;
     }
 
+
+    const res = await api.post('/auth/signup', formData, {
+      params: {
+        for: "STUDENT"
+      }
+    })
+    console.log(res);
+
+
+
     const newStudent: Student = {
-      id: Date.now().toString(),
-      ...formData,
+      ...res.data, // include backend response
       password: "student"
     };
 
-    const updatedStudents = [...students, newStudent];
+    setStudents([...students, newStudent]);
+
+
+
+
+
+    const updatedStudents = [newStudent, ...students];
     setStudents(updatedStudents);
-    updateStudentsStorage(updatedStudents);
-    setFormData({ rollNumber: "", name: "", email: "", department: "", year: "" });
+    setFormData({ id: "", name: "", email: "", department: "", year: "" });
     setIsAddDialogOpen(false);
     toast.success("Student added successfully");
   };
@@ -71,23 +93,21 @@ const StudentsPage = () => {
   const handleEdit = () => {
     if (!selectedStudent) return;
 
-    const updatedStudents = students.map(student => 
-      student.id === selectedStudent.id 
+    const updatedStudents = students.map(student =>
+      student.id === selectedStudent.id
         ? { ...selectedStudent, ...formData }
         : student
     );
     setStudents(updatedStudents);
-    updateStudentsStorage(updatedStudents);
     setIsEditDialogOpen(false);
     setSelectedStudent(null);
-    setFormData({ rollNumber: "", name: "", email: "", department: "", year: "" });
+    setFormData({ id: "", name: "", email: "", department: "", year: "" });
     toast.success("Student updated successfully");
   };
 
   const handleDelete = (studentId: string) => {
     const updatedStudents = students.filter(student => student.id !== studentId);
     setStudents(updatedStudents);
-    updateStudentsStorage(updatedStudents);
     toast.success("Student deleted successfully");
   };
 
@@ -99,7 +119,7 @@ const StudentsPage = () => {
   const handleEditClick = (student: Student) => {
     setSelectedStudent(student);
     setFormData({
-      rollNumber: student.rollNumber,
+      id: student.id,
       name: student.name,
       email: student.email,
       department: student.department,
@@ -178,9 +198,8 @@ const StudentsPage = () => {
     resetFileInput();
   };
 
-  const processFileData = (headers: string[], data: any[][]) => {
-    // Expected headers: rollnumber, name, email, department, year, mobile
-    const requiredHeaders = ['rollnumber', 'name', 'email', 'department', 'year'];
+  const processFileData = async (headers: string[], data: any[][]) => {
+    const requiredHeaders = ['id', 'name', 'email', 'department', 'year'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
     if (missingHeaders.length > 0) {
@@ -204,29 +223,47 @@ const StudentsPage = () => {
         studentData[header] = String(row[index] || '').trim();
       });
 
-      if (!studentData.rollnumber || !studentData.name || !studentData.email || !studentData.department || !studentData.year) {
+      if (!studentData.id || !studentData.name || !studentData.email || !studentData.department || !studentData.year) {
         toast.error(`Row ${i + 2} has missing required data`);
         return;
       }
 
-      newStudents.push({
-        id: Date.now().toString() + i,
-        rollNumber: studentData.rollnumber,
-        name: studentData.name,
-        email: studentData.email,
-        department: studentData.department,
-        year: studentData.year,
-        password: "student"
-      });
+      try {
+        // 🔥 Sign up API call for each student
+        await api.post('/auth/signup', {
+          id: studentData.id,
+          name: studentData.name,
+          email: studentData.email,
+          department: studentData.department,
+          year: studentData.year
+        }, {
+          params: {
+            for: "STUDENT"
+          }
+        });
+
+        newStudents.push({
+          id: studentData.id,
+          name: studentData.name,
+          email: studentData.email,
+          department: studentData.department,
+          year: studentData.year,
+          password: "student"
+        });
+
+      } catch (error) {
+        console.error(`Failed to register student at row ${i + 2}:`, error);
+        toast.error(`Signup failed for student at row ${i + 2}`);
+      }
     }
 
     if (newStudents.length > 0) {
       const updatedStudents = [...students, ...newStudents];
       setStudents(updatedStudents);
-      updateStudentsStorage(updatedStudents);
       toast.success(`Successfully added ${newStudents.length} students`);
     }
   };
+
 
   const resetFileInput = () => {
     if (fileInputRef.current) {
@@ -258,11 +295,11 @@ const StudentsPage = () => {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="rollNumber" className="text-right">Roll Number</Label>
+                  <Label htmlFor="id" className="text-right">Roll Number</Label>
                   <Input
-                    id="rollNumber"
-                    value={formData.rollNumber}
-                    onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })}
+                    id="id"
+                    value={formData.id}
+                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                     className="col-span-3"
                   />
                 </div>
@@ -310,8 +347,8 @@ const StudentsPage = () => {
             </DialogContent>
           </Dialog>
 
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex items-center gap-2"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -348,7 +385,7 @@ const StudentsPage = () => {
               <TableBody>
                 {students.map((student) => (
                   <TableRow key={student.id}>
-                    <TableCell>{student.rollNumber}</TableCell>
+                    <TableCell>{student.id}</TableCell>
                     <TableCell>{student.name}</TableCell>
                     <TableCell>{student.email}</TableCell>
                     <TableCell>{student.department}</TableCell>
@@ -393,7 +430,7 @@ const StudentsPage = () => {
             </DialogHeader>
             {selectedStudent && (
               <div className="grid gap-4 py-4">
-                <div><strong>Roll Number:</strong> {selectedStudent.rollNumber}</div>
+                <div><strong>Roll Number:</strong> {selectedStudent.id}</div>
                 <div><strong>Name:</strong> {selectedStudent.name}</div>
                 <div><strong>Email:</strong> {selectedStudent.email}</div>
                 <div><strong>Department:</strong> {selectedStudent.department}</div>
@@ -413,11 +450,11 @@ const StudentsPage = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-rollNumber" className="text-right">Roll Number</Label>
+                <Label htmlFor="edit-id" className="text-right">Roll Number</Label>
                 <Input
-                  id="edit-rollNumber"
-                  value={formData.rollNumber}
-                  onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })}
+                  id="edit-id"
+                  value={formData.id}
+                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                   className="col-span-3"
                 />
               </div>

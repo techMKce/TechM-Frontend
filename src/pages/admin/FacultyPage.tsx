@@ -9,10 +9,10 @@ import AdminNavbar from "@/components/AdminNavbar";
 import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
+import api from "@/service/api";
 
 interface Faculty {
   id: string;
-  facultyId: string;
   name: string;
   email: string;
   department: string;
@@ -27,30 +27,60 @@ const FacultyPage = () => {
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   const [formData, setFormData] = useState({
-    facultyId: "",
+    id: "",
     name: "",
     email: "",
     department: ""
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load faculty from localStorage on component mount
   useEffect(() => {
-    const savedFaculty = JSON.parse(localStorage.getItem('faculty') || '[]');
-    setFaculties(savedFaculty);
+    getFaculties();
   }, []);
 
-  // Save to localStorage and dispatch event when faculty change
-  const updateFacultyStorage = (updatedFaculty: Faculty[]) => {
-    localStorage.setItem('faculty', JSON.stringify(updatedFaculty));
-    window.dispatchEvent(new CustomEvent('facultyUpdated'));
+  const getFaculties = async () => {
+    try {
+      const res = await api.get('/auth/faculty/all');
+      console.log("Fetch faculties response:", res);
+
+      const facultyData = res.data?.faculties ?? res.data;
+
+      if (!Array.isArray(facultyData)) {
+        throw new Error("Invalid data format received from API");
+      }
+
+      setFaculties(facultyData);
+    } catch (error: any) {
+      console.error("Failed to fetch faculty data:", error.message || error);
+      toast.error("Failed to fetch faculty data");
+    }
   };
 
-  const handleSubmit = () => {
-    if (!formData.facultyId || !formData.name || !formData.email || !formData.department) {
+
+
+
+
+  const handleSubmit = async () => {
+    if (!formData.id || !formData.name || !formData.email || !formData.department) {
       toast.error("Please fill all fields");
       return;
     }
+
+    const alreadyExists = faculties.some(
+      (f) => f.id === formData.id || f.email === formData.email
+    );
+    if (alreadyExists) {
+      toast.error("Faculty with the same ID or Email already exists");
+      return;
+    }
+
+
+    const res = await api.post('/auth/signup', formData, {
+      params: {
+        for: "FACULTY"
+      }
+    })
+    console.log(res);
 
     const newFaculty: Faculty = {
       id: Date.now().toString(),
@@ -58,35 +88,42 @@ const FacultyPage = () => {
       password: "faculty"
     };
 
-    const updatedFaculty = [...faculties, newFaculty];
-    setFaculties(updatedFaculty);
-    updateFacultyStorage(updatedFaculty);
-    setFormData({ facultyId: "", name: "", email: "", department: "" });
+    await getFaculties();
+    setFormData({ id: "", name: "", email: "", department: "" });
     setIsAddDialogOpen(false);
     toast.success("Faculty added successfully");
   };
 
-  const handleEdit = () => {
-    if (!selectedFaculty) return;
+  const handleEdit = async () => {
+    try {
+      if (!selectedFaculty) return;
 
-    const updatedFaculty = faculties.map(faculty => 
-      faculty.id === selectedFaculty.id 
-        ? { ...selectedFaculty, ...formData }
-        : faculty
-    );
-    setFaculties(updatedFaculty);
-    updateFacultyStorage(updatedFaculty);
-    setIsEditDialogOpen(false);
-    setSelectedFaculty(null);
-    setFormData({ facultyId: "", name: "", email: "", department: "" });
-    toast.success("Faculty updated successfully");
+      await api.put(`/faculty/${selectedFaculty.id}`, formData);
+      toast.success("Faculty updated successfully");
+
+      await getFaculties(); // refresh from backend
+      setSelectedFaculty(null);
+      setFormData({
+        name: "",
+        id: "",
+        email: "",
+        department: "",
+      });
+      setIsEditDialogOpen(false); // ✅ Add this to close the dialog if needed
+    } catch (error) {
+      console.error("Error updating faculty:", error);
+      toast.error("Error updating faculty");
+    }
   };
 
-  const handleDelete = (facultyId: string) => {
-    const updatedFaculty = faculties.filter(faculty => faculty.id !== facultyId);
-    setFaculties(updatedFaculty);
-    updateFacultyStorage(updatedFaculty);
+
+
+  const handleDelete = async (id: string) => {
+    const updatedFaculty = faculties.filter(faculty => faculty.id !== id);
+    await api.delete(`/faculty/${id}`);
     toast.success("Faculty deleted successfully");
+    await getFaculties();
+
   };
 
   const handleView = (faculty: Faculty) => {
@@ -97,7 +134,7 @@ const FacultyPage = () => {
   const handleEditClick = (faculty: Faculty) => {
     setSelectedFaculty(faculty);
     setFormData({
-      facultyId: faculty.facultyId,
+      id: faculty.id,
       name: faculty.name,
       email: faculty.email,
       department: faculty.department,
@@ -105,8 +142,8 @@ const FacultyPage = () => {
     setIsEditDialogOpen(true);
   };
 
-  const togglePasswordVisibility = (facultyId: string) => {
-    setShowPassword(prev => ({ ...prev, [facultyId]: !prev[facultyId] }));
+  const togglePasswordVisibility = (id: string) => {
+    setShowPassword(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,7 +170,8 @@ const FacultyPage = () => {
     reader.onload = (e) => {
       const csv = e.target?.result as string;
       const lines = csv.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z]/g, ''));
+      // const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
 
       const data: any[][] = [];
       for (let i = 1; i < lines.length; i++) {
@@ -175,9 +213,45 @@ const FacultyPage = () => {
     resetFileInput();
   };
 
-  const processFileData = (headers: string[], data: any[][]) => {
-    // Expected headers: facultyid, name, email, department, mobile
-    const requiredHeaders = ['facultyid', 'name', 'email', 'department'];
+  const bulkSignupFaculty = async (facultiesToSignup: Faculty[]) => {
+    try {
+      const signupPromises = facultiesToSignup.map(faculty => {
+        const payload = {
+          id: faculty.id,
+          name: faculty.name,
+          email: faculty.email,
+          department: faculty.department,
+        };
+        return api.post('/auth/signup', payload, {
+          params: { for: 'FACULTY' },
+        });
+      });
+
+      const results = await Promise.allSettled(signupPromises);
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`Faculty ${facultiesToSignup[index].email} failed:`, result.reason);
+        }
+      });
+
+      const successCount = results.filter(result => result.status === "fulfilled").length;
+      const failureCount = results.length - successCount;
+
+      if (failureCount > 0) {
+        toast.warning(`${failureCount} signup(s) failed. ${successCount} succeeded.`);
+      } else {
+        toast.success("All faculty signed up successfully.");
+      }
+    } catch (error) {
+      toast.error("Bulk signup failed.");
+      console.error("Bulk signup error:", error);
+    }
+  };
+
+
+  const processFileData = async (headers: string[], data: any[][]) => {
+    // Expected headers: id, name, email, department, mobile
+    const requiredHeaders = ['id', 'name', 'email', 'department'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
     if (missingHeaders.length > 0) {
@@ -201,14 +275,14 @@ const FacultyPage = () => {
         facultyData[header] = row[index];
       });
 
-      if (!facultyData.facultyid || !facultyData.name || !facultyData.email || !facultyData.department) {
+      if (!facultyData.id || !facultyData.name || !facultyData.email || !facultyData.department) {
         toast.error(`Row ${i + 1} has missing required data`);
         return;
       }
 
       newFaculties.push({
-        id: Date.now().toString() + i,
-        facultyId: facultyData.facultyid,
+        // id: Date.now().toString() + i,
+        id: facultyData.id,
         name: facultyData.name,
         email: facultyData.email,
         department: facultyData.department,
@@ -217,11 +291,12 @@ const FacultyPage = () => {
     }
 
     if (newFaculties.length > 0) {
-      const updatedFaculty = [...faculties, ...newFaculties];
-      setFaculties(updatedFaculty);
-      updateFacultyStorage(updatedFaculty);
+      await bulkSignupFaculty(newFaculties);
+
+      await getFaculties();
       toast.success(`Successfully added ${newFaculties.length} faculty members`);
     }
+
   };
 
   const resetFileInput = () => {
@@ -254,11 +329,11 @@ const FacultyPage = () => {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="facultyId" className="text-right">Faculty ID</Label>
+                  <Label htmlFor="id" className="text-right">Faculty ID</Label>
                   <Input
-                    id="facultyId"
-                    value={formData.facultyId}
-                    onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
+                    id="id"
+                    value={formData.id}
+                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                     className="col-span-3"
                   />
                 </div>
@@ -297,8 +372,8 @@ const FacultyPage = () => {
             </DialogContent>
           </Dialog>
 
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex items-center gap-2"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -333,7 +408,7 @@ const FacultyPage = () => {
               <TableBody>
                 {faculties.map((faculty) => (
                   <TableRow key={faculty.id}>
-                    <TableCell>{faculty.facultyId}</TableCell>
+                    <TableCell>{faculty.id}</TableCell>
                     <TableCell>{faculty.name}</TableCell>
                     <TableCell>{faculty.email}</TableCell>
                     <TableCell>{faculty.department}</TableCell>
@@ -365,7 +440,7 @@ const FacultyPage = () => {
             </DialogHeader>
             {selectedFaculty && (
               <div className="grid gap-4 py-4">
-                <div><strong>Faculty ID:</strong> {selectedFaculty.facultyId}</div>
+                <div><strong>Faculty ID:</strong> {selectedFaculty.id}</div>
                 <div><strong>Name:</strong> {selectedFaculty.name}</div>
                 <div><strong>Email:</strong> {selectedFaculty.email}</div>
                 <div><strong>Department:</strong> {selectedFaculty.department}</div>
@@ -383,11 +458,11 @@ const FacultyPage = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-facultyId" className="text-right">Faculty ID</Label>
+                <Label htmlFor="edit-id" className="text-right">Faculty ID</Label>
                 <Input
-                  id="edit-facultyId"
-                  value={formData.facultyId}
-                  onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
+                  id="edit-id"
+                  value={formData.id}
+                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                   className="col-span-3"
                 />
               </div>

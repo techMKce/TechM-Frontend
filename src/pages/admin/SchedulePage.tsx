@@ -1,16 +1,19 @@
-
 import AdminNavbar from "@/components/AdminNavbar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarIcon, BookOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-
+import api from "../../service/api"; // Adjust the import path as necessary
+import axios from 'axios';
 interface Course {
   id: string;
   courseId: string;
@@ -26,9 +29,8 @@ interface ScheduleEntry {
   courseId: string;
   courseName: string;
   facultyName: string;
-  date: string;
-  timeSlot: string;
-  room: string;
+  fromDate: string;
+  toDate: string;
 }
 
 const SchedulePage = () => {
@@ -40,94 +42,49 @@ const SchedulePage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  // Dummy data for demonstration
-  const dummyCourses: Course[] = [
-    {
-      id: "1",
-      courseId: "CS101",
-      name: "Introduction to Computer Science",
-      description: "Basic programming concepts and computer science fundamentals",
-      facultyId: "f1",
-      facultyName: "Dr. John Smith",
-      isEnabled: true
-    },
-    {
-      id: "2",
-      courseId: "MATH201",
-      name: "Calculus II",
-      description: "Advanced calculus concepts including integration and series",
-      facultyId: "f2",
-      facultyName: "Prof. Sarah Johnson",
-      isEnabled: true
-    },
-    {
-      id: "3",
-      courseId: "PHYS101",
-      name: "General Physics",
-      description: "Introduction to mechanics, waves, and thermodynamics",
-      facultyId: "f3",
-      facultyName: "Dr. Michael Brown",
-      isEnabled: true
-    },
-    {
-      id: "4",
-      courseId: "ENG102",
-      name: "English Composition",
-      description: "Writing skills and literature analysis",
-      facultyId: "f4",
-      facultyName: "Prof. Emily Davis",
-      isEnabled: true
-    },
-    {
-      id: "5",
-      courseId: "CHEM101",
-      name: "General Chemistry",
-      description: "Basic chemical principles and laboratory techniques",
-      facultyId: "f5",
-      facultyName: "Dr. Robert Wilson",
-      isEnabled: true
-    }
-  ];
-
-  const timeSlots = [
-    "9:00 AM - 10:30 AM",
-    "10:45 AM - 12:15 PM",
-    "1:15 PM - 2:45 PM",
-    "3:00 PM - 4:30 PM",
-    "4:45 PM - 6:15 PM"
-  ];
-
-  const rooms = ["Room A101", "Room B201", "Room C301", "Lab D401", "Hall E501"];
-
   useEffect(() => {
-    // Load courses from localStorage or use dummy data
-    const savedCourses = JSON.parse(localStorage.getItem('courses') || '[]');
-    if (savedCourses.length > 0) {
-      const enabledCourses = savedCourses.filter((course: Course) => course.isEnabled);
-      setCourses(enabledCourses);
-    } else {
-      // Use dummy data if no courses in localStorage
-      setCourses(dummyCourses);
-      localStorage.setItem('courses', JSON.stringify(dummyCourses));
-    }
+    const fetchCourses = async () => {
+      try {
+        const response = await api.get("/api/course/active");
+        const data = response.data;
 
-    // Load previously generated schedule but don't show success message
-    const savedSchedule = JSON.parse(localStorage.getItem('generatedSchedule') || '[]');
+        if (!Array.isArray(data)) {
+          console.error("Expected array but got:", data);
+          setCourses([]);
+          return;
+        }
+
+        const mappedCourses: Course[] = data.map((item: any) => ({
+          id: String(item.course_id),
+          courseId: item.courseTitle,
+          name: item.courseTitle,
+          description: item.courseDescription,
+          facultyId: "",
+          facultyName: item.instructorName,
+          isEnabled: item.isActive,
+        }));
+
+        const enabledCourses = mappedCourses.filter((course) => course.isEnabled);
+        setCourses(enabledCourses);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        setCourses([]);
+      }
+    };
+
+    fetchCourses();
+
+    const savedSchedule = JSON.parse(localStorage.getItem("generatedSchedule") || "[]");
     setGeneratedSchedule(savedSchedule);
     setShowSuccessMessage(false);
   }, []);
 
   const handleCourseSelection = (courseId: string, checked: boolean) => {
     if (checked) {
-      setSelectedCourses(prev => [...prev, courseId]);
+      setSelectedCourses((prev) => [...prev, courseId]);
     } else {
-      setSelectedCourses(prev => prev.filter(id => id !== courseId));
+      setSelectedCourses((prev) => prev.filter((id) => id !== courseId));
     }
-  };
-
-  const generateSchedule = () => {
-    // Just mark as generated, no actual schedule creation
-    return true;
   };
 
   const handleGenerate = async () => {
@@ -143,20 +100,60 @@ const SchedulePage = () => {
       alert("From date must be before to date");
       return;
     }
-    
+
     setIsGenerating(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    generateSchedule();
-    
-    // Mark as generated and show success message
-    setGeneratedSchedule([{ id: '1', courseId: '', courseName: '', facultyName: '', date: '', timeSlot: '', room: '' }]);
-    setShowSuccessMessage(true);
-    
-    setIsGenerating(false);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const schedule = selectedCourses.map((courseId, index) => {
+      const course = courses.find((c) => c.id === courseId);
+      return {
+        id: (index + 1).toString(),
+        courseId: course?.id || "",
+        courseName: course?.name || "",
+        facultyName: course?.facultyName || "",
+        fromDate: fromDate.toISOString().split("T")[0],
+        toDate: toDate.toISOString().split("T")[0],
+      };
+    });
+
+    const formData = new FormData();
+    const courseArray = schedule.map(entry => ({
+      courseId: entry.courseId,
+      name: entry.courseName,
+    }));
+
+    const duration = {
+      startDate: fromDate.toISOString().split("T")[0],
+      endDate: toDate.toISOString().split("T")[0],
+    };
+
+    formData.append("courses", JSON.stringify(courseArray));
+    formData.append("duration", JSON.stringify(duration));
+    alert("Data sent:\n" +
+      "Courses: " + JSON.stringify(courseArray, null, 2) + "\n" +
+      "Duration: " + JSON.stringify(duration, null, 2));
+
+    try {
+      const response = await axios.post('http://192.168.67.11:8080/api/postexam', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      console.log('Upload successful:', response.data);
+      setGeneratedSchedule(response.data);
+      localStorage.setItem('generatedSchedule', JSON.stringify(response.data));
+      setShowSuccessMessage(true);
+    } catch (error) {
+      console.error('Upload error', error);
+      alert('Failed to upload schedule.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
+  
+
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -168,40 +165,40 @@ const SchedulePage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Available Courses Section */}
+          {/* Available Courses */}
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5" />
                 Available Courses
               </CardTitle>
-              <CardDescription>
-                Select a course to create schedule
-              </CardDescription>
+              <CardDescription>Select a course to create schedule</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <label className="text-sm font-medium">Select Courses</label>
-                
                 {courses.length === 0 ? (
-                  <div className="text-center text-gray-500 py-4">
-                    No courses available
-                  </div>
+                  <div className="text-center text-gray-500 py-4">No courses available</div>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {courses.map((course) => (
-                      <div key={course.id} className="flex items-center space-x-3 p-2 border rounded-lg hover:bg-gray-50">
+                      <div
+                        key={course.id}
+                        className="flex items-center space-x-3 p-2 border rounded-lg hover:bg-gray-50"
+                      >
                         <Checkbox
                           id={course.id}
                           checked={selectedCourses.includes(course.id)}
-                          onCheckedChange={(checked) => handleCourseSelection(course.id, checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleCourseSelection(course.id, checked as boolean)
+                          }
                         />
-                        <label
-                          htmlFor={course.id}
-                          className="flex-1 cursor-pointer text-sm"
-                        >
+                        <label htmlFor={course.id} className="flex-1 cursor-pointer text-sm">
                           <div className="font-medium text-gray-900">
-                            <span className="text-blue-600 font-semibold">{course.courseId}</span> - {course.name}
+                            <span className="text-blue-600 font-semibold">
+                              {course.courseId}
+                            </span>{" "}
+                            - {course.name}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             Faculty: {course.facultyName}
@@ -212,18 +209,18 @@ const SchedulePage = () => {
                   </div>
                 )}
               </div>
-              
+
               {selectedCourses.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-900">
                     Selected Courses ({selectedCourses.length})
                   </h4>
                   <div className="text-sm text-blue-700 mt-2 space-y-1">
-                    {selectedCourses.map(courseId => {
-                      const course = courses.find(c => c.id === courseId);
+                    {selectedCourses.map((courseId) => {
+                      const course = courses.find((c) => c.id === courseId);
                       return course ? (
-                        <div key={courseId} className="flex justify-between items-center">
-                          <span>{course.courseId} - {course.name}</span>
+                        <div key={courseId}>
+                          {course.courseId} - {course.name}
                         </div>
                       ) : null;
                     })}
@@ -233,19 +230,18 @@ const SchedulePage = () => {
             </CardContent>
           </Card>
 
-          {/* Date Selection Section */}
+          {/* Schedule Period */}
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5" />
                 Schedule Period
               </CardTitle>
-              <CardDescription>
-                Select the date range for the schedule
-              </CardDescription>
+              <CardDescription>Select the date range for the schedule</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* From Date */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">From Date</label>
                   <Popover>
@@ -262,16 +258,12 @@ const SchedulePage = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={fromDate}
-                        onSelect={setFromDate}
-                        initialFocus
-                      />
+                      <Calendar mode="single" selected={fromDate} onSelect={setFromDate} initialFocus />
                     </PopoverContent>
                   </Popover>
                 </div>
 
+                {/* To Date */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">To Date</label>
                   <Popover>
@@ -293,13 +285,14 @@ const SchedulePage = () => {
                         selected={toDate}
                         onSelect={setToDate}
                         initialFocus
-                        disabled={(date) => fromDate ? date < fromDate : false}
+                        disabled={(date) => (fromDate ? date < fromDate : false)}
                       />
                     </PopoverContent>
                   </Popover>
                 </div>
               </div>
 
+              {/* Duration Display */}
               {fromDate && toDate && (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg">
                   <h4 className="font-medium text-green-900">Selected Period</h4>
@@ -314,17 +307,15 @@ const SchedulePage = () => {
             </CardContent>
           </Card>
 
-          {/* Generate Section */}
+          {/* Generate Button */}
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle>Generate Schedule</CardTitle>
-              <CardDescription>
-                Create the schedule for Exams
-              </CardDescription>
+              <CardDescription>Create the schedule for Exams</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button 
+                <Button
                   onClick={handleGenerate}
                   className="w-full"
                   size="lg"
@@ -333,9 +324,9 @@ const SchedulePage = () => {
                 >
                   {isGenerating ? "Generating..." : generatedSchedule.length > 0 ? "Generated ✓" : "Generate Schedule"}
                 </Button>
-                
+
                 <div className="text-xs text-gray-500 space-y-1">
-                  <p>• Select one or more courses from available courses</p>
+                  <p>• Select one or more courses</p>
                   <p>• Choose start and end dates</p>
                   <p>• Click Generate to create schedule</p>
                 </div>
@@ -354,13 +345,12 @@ const SchedulePage = () => {
           </Card>
         </div>
 
+        {/* Success Message */}
         {showSuccessMessage && (
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <p className="text-sm text-green-800 font-medium">
-                      ✓ Schedule Generated Successfully!
-                    </p>
-                  </div>
-                )}
+          <div className="p-3 mt-6 bg-green-50 rounded-lg">
+            <p className="text-sm text-green-800 font-medium">✓ Schedule Generated Successfully!</p>
+          </div>
+        )}
       </div>
     </div>
   );

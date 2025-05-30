@@ -134,7 +134,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-
+import api from '../../../service/api'
 const API_BASE = "https://assignmentservice-2a8o.onrender.com/api/assignments";
 
 interface Assignment {
@@ -158,7 +158,7 @@ const EditAssignmentPage = () => {
   useEffect(() => {
     const fetchAssignment = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/id`, {
+        const res = await api(`/id`, {
           params: { assignmentId },
         });
         const found: Assignment = res.data.assignment;
