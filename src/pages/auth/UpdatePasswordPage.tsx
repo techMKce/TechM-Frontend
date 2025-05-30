@@ -3,28 +3,27 @@ import { Eye, EyeOff, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import api from "@/service/api";
 
 const ChangePassword = () => {
-  const [email, setEmail] = useState("");
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState(searchParams.get("email") || "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const navigate = useNavigate();
 
-  const handleChangePassword = () => {
-    if (!email || !newPassword || !confirmPassword) {
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
       toast.error("Please fill in all fields");
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (newPassword.length < 6) {
       toast.error("Password must be at least 8 characters long");
       return;
     }
@@ -34,17 +33,17 @@ const ChangePassword = () => {
       return;
     }
 
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    const userIndex = students.findIndex((user: any) => user.email === email);
+    const response = await api.post("/auth/updatePassword", {
+      email,
+      newPassword,
+    });
 
-    if (userIndex === -1) {
-      toast.error("Email not found");
+    if (response.data === false) {
+      toast.error("Failed to update password. Please try again.");
       return;
     }
-
-    students[userIndex].password = newPassword;
-    localStorage.setItem("students", JSON.stringify(students));
     toast.success("Password updated successfully");
+    navigate("/login");
   };
 
   return (
@@ -53,7 +52,9 @@ const ChangePassword = () => {
         <CardHeader className="space-y-1">
           <div className="flex items-center space-x-2 ">
             <Lock className="w-5 h-5" />
-            <CardTitle className="text-2xl font-bold">Change Password</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Change Password
+            </CardTitle>
           </div>
         </CardHeader>
 
@@ -61,13 +62,7 @@ const ChangePassword = () => {
           {/* Email */}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
+            <Input id="email" type="email" value={email} disabled />
           </div>
 
           {/* New Password */}

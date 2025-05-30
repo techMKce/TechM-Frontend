@@ -7,27 +7,29 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-const StudentLogin = () => {
+const Login = () => {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       toast.error("Please fill all fields");
       return;
     }
+    setIsLoading(true);
 
-    const students = JSON.parse(localStorage.getItem('students') || '[]');
-    const user = students.find((s: any) => s.email === email && s.password === password);
-
-    if (user) {
-      localStorage.setItem('currentUser', JSON.stringify({ ...user, role: 'student' }));
-      toast.success("Login successful");
-      navigate("/student/dashboard");
-    } else {
-      toast.error("Invalid email or password");
+    try{
+      await signIn({ email, password });
+      navigate("/");
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,8 +40,8 @@ const StudentLogin = () => {
           <div className="mx-auto w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center mb-4">
             <User className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">Student Login</CardTitle>
-          <CardDescription>Enter your credentials to access the student portal</CardDescription>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>Enter your credentials to access the portal</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -68,15 +70,8 @@ const StudentLogin = () => {
             </div>
 
           </div>
-          <Button onClick={handleLogin} className="w-full">
-            Login
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate("/")} 
-            className="w-full"
-          >
-            Back to Home
+          <Button onClick={handleLogin} className="w-full" disabled={isLoading}>
+            {isLoading ? "Logging in..." : "Login"}
           </Button>
         </CardContent>
       </Card>
@@ -84,4 +79,4 @@ const StudentLogin = () => {
   );
 };
 
-export default StudentLogin;
+export default Login;
