@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AdminNavbarProps {
   currentPage?: string;
@@ -17,6 +18,7 @@ interface AdminNavbarProps {
 
 const AdminNavbar = ({ currentPage }: AdminNavbarProps) => {
   const navigate = useNavigate();
+  const {signOut, isAuthenticated} = useAuth();
 
   const menuItems = [
     { label: "Dashboard", path: "/admin/dashboard" },
@@ -28,8 +30,12 @@ const AdminNavbar = ({ currentPage }: AdminNavbarProps) => {
   ];
 
   const handleLogout = () => {
-    navigate("/");
+    signOut();
+    // navigate("/");
   };
+    // if (!isAuthenticated) {
+    //   return <Navigate to="/login" />;
+    // }
 
   return (
     <nav className="bg-white shadow-sm border-b">
