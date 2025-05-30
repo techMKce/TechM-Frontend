@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { FileText, Calendar, Download, Eye } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import axios from "axios";
-
+import api from '../../../service/api';
 interface StudentSubmission {
   id: number;
   userId: string;
@@ -55,7 +55,7 @@ const GradeStudentSubmissionPage = () => {
       }
 
       try {
-        const submissionRes = await axios.get("https://assignmentservice-2a8o.onrender.com/api/submissions/id", {
+        const submissionRes = await api("/submissions/id", {
           params: { submissionId },
         });
 
@@ -77,7 +77,7 @@ const GradeStudentSubmissionPage = () => {
           toast.error("Failed to load submission details.");
         }
 
-        const gradingRes = await axios.get("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+        const gradingRes = await api("/gradings", {
           params: { submissionId, assignmentId },
         });
 
@@ -120,26 +120,43 @@ const GradeStudentSubmissionPage = () => {
     if (!confirmDelete) return;
 
     try {
-      const response = await fetch("https://assignmentservice-2a8o.onrender.com/api/gradings", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // const response = await fetch("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+      //   method: "DELETE",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     studentRollNumber: submission.studentRollNumber,
+      //     assignmentId,
+      //   }),
+      // });
+
+      // const data = await response.json();
+
+      // if (response.ok) {
+      //   toast.success("Grade deleted. You can now regrade.");
+      //   setGradingData(null);
+      //   setIsEditing(true);
+      //   setGrade("");
+      //   setFeedback("");
+      // } else {
+      //   toast.error(data.message || "Failed to delete grade");
+      // }
+      // cause axios wont support body and response.json()
+      const response = await api.delete("/gradings", {
+        data: {
           studentRollNumber: submission.studentRollNumber,
           assignmentId,
-        }),
+        },
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success("Grade deleted. You can now regrade.");
-        setGradingData(null);
-        setIsEditing(true);
-        setGrade("");
-        setFeedback("");
-      } else {
-        toast.error(data.message || "Failed to delete grade");
-      }
+          if (response.status >= 200 && response.status < 300) {
+            toast.success("Grade deleted. You can now regrade.");
+            setGradingData(null);
+            setIsEditing(true);
+            setGrade("");
+            setFeedback("");
+          } else {
+            toast.error(response.data.message || "Failed to delete grade");
+          }
     } catch (error) {
       toast.error("Network error: Could not delete grade");
     }
@@ -165,15 +182,9 @@ const GradeStudentSubmissionPage = () => {
     };
 
     try {
-      const response = await fetch("https://assignmentservice-2a8o.onrender.com/api/gradings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await api.post("/gradings", requestBody);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         toast.success(
           `Grade ${isEditing || isGraded ? "updated" : "submitted"} successfully.`
         );
@@ -181,7 +192,7 @@ const GradeStudentSubmissionPage = () => {
         setIsEditing(false);
         navigate(`/faculty/assignments/${assignmentId}/grade`);
       } else {
-        toast.error(data.message || "Failed to submit grade");
+        toast.error(response.data?.message || "Failed to submit grade");
       }
     } catch (error) {
       toast.error("Network error: Could not submit grade");
@@ -196,7 +207,7 @@ const GradeStudentSubmissionPage = () => {
 
     try {
       const link = document.createElement("a");
-      link.href = `https://assignmentservice-2a8o.onrender.com/api/submissions/download?submissionId=${submissionId}`;
+      link.href = `/submissions/download?submissionId=${submissionId}`;
       link.setAttribute("download", "");
       document.body.appendChild(link);
       link.click();
@@ -225,7 +236,7 @@ const GradeStudentSubmissionPage = () => {
     }
 
     try {
-      const response = await axios.get("https://assignmentservice-2a8o.onrender.com/api/submissions/download", {
+      const response = await api("/submissions/download", {
         params: { submissionId },
         responseType: "blob",
       });
@@ -235,7 +246,7 @@ const GradeStudentSubmissionPage = () => {
 
       // Check if the response is text (possible base64)
       if (contentType.includes('text') || contentType.includes('json')) {
-        const textResponse = await axios.get("https://assignmentservice-2a8o.onrender.com/api/submissions/download", {
+        const textResponse = await api("/submissions/download", {
           params: { submissionId },
           responseType: "text",
         });

@@ -13,7 +13,7 @@ import {
   Trash2,
   Edit,
 } from "lucide-react";
-
+import api from "../../../service/api";
 interface Assignment {
   id: string;
   title: string;
@@ -36,7 +36,7 @@ const AssignmentsPage = () => {
     const fetchAssignments = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${API_BASE}/assignments/all`);
+        const response = await api.get(`/assignments/all`);
         console.log("Raw assignments from API:", response.data.assignments);
 
         const fetchedAssignments: Assignment[] = (response.data.assignments || []).map((a: any) => ({

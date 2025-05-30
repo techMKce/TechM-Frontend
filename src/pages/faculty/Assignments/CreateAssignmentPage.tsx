@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Upload, Link as LinkIcon, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import api from "@/service/api";
 
 const CreateAssignmentPage = () => {
   const navigate = useNavigate();
@@ -64,14 +65,15 @@ const CreateAssignmentPage = () => {
         formPayload.append("file", file);
       });
 
-      const response = await fetch("https://assignmentservice-2a8o.onrender.com/api/assignments", {
-        method: "POST",
-        body: formPayload,
-      });
+      const response = await api.post("/assignments", formPayload);
 
-      if (!response.ok) {
-        throw new Error("Failed to create assignment");
-      }
+
+      if (response.status >= 200 && response.status < 300) {
+          console.log("Success:", response.data);
+        } else {
+          throw new Error("Unexpected response status: " + response.status);
+        }
+
 
       toast.success("Assignment created successfully!");
       setTimeout(() => {

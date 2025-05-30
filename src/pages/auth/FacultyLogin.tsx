@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { GraduationCap } from "lucide-react";
+import { User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-const FacultyLogin = () => {
+const StudentLogin = () => {
+  const { signIn, isAuthenticated, authProfile } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -18,28 +20,34 @@ const FacultyLogin = () => {
       toast.error("Please fill all fields");
       return;
     }
+    const response = signIn({
+      email: email,
+      password: password
+    })
 
-    const faculty = JSON.parse(localStorage.getItem('faculty') || '[]');
-    const user = faculty.find((f: any) => f.email === email && f.password === password);
 
-    if (user) {
-      localStorage.setItem('currentUser', JSON.stringify({ ...user, role: 'faculty' }));
+
+    const students = JSON.parse(localStorage.getItem('students') || '[]');
+    const user = authProfile;
+
+    if (isAuthenticated) {
+      localStorage.setItem('currentUser', JSON.stringify({ ...user, role: 'student' }));
       toast.success("Login successful");
-      navigate("/faculty/dashboard");
+      navigate("/student/dashboard");
     } else {
       toast.error("Invalid email or password");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mb-4">
-            <GraduationCap className="h-8 w-8 text-white" />
+          <div className="mx-auto w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center mb-4">
+            <User className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">Faculty Login</CardTitle>
-          <CardDescription>Enter your credentials to access the faculty portal</CardDescription>
+          <CardTitle className="text-2xl">Student Login</CardTitle>
+          <CardDescription>Enter your credentials to access the student portal</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -53,10 +61,7 @@ const FacultyLogin = () => {
             />
           </div>
           <div className="space-y-2">
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Label htmlFor="password">Password</Label>
-              <p style={{cursor:'pointer'}} onClick={()=>navigate('/forgot-password')}>Forgot Password?</p>
-            </div>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -68,9 +73,9 @@ const FacultyLogin = () => {
           <Button onClick={handleLogin} className="w-full">
             Login
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate("/")} 
+          <Button
+            variant="outline"
+            onClick={() => navigate("/")}
             className="w-full"
           >
             Back to Home
@@ -81,4 +86,4 @@ const FacultyLogin = () => {
   );
 };
 
-export default FacultyLogin;
+export default StudentLogin;
