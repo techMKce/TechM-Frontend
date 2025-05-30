@@ -13,10 +13,10 @@ export default function ViewProfile() {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (!user.id) {
-      navigate('/');
-      return;
-    }
+    // if (!user.id) {
+    //   navigate('/');
+    //   return;
+    // }
     setCurrentUser(user);
   }, [navigate]);
 

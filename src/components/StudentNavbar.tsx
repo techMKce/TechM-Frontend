@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Home, BookOpen, Users, Book } from "lucide-react";
+import { User, LogOut, Home, BookOpen, Users, Book, Signpost } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface StudentNavbarProps {
   currentPage?: string;
@@ -17,6 +18,7 @@ interface StudentNavbarProps {
 
 const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   const navigate = useNavigate();
+  const {signOut, isAuthenticated } = useAuth();
   const [currentUser, setCurrentUser] = useState(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
     console.log('Initial user data:', user);
@@ -48,9 +50,13 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   }, [currentUser]);
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    navigate("/");
+    signOut();
+    // navigate("/login");
   };
+
+    // if (!isAuthenticated) {
+    //   return <Navigate to="/login" />;
+    // }
 
   const menuItems = [
     { label: "Dashboard", path: "/student/dashboard", icon: Home },

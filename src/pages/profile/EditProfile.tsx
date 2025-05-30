@@ -21,10 +21,10 @@ export default function EditProfile() {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (!user.id) {
-      navigate('/');
-      return;
-    }
+    // if (!user.id) {
+    //   navigate('/');
+    //   return;
+    // }
     setCurrentUser(user);
     setFormData(user);
   }, [navigate]);

@@ -6,26 +6,30 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Mail } from "lucide-react";
+import api from "@/service/api";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const navigate = useNavigate();
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (!email) {
       toast.error("Please enter your email");
       return;
     }
+    setLoading(true);
 
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    const exists = students.some((s: any) => s.email === email);
-
-    if (exists) {
+    const response = await api.post("/auth/forgotPassword", { email });
+    if (response.data == true) {
+      setSent(true);
       toast.success("Password reset link sent (mocked)");
       // In real case, trigger backend or mail service
     } else {
       toast.error("No student found with that email");
     }
+    setLoading(false);
   };
 
   return (
@@ -52,8 +56,8 @@ const ForgotPassword = () => {
               />
             </div>
           </div>
-          <Button onClick={handleProceed} className="w-full bg-primary text-white hover:bg-primary/90">
-            Proceed
+          <Button onClick={handleProceed} className="w-full bg-primary text-white hover:bg-primary/90" disabled={loading || sent}>
+            {loading ? "Sending..." : sent ? "Sent Reset Link" : "Proceed"}
           </Button>
           <p className="text-center text-sm text-gray-600">
             Remember your password?{" "}

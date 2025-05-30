@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,54 +9,79 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Home, Users, BookOpen, UserCheck, ListTodoIcon } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Home,
+  Users,
+  BookOpen,
+  UserCheck,
+  ListTodoIcon,
+} from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FacultyNavbarProps {
   currentPage?: string;
 }
 
 const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
+  const { signOut,isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('currentUser') || '{}'));
+  const [currentUser, setCurrentUser] = useState(() =>
+    JSON.parse(localStorage.getItem("currentUser") || "{}")
+  );
 
   // Listen for profile updates
   useEffect(() => {
     const handleStorageChange = () => {
-      const updatedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const updatedUser = JSON.parse(
+        localStorage.getItem("currentUser") || "{}"
+      );
       setCurrentUser(updatedUser);
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     // Also listen for manual updates within the same tab
     const interval = setInterval(() => {
-      const updatedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const updatedUser = JSON.parse(
+        localStorage.getItem("currentUser") || "{}"
+      );
       if (JSON.stringify(updatedUser) !== JSON.stringify(currentUser)) {
         setCurrentUser(updatedUser);
       }
     }, 500);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
       clearInterval(interval);
     };
   }, [currentUser]);
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    toast.success("Logged out successfully");
-    navigate("/");
+    signOut();
+    // navigate("/");
   };
 
   const menuItems = [
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
     { label: "Students", path: "/faculty/students", icon: Users },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
-    { label: "Assignments", path: "/faculty/assignments", icon: ListTodoIcon }
+    { label: "Assignments", path: "/faculty/assignments", icon: ListTodoIcon },
   ];
 
-  const initials = currentUser.name ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'F';
+  const initials = currentUser.name
+    ? currentUser.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+    : "F";
+
+  // if (!isAuthenticated) {
+  //   return <Navigate to="/login" />;
+  // }
 
   return (
     <nav className="bg-white shadow-lg border-b">
@@ -86,10 +111,16 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
           <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button
+                  variant="ghost"
+                  className="relative h-8 w-8 rounded-full"
+                >
                   <Avatar className="h-8 w-8">
                     {currentUser.profileImage ? (
-                      <AvatarImage src={currentUser.profileImage} alt="Profile" />
+                      <AvatarImage
+                        src={currentUser.profileImage}
+                        alt="Profile"
+                      />
                     ) : (
                       <AvatarFallback className="bg-green-500 text-white">
                         {initials}
