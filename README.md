@@ -1,73 +1,71 @@
-# Welcome to your Lovable project
+# UMP Frontend
 
-## Project info
+This repository contains the frontend code for the UMP (User Management Platform) application. It is built using modern web technologies to provide a responsive and intuitive user interface.
 
-**URL**: https://lovable.dev/projects/ae5b8fe8-7af1-4338-aa66-06b8ba738aab
+## Technologies Used
 
-## How can I edit this code?
+*   **React:** A JavaScript library for building user interfaces.
+*   **TypeScript:** A typed superset of JavaScript that compiles to plain JavaScript.
+*   **Vite:** A fast development build tool for modern web projects.
+*   **Tailwind CSS:** A utility-first CSS framework for rapid styling.
+*   **React Router:** A standard library for routing in React applications.\
+*   **Axios:** A promise-based HTTP client for the browser and Node.js.
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ae5b8fe8-7af1-4338-aa66-06b8ba738aab) and start prompting.
+*   Node.js (v14 or higher)
+*   npm or yarn
 
-Changes made via Lovable will be committed automatically to this repo.
+### Installation
 
-**Use your preferred IDE**
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-username/ump-frontend.git
+    ```
+2.  Navigate to the project directory:
+    ```bash
+    cd ump-frontend
+    ```
+3.  Install the dependencies:
+    ```bash
+    npm install
+    # or
+    yarn install
+    ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Running the Development Server
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+To start the development server, run:
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
+# or
+yarn dev
 ```
 
-**Edit a file directly in GitHub**
+This will start the development server at `http://localhost:5173` (or another available port). The application will hot-reload as you make changes to the code.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Building for Production
 
-**Use GitHub Codespaces**
+To build the application for production, run:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+npm run build
+# or
+yarn build
+```
 
-## What technologies are used for this project?
+This will generate a `dist` directory containing the optimized production build.
 
-This project is built with:
+### Running the Production Build
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+To serve the production build locally, you can use a tool like `serve`:
 
-## How can I deploy this project?
+```bash
+npm install -g serve
+serve -s dist
+```
 
-Simply open [Lovable](https://lovable.dev/projects/ae5b8fe8-7af1-4338-aa66-06b8ba738aab) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Project Structure
