@@ -6,7 +6,7 @@ const authService = {
     const response = await api.post("/auth/login", credentials);
     if (response.data.token) {
       localStorage.setItem("auth_token", response.data.token);
-      localStorage.setItem("refresh_token", response.data.refresh_token);
+      localStorage.setItem("refresh_token", response.data.refreshToken);
     }
     return response.data;
   },
