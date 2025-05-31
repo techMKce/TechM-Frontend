@@ -145,6 +145,7 @@ const ExamTimetablePage = () => {
   return (
     <>
       <Navbar />
+      {/* <Navbar userType="faculty" userName={facultyName} /> */}
       
       <div className="page-container max-w-5xl mx-auto">
         <div className="mb-6">

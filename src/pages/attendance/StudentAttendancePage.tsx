@@ -53,7 +53,8 @@ const StudentAttendancePage = () => {
     setError("");
     
     try {
-      const response = await api.get<AttendanceData[]>(`/getstudent?id=${studentId}`);
+      const response = await api.get<AttendanceData[]>(`/attendance/getstudent?id=${studentId}`);
+      console.log("Fetched attendance data:", response);
       setAttendanceData(response.data);
       
       // Set student name from the first record if available
@@ -140,12 +141,12 @@ const StudentAttendancePage = () => {
 
   return (
     <>
-      {/* <Navbar userType="student" userName={studentName || "Student"} /> */}
-      <Navbar  />
-      <div className="page-container max-w-5xl mx-auto m-4">
+      <Navbar />
+      {/* <Navbar userType="faculty" userName={facultyName} /> */}
+      <div className="page-container max-w-5xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Attendance Dashboard</h1>
-          <p className="mt-2">Track your attendance statistics</p>
+          <p className="text-secondary mt-2">Track your attendance statistics</p>
         </div>
 
         <div className="mb-6">
@@ -190,25 +191,25 @@ const StudentAttendancePage = () => {
 
                 <div className="flex flex-wrap justify-center gap-6">
                   <div className="text-center">
-                    <p className="text-xs ">Required</p>
-                    <p className="text-2xl ">75%</p>
-                    <p className="text-xs">Minimum</p>
+                    <p className="text-xs text-secondary">Required</p>
+                    <p className="text-2xl font-bold">75%</p>
+                    <p className="text-xs text-secondary">Minimum</p>
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs">Current</p>
+                    <p className="text-xs text-secondary">Current</p>
                     <p className="text-2xl font-bold">
                       {loading ? "Loading..." : !selectedSemester || error ? "--" : `${dynamicOverallPercentage}%`}
                     </p>
-                    <p className="text-xs">Attendance</p>
+                    <p className="text-xs text-secondary">Attendance</p>
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs">Risk Status</p>
-                    <p className={`text-2xl font-bold ${!selectedSemester || error ? "text-yellow-500" : dynamicOverallPercentage >= 75 ? "text-green-500" : "text-red-500"}`}>
+                    <p className="text-xs text-secondary">Risk Status</p>
+                    <p className={`text-2xl font-bold ${!selectedSemester || error ? "text-gray-500" : dynamicOverallPercentage >= 75 ? "text-green-500" : "text-red-500"}`}>
                       {loading ? "Loading..." : !selectedSemester || error ? "--" : dynamicOverallPercentage >= 75 ? "Safe" : "At Risk"}
                     </p>
-                    <p className="text-xs">Status</p>
+                    <p className="text-xs text-secondary">Status</p>
                   </div>
                 </div>
               </div>

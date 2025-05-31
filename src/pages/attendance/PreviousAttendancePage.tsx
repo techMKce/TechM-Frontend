@@ -344,15 +344,16 @@ const PreviousAttendancePage = () => {
 
   return (
     <>
-      {/* <Navbar userType="faculty" userName={facultyName} /> */}
       <Navbar />
+            {/* <Navbar userType="faculty" userName={facultyName} /> */}
+
       <div className="page-container max-w-4xl mx-auto">
         <div className="mb-6 flex flex-col items-center">
           <Button variant="outline" className="self-start mb-2" onClick={() => navigate("/faculty/attendance")}>
             ← Back
           </Button>
           <h1 className="text-3xl font-bold text-center">Previous Attendance Records</h1>
-          <p className="mt-2 text-center">View Previous Attendance Sheets</p>
+          <p className="text-secondary mt-2 text-center">View Previous Attendance Sheets</p>
         </div>
 
         <div className="flex justify-center mb-6">

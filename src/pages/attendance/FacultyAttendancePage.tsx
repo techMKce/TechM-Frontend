@@ -53,7 +53,7 @@ const sessions = ["FN", "AN"];
 
 const FacultyAttendancePage = () => {
   const [facultyName] = useState("Dr. Jane Smith");
-  const [facultyId] = useState("Theja"); // This should come from auth context or props
+  const [facultyId] = useState("12"); // This should come from auth context or props
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
@@ -77,7 +77,8 @@ const FacultyAttendancePage = () => {
     // Fetch faculty courses when component mounts
     const fetchFacultyCourses = async () => {
       try {
-        const response = await api.get(`faculty-student-assigning/admin/assign/${facultyId}`);
+        const response = await api.get(`faculty-student-assigning/admin/faculty/${facultyId}`);
+        console.log(response);
         const facultyAssignments: FacultyAssignment[] = response.data;
         
         // Get unique course IDs
@@ -219,9 +220,10 @@ const FacultyAttendancePage = () => {
 
   return (
     <>
-      {/* <Navbar userType="faculty" userName={facultyName} /> */}
       <Navbar />
-      <div className="page-container max-w-4xl mx-auto m-6">
+      {/* <Navbar userType="faculty" userName={facultyName} /> */}
+
+      <div className="page-container max-w-4xl mx-auto">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Attendance Marking</h1>
           <p className="text-secondary mt-2">Mark student attendance for a specific session</p>
