@@ -41,7 +41,12 @@ const StudentsPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchStudents = async () => {
+
+
+    fetchStudents();
+  }, []);
+
+      const fetchStudents = async () => {
       try {
         const response = await api.get('/auth/students/all'); // adjust the URL if different
         setStudents(response.data);
@@ -50,9 +55,6 @@ const StudentsPage = () => {
         toast.error("Failed to fetch students");
       }
     };
-
-    fetchStudents();
-  }, []);
 
 
 
@@ -90,25 +92,35 @@ const StudentsPage = () => {
     toast.success("Student added successfully");
   };
 
-  const handleEdit = () => {
-    if (!selectedStudent) return;
+  const handleEdit = async () => {
+    try {
+      if (!selectedStudent) return;
 
-    const updatedStudents = students.map(student =>
-      student.id === selectedStudent.id
-        ? { ...selectedStudent, ...formData }
-        : student
-    );
-    setStudents(updatedStudents);
-    setIsEditDialogOpen(false);
-    setSelectedStudent(null);
-    setFormData({ id: "", name: "", email: "", department: "", year: "" });
-    toast.success("Student updated successfully");
+      await api.put(`/auth/update/${selectedStudent.id}`, formData);
+      toast.success("Student updated successfully");
+
+      await fetchStudents(); // refresh from backend
+      setSelectedStudent(null);
+      setFormData({
+        name: "",
+        id: "",
+        email: "",
+        department: "",
+        year: ""
+      });
+      setIsEditDialogOpen(false); // ✅ Add this to close the dialog if needed
+    } catch (error) {
+      console.error("Error updating Student:", error);
+      toast.error("Error updating Student");
+    }
   };
 
-  const handleDelete = (studentId: string) => {
-    const updatedStudents = students.filter(student => student.id !== studentId);
-    setStudents(updatedStudents);
+  const handleDelete = async (id: string) => {
+    await api.delete(`/auth/delete/${id}`);
     toast.success("Student deleted successfully");
+    const updatedstudent = students.filter(faculty => faculty.id !== id);
+    await fetchStudents();
+
   };
 
   const handleView = (student: Student) => {
@@ -435,7 +447,6 @@ const StudentsPage = () => {
                 <div><strong>Email:</strong> {selectedStudent.email}</div>
                 <div><strong>Department:</strong> {selectedStudent.department}</div>
                 <div><strong>Year:</strong> {selectedStudent.year}</div>
-                <div><strong>Password:</strong> {selectedStudent.password}</div>
               </div>
             )}
           </DialogContent>

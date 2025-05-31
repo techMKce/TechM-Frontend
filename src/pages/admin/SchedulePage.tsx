@@ -45,7 +45,7 @@ const SchedulePage = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await api.get("/api/course/active");
+        const response = await api.get("/course/active");
         const data = response.data;
 
         if (!Array.isArray(data)) {
@@ -134,7 +134,7 @@ const SchedulePage = () => {
       "Duration: " + JSON.stringify(duration, null, 2));
 
     try {
-      const response = await axios.post('http://192.168.67.11:8080/api/postexam', formData, {
+      const response = await api.post('/attendance/postexam', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -142,7 +142,6 @@ const SchedulePage = () => {
 
       console.log('Upload successful:', response.data);
       setGeneratedSchedule(response.data);
-      localStorage.setItem('generatedSchedule', JSON.stringify(response.data));
       setShowSuccessMessage(true);
     } catch (error) {
       console.error('Upload error', error);
@@ -319,10 +318,10 @@ const SchedulePage = () => {
                   onClick={handleGenerate}
                   className="w-full"
                   size="lg"
-                  disabled={selectedCourses.length === 0 || !fromDate || !toDate || isGenerating}
+                  disabled={isGenerating}
                   variant={generatedSchedule.length > 0 ? "secondary" : "default"}
                 >
-                  {isGenerating ? "Generating..." : generatedSchedule.length > 0 ? "Generated ✓" : "Generate Schedule"}
+                  {isGenerating ? "Generating..." : "Generate Schedule"}
                 </Button>
 
                 <div className="text-xs text-gray-500 space-y-1">

@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import api from "@/service/api";
 
 interface Course {
   id: string;
@@ -21,24 +22,59 @@ const CoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
-    const savedCourses = JSON.parse(localStorage.getItem('courses') || '[]');
-    setCourses(savedCourses);
+
+    const fetchCourses = async () => {
+      try{
+        const response = await api.get("/course/details");
+        console.log(response);
+        if (response.status !== 200) {
+          throw new Error('Failed to fetch courses');
+        }
+        const data: Course[] = response.data.map((course: any) => ({
+          id: course.course_id,
+          courseId: course.course_id,
+          name: course.courseTitle,
+          description: course.courseDescription,
+          facultyId: course.facultyId,
+          facultyName: course.instructorName,
+          isEnabled: course.isActive
+        }));
+        setCourses(data);
+      }catch (error) {
+        console.error('Error fetching courses:', error);
+        toast.error('Failed to load courses');
+      }
+    };
+    fetchCourses();
   }, []);
 
-  const handleToggle = (courseId: string) => {
+  const handleToggle = async (courseId: string) => {
+
+    const response = await api.put(`/course/toggle/${courseId}`);
+
+
+    if (response.status !== 200) {
+      toast.error('Failed to update course status');
+      return;
+    }
+
     const updatedCourses = courses.map(course =>
       course.id === courseId ? { ...course, isEnabled: !course.isEnabled } : course
     );
     setCourses(updatedCourses);
-    localStorage.setItem('courses', JSON.stringify(updatedCourses));
     toast.success(`Course ${!courses.find(c => c.id === courseId)?.isEnabled ? 'enabled' : 'disabled'} successfully`);
   };
 
-  const handleDelete = (courseId: string) => {
+  const handleDelete = async (courseId: string) => {
+    const response = await api.delete(`/course/delete`, { params: { course_id: courseId } });
+
+    if (response.status !== 200) {
+      toast.error('Failed to delete course');
+      return;
+    }
+
     const updatedCourses = courses.filter(course => course.id !== courseId);
     setCourses(updatedCourses);
-    localStorage.setItem('courses', JSON.stringify(updatedCourses));
-    window.dispatchEvent(new CustomEvent('coursesUpdated'));
     toast.success("Course deleted successfully");
   };
 
@@ -47,7 +83,7 @@ const CoursesPage = () => {
       <AdminNavbar currentPage="/admin/courses" />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Courses Management</h1>
+          <h1 className="text-3xl font-bold ">Courses Management</h1>
           <p className="text-gray-600">Manage course information and assignments</p>
         </div>
 
@@ -62,7 +98,6 @@ const CoursesPage = () => {
                 <TableRow>
                   <TableHead>Course ID</TableHead>
                   <TableHead>Course Name</TableHead>
-                  <TableHead>Faculty Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -72,7 +107,6 @@ const CoursesPage = () => {
                   <TableRow key={course.id}>
                     <TableCell>{course.courseId}</TableCell>
                     <TableCell>{course.name}</TableCell>
-                    <TableCell>{course.facultyName}</TableCell>
                     <TableCell>
                       <Switch
                         checked={course.isEnabled}

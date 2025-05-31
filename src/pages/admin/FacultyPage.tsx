@@ -98,7 +98,7 @@ const FacultyPage = () => {
     try {
       if (!selectedFaculty) return;
 
-      await api.put(`/faculty/${selectedFaculty.id}`, formData);
+      await api.put(`/auth/update/${selectedFaculty.id}`, formData);
       toast.success("Faculty updated successfully");
 
       await getFaculties(); // refresh from backend
@@ -119,9 +119,9 @@ const FacultyPage = () => {
 
 
   const handleDelete = async (id: string) => {
-    const updatedFaculty = faculties.filter(faculty => faculty.id !== id);
-    await api.delete(`/faculty/${id}`);
+    await api.delete(`/auth/delete/${id}`);
     toast.success("Faculty deleted successfully");
+    const updatedFaculty = faculties.filter(faculty => faculty.id !== id);
     await getFaculties();
 
   };
