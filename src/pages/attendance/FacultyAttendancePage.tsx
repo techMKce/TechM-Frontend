@@ -226,7 +226,7 @@ const FacultyAttendancePage = () => {
       <div className="page-container max-w-4xl mx-auto">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Attendance Marking</h1>
-          <p className="text-secondary mt-2">Mark student attendance for a specific session</p>
+          <p className=" mt-2">Mark student attendance for a specific session</p>
         </div>
 
         <Card className="mb-6">

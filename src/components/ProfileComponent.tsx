@@ -49,7 +49,7 @@ const ProfileComponent = ({ userType, currentUser, onUpdate }: ProfileComponentP
 
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Department</h3>
-                <p className="text-lg">{currentUser.department}</p>
+                <p className="text-lg">{currentUser.program}</p>
               </div>
             </div>
 
@@ -58,7 +58,7 @@ const ProfileComponent = ({ userType, currentUser, onUpdate }: ProfileComponentP
                 <>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Roll Number</h3>
-                    <p className="text-lg">{currentUser.rollNumber}</p>
+                    <p className="text-lg">{currentUser.rollNum}</p>
                   </div>
 
                   <div>

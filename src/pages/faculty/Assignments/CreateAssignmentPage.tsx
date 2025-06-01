@@ -1,6 +1,7 @@
-
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import Navbar from "@/components/FacultyNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Upload, Link as LinkIcon, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import api from "@/service/api";
+import "react-datepicker/dist/react-datepicker.css";
 
 const CreateAssignmentPage = () => {
+  const location = useLocation();
+  const { course_id } = location.state || {};
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
-    courseId: "",
-    dueTimestamp: "",
+    courseId: course_id || "",
+    dueTimestamp: null as Date | null,
     description: "",
     resourceLink: "",
   });
@@ -47,19 +51,18 @@ const CreateAssignmentPage = () => {
       return;
     }
 
-    // Append ':00' to make it in full timestamp format
-    const formattedDueDate = formData.dueTimestamp.includes(":")
-      ? `${formData.dueTimestamp}:00`
-      : formData.dueTimestamp;
+    const formattedDueDate = formData.dueTimestamp
+  ? new Date(formData.dueTimestamp).toLocaleString("sv-SE").replace(" ", "T")
+  : "";
+
 
     try {
       const formPayload = new FormData();
       formPayload.append("title", formData.title);
       formPayload.append("courseId", formData.courseId);
-      formPayload.append("dueDate", formattedDueDate); // Send properly formatted timestamp
+      formPayload.append("dueDate", formattedDueDate);
       formPayload.append("description", formData.description);
-       formPayload.append("resourceLink", formData.resourceLink);
-      //formPayload.append("facultyName", facultyName);
+      formPayload.append("resourceLink", formData.resourceLink);
 
       files.forEach((file) => {
         formPayload.append("file", file);
@@ -71,18 +74,12 @@ const CreateAssignmentPage = () => {
         },
       });
 
-
       if (response.status >= 200 && response.status < 300) {
-          console.log("Success:", response.data);
-        } else {
-          throw new Error("Unexpected response status: " + response.status);
-        }
-
-
-      toast.success("Assignment created successfully!");
-      setTimeout(() => {
-        navigate("/faculty/assignments");
-      }, 1500);
+        toast.success("Assignment created successfully!");
+        navigate(-1);
+      } else {
+        throw new Error("Unexpected response status: " + response.status);
+      }
     } catch (error) {
       console.error("Error:", error);
       toast.error("Something went wrong while creating the assignment.");
@@ -91,7 +88,7 @@ const CreateAssignmentPage = () => {
 
   return (
     <>
-      <Navbar  />
+      <Navbar />
       <div className="page-container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">Create New Assignment</h1>
@@ -104,7 +101,9 @@ const CreateAssignmentPage = () => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Assignment Title <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="title">
+                    Assignment Title <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="title"
                     name="title"
@@ -116,35 +115,44 @@ const CreateAssignmentPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="courseId">Course ID <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="courseId">
+                    Course ID <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="courseId"
                     name="courseId"
                     value={formData.courseId}
-                    onChange={handleChange}
-                    placeholder="e.g., CSE101"
+                    disabled
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dueTimestamp">Due Date & Time <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="dueTimestamp">
+                    Due Date & Time <span className="text-red-500">*</span>
+                  </Label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="dueTimestamp"
-                      name="dueTimestamp"
-                      type="datetime-local"
-                      className="pl-10"
-                      value={formData.dueTimestamp}
-                      onChange={handleChange}
+                    <DatePicker
+                      selected={formData.dueTimestamp}
+                      onChange={(date: Date | null) =>
+                        setFormData((prev) => ({ ...prev, dueTimestamp: date }))
+                      }
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={15}
+                      dateFormat="yyyy-MM-dd HH:mm"
+                      placeholderText="Select due date and time"
+                      className="pl-10 py-2 px-3 border border-gray-300 rounded-md w-full"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Assignment Description <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="description">
+                    Assignment Description <span className="text-red-500">*</span>
+                  </Label>
                   <Textarea
                     id="description"
                     name="description"
@@ -171,7 +179,7 @@ const CreateAssignmentPage = () => {
                       className="flex flex-col items-center justify-center cursor-pointer"
                     >
                       <Upload className="h-12 w-12 mb-2" />
-                      <p className=" text-sm mb-1">Drag & drop files here or click to browse</p>
+                      <p className="text-sm mb-1">Drag & drop files here or click to browse</p>
                       <p className="text-xs">Supports: PDF, DOC, DOCX, PPT, PPTX, ZIP (Max: 10MB)</p>
                     </label>
                   </div>
@@ -187,7 +195,7 @@ const CreateAssignmentPage = () => {
                           >
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-8 w-8 bg-primary rounded flex items-center justify-center text-white text-xs">
-                                {file.name.split('.').pop()?.toUpperCase()}
+                                {file.name.split(".").pop()?.toUpperCase()}
                               </div>
                               <div className="ml-3">
                                 <p className="text-sm font-medium truncate max-w-[200px]">

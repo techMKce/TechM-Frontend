@@ -50,6 +50,8 @@ import { AuthProvider } from "./context/AuthProvider";
 const queryClient = new QueryClient();
 
 import { Outlet, Navigate } from "react-router-dom";
+import CourseList from "./components/Courses/CourseList";
+import ViewCourse from "./components/Courses/ViewCourse";
 
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -136,6 +138,13 @@ const AppRoutes = () => (
       <Route path="/admin/courses" element={
         <RoleProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminCoursesPage />
+          {/* <CourseList /> */}
+        </RoleProtectedRoute>
+      } />
+      <Route path="/admin/courses/:courseId" element={
+        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+          {/* <CourseDetailPage /> */}
+          <ViewCourse />
         </RoleProtectedRoute>
       } />
       <Route path="/admin/assign-students" element={
@@ -157,7 +166,14 @@ const AppRoutes = () => (
       } />
       <Route path="/faculty/courses" element={
         <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <FacultyCoursesPage />
+          {/* <FacultyCoursesPage /> */}
+          <CourseList />
+        </RoleProtectedRoute>
+      } />
+      <Route path="/faculty/courses/:courseId" element={
+        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+          {/* <CourseDetailPage /> */}
+          <ViewCourse />
         </RoleProtectedRoute>
       } />
       <Route path="/faculty/students" element={
@@ -224,12 +240,15 @@ const AppRoutes = () => (
       } />
       <Route path="/student/courses" element={
         <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <StudentCoursesPage />
+          
+         <CourseList />
+         {/* <StudentCoursesPage/> */}
         </RoleProtectedRoute>
       } />
       <Route path="/student/courses/:courseId" element={
         <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <CourseDetailPage />
+          {/* <CourseDetailPage /> */}
+          <ViewCourse />
         </RoleProtectedRoute>
       } />
       <Route path="/student/courses/:courseId/assignments" element={

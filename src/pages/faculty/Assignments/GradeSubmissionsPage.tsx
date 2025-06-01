@@ -44,13 +44,13 @@ const GradeSubmissionsPage = () => {
     const fetchData = async () => {
       try {
         const [assignmentRes, submissionRes, gradingRes] = await Promise.all([
-          api.get("https://assignmentservice-2a8o.onrender.com/api/assignments/id", {
+          api.get("/assignments/id", {
             params: { assignmentId },
           }),
-          api.get("https://assignmentservice-2a8o.onrender.com/api/submissions", {
+          api.get("/submissions", {
             params: { assignmentId },
           }),
-          api.get("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+          api.get("/gradings", {
             params: { assignmentId },
           }),
         ]);
@@ -301,7 +301,7 @@ const GradeSubmissionsPage = () => {
           {filteredSubmissions.length === 0 && (
             <div className="text-center py-8">
               <FileText size={36} className="mx-auto text-secondary opacity-40" />
-              <p className="mt-2 text-secondary">No submissions found</p>
+              <p className="mt-2 ">No submissions found</p>
             </div>
           )}
         </div>

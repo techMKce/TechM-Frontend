@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Home, BookOpen, Users, Book, Signpost } from "lucide-react";
+import { User, LogOut, Home, BookOpen, Users, Book, Signpost, ListTodoIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface StudentNavbarProps {
@@ -60,9 +60,8 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
 
   const menuItems = [
     { label: "Dashboard", path: "/student/dashboard", icon: Home },
-    { label: "Available Courses", path: "/student/available-courses", icon: BookOpen },
-    { label: "Enrolled Courses", path: "/student/enrolled-courses", icon: Users },
-    { label: "Attendance", path: "/student/attendance", icon: Book }
+    { label: "Courses", path: "/student/courses", icon: BookOpen },,
+    { label: "Attendance", path: "/student/attendance", icon: ListTodoIcon }
   ];
 
   const userName = currentUser?.name || 'Student';

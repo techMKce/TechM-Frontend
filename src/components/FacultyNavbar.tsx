@@ -68,7 +68,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
     { label: "Students", path: "/faculty/students", icon: Users },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
-    { label: "Assignments", path: "/faculty/assignments", icon: ListTodoIcon },
+    { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
   ];
 
   const initials = currentUser.name

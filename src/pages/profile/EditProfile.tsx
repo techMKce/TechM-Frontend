@@ -10,24 +10,298 @@ import { toast } from "sonner";
 import { User, GraduationCap, Briefcase, ArrowLeft, Camera } from "lucide-react";
 import StudentNavbar from "@/components/StudentNavbar";
 import FacultyNavbar from "@/components/FacultyNavbar";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useAuth } from "@/hooks/useAuth";
+// import axios from "axios";
+import profileApi from "@/service/api";
 
 export default function EditProfile() {
+  const { profile } = useAuth();
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  // const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState('basic');
-  const [formData, setFormData] = useState<any>({});
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isStudent = profile?.profile.role === 'STUDENT';
+  const NavbarComponent = isStudent ? StudentNavbar : FacultyNavbar;
+
+
+  const genderOptions = ["male", "female", "others"] as const;
+  type Gender = typeof genderOptions[number];
+  const firstGraduateOptions = ["yes", "no"] as const;
+  const sslcBoardOptions = ["cbse", "state", "icse"] as const;
+
+
+
+  const [formData, setFormData] = useState({
+    image: "",
+    name: "",
+    email: "",
+    department: "",
+    gender: "",
+    dob: "",
+    phoneNum: "",
+    bloodGroup: "",
+    nationality: "",
+    address: "",
+    adharNum: "",
+    fatherName: "",
+    motherName: "",
+    firstGraduate: "",
+    institutionName: "",
+    degree: "",
+    program: "",
+    year: "",
+    semester: "",
+    startYear: "",
+    expectedGraduation: "",
+    cgpa: "",
+    githubProfile: "",
+    linkedInProfile: "",
+    sslcSchoolName: "",
+    sslcStartYear: "",
+    sslcEndYear: "",
+    sslcPercentage: "",
+    sslcboardOfEducation: "",
+    hscSchoolName: "",
+    hscStartYear: "",
+    hscEndYear: "",
+    hscPercentage: "",
+    hscboardOfEducation: "",
+    rollNumber: "",
+    staffId: "",
+    experience: "",
+    designation: "",
+    // endYear: "",
+    // description: "",
+    // achievements: "",
+    // researchDetails: ""
+    workExperiences: [] as Array<{
+      organizationName?: string;
+      designation?: string;
+      startYear?: string;
+      endYear?: string;
+      description?: string;
+      achievements?: string;
+      researchDetails?: string;
+    }>,
+
+
+
+
+
+
+
+
+
+  });
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    // if (!user.id) {
-    //   navigate('/');
-    //   return;
-    // }
-    setCurrentUser(user);
-    setFormData(user);
-  }, [navigate]);
+    if (!profile) {
+      navigate('/');
+      return;
+    }
+
+    const id = profile.profile.id;
+    fetchUserProfile();
+  }, [profile, navigate]);
+
+  const id = profile.profile.id;
+
+  const fetchUserProfile = async () => {
+    try {
+      const endpoint = isStudent
+        ? `/profile/student/${id}`
+        : `/profile/faculty/${id}`;
+
+      const response = await profileApi.get(endpoint);
+      const mapped = mapBackendToFrontend(response.data);
+      setFormData(mapped);
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      toast.error("Failed to load profile data. Please try again later.");
+      if (error.response?.status === 403) {
+        navigate('/login');
+      }
+    }
+  };
+
+
+  if (!formData || !formData.email) {
+    return <div>Loading...</div>;
+  }
+
+
+
+
+
+
+
+  // function mapBackendToFrontend(data) {
+  //   return {
+  //     name: data.name || "",
+  //     email: data.email || "",
+  //     department: data.department || "",
+  //     gender: data.gender || "",
+  //     dob: data.dob || "",
+  //     phoneNum: data.phoneNum || "",
+  //     bloodGroup: data.bloodGroup || "",
+  //     nationality: data.nationality || "",
+  //     address: data.address || "",
+  //     adharNum: data.adharNum || "",
+  //     fatherName: data.fatherName || "",
+  //     motherName: data.motherName || "",
+  //     firstGraduate: data.firstGraduate || "",
+  //     institution: data.institutionName || "",
+  //     degree: data.degree || "",
+  //     program: data.program || "",
+  //     startYear: data.startYear || data.year || "",
+  //     expectedGraduation: data.gradutaionYear || "",
+  //     cgpa: data.cgpa || "",
+  //     githubProfile: data.githubProfile || "",
+  //     linkedInProfile: data.linkedInProfile || "",
+  //     sslcSchoolName: data.sslcSchoolName || "",
+  //     sslcStartYear: data.sslcStartYear || "",
+  //     sslcEndYear: data.sslcEndYear || "",
+  //     sslcPercentage: data.sslcPercentage || "",
+  //     sslcboardOfEducation: data.sslcboardOfEducation || "",
+  //     hscSchoolName: data.hscSchoolName || "",
+  //     hscStartYear: data.hscStartYear || "",
+  //     hscEndYear: data.hscEndYear || "",
+  //     hscPercentage: data.hscPercentage || "",
+  //     hscboardOfEducation: data.hscboardOfEducation || "",
+  //     rollNumber: data.rollNum || "",
+  //     staffId: data.staffId || "",
+  //     experience: data.experience || "",
+  //     designation: data.designation || "",
+  //     endYear: data.endYear || "",
+  //     description: data.description || "",
+  //     achievements: data.achievements || "",
+  //     researchDetails: data.researchDetails || ""
+  //   };
+  // }
+
+  function mapBackendToFrontend(data: any) {
+    // Always return all fields expected by formData, with defaults if missing
+    return {
+      image: data.image || "",
+      name: data.name || "",
+      email: data.email || "",
+      department: data.department || "",
+      gender: data.gender || "",
+      dob: data.dob || "",
+      phoneNum: data.phoneNum || "",
+      bloodGroup: data.bloodGroup || "",
+      nationality: data.nationality || "",
+      address: data.address || "",
+      adharNum: data.adharNum || "",
+      fatherName: data.fatherName || "",
+      motherName: data.motherName || "",
+      firstGraduate: data.firstGraduate || "",
+      institutionName: data.institutionName || "",
+      degree: data.degree || "",
+      program: data.program || "",
+      year: data.year || data.startYear || "",
+      semester: data.semester || "",
+      startYear: data.startYear || "",
+      expectedGraduation: data.gradutaionYear || data.expectedGraduation || "",
+      cgpa: data.cgpa || "",
+      githubProfile: data.githubProfile || "",
+      linkedInProfile: data.linkedInProfile || "",
+      sslcSchoolName: data.sslcSchoolName || "",
+      sslcStartYear: data.sslcStartYear || "",
+      sslcEndYear: data.sslcEndYear || "",
+      sslcPercentage: data.sslcPercentage || "",
+      sslcboardOfEducation: data.sslcboardOfEducation || "",
+      hscSchoolName: data.hscSchoolName || "",
+      hscStartYear: data.hscStartYear || "",
+      hscEndYear: data.hscEndYear || "",
+      hscPercentage: data.hscPercentage || "",
+      hscboardOfEducation: data.hscboardOfEducation || "",
+      rollNumber: data.rollNum || data.rollNumber || "",
+      staffId: data.staffId || "",
+      experience: data.experience || "",
+      designation: data.designation || "",
+      workExperiences: data.workExperiences || [],
+    };
+  }
+
+  // Map frontend formData back to backend format for update
+  function mapFrontendToBackend(data) {
+    // Common fields for both student and faculty
+    const commonFields = {
+      image: data.image || null,
+      name: data.name || "",
+      email: data.email || "",
+      department: data.department || "",
+      gender: data.gender || "",
+      dob: data.dob || "",
+      phoneNum: data.phoneNum || "",
+      bloodGroup: data.bloodGroup || "",
+      nationality: data.nationality || "",
+      address: data.address || "",
+      adharNum: data.adharNum || "",
+    };
+
+    if (profile?.profile.role === 'STUDENT') {
+      return {
+        ...commonFields,
+        fatherName: data.fatherName || "",
+        motherName: data.motherName || "",
+        firstGraduate: data.firstGraduate || "",
+        institutionName: data.institutionName || "",
+        degree: data.degree || "",
+        program: data.program || "",
+        year: data.year || "",
+        semester: data.semester || "",
+        startYear: data.startYear || "",
+        gradutaionYear: data.expectedGraduation || "",
+        cgpa: data.cgpa || "",
+        githubProfile: data.githubProfile || "",
+        linkedInProfile: data.linkedInProfile || "",
+        sslcSchoolName: data.sslcSchoolName || "",
+        sslcStartYear: data.sslcStartYear || "",
+        sslcEndYear: data.sslcEndYear || "",
+        sslcPercentage: data.sslcPercentage || "",
+        sslcboardOfEducation: data.sslcboardOfEducation || "",
+        hscSchoolName: data.hscSchoolName || "",
+        hscStartYear: data.hscStartYear || "",
+        hscEndYear: data.hscEndYear || "",
+        hscPercentage: data.hscPercentage || "",
+        hscboardOfEducation: data.hscboardOfEducation || "",
+        rollNum: data.rollNumber || "",
+      };
+    } else {
+      return {
+        ...commonFields,
+        staffId: data.staffId || "",
+        experience: data.experience || "",
+        designation: data.designation || "",
+        workExperiences: data.workExperiences?.map(exp => ({
+          organizationName: exp.organizationName || "",
+          designation: exp.designation || "",
+          startYear: exp.startYear || "",
+          endYear: exp.endYear || "",
+          description: exp.description || "",
+          achievements: exp.achievements || "",
+          researchDetails: exp.researchDetails || ""
+        })) || [],
+      };
+    }
+  }
+
+  function cleanFormData(data) {
+    const cleaned = { ...data };
+    Object.keys(cleaned).forEach((key) => {
+      if (cleaned[key] === "") {
+        delete cleaned[key];
+      }
+    });
+    return cleaned;
+  }
+
+
 
   const handleImageChange = async (e: any) => {
     const file = e.target.files?.[0];
@@ -35,9 +309,9 @@ export default function EditProfile() {
 
     setIsUploading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500)); 
+      await new Promise(resolve => setTimeout(resolve, 1500));
       const imageUrl = URL.createObjectURL(file);
-      setFormData({ ...formData, profileImage: imageUrl });
+      setFormData({ ...formData, image: imageUrl });
       toast.success("Profile picture updated!");
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -51,57 +325,75 @@ export default function EditProfile() {
     fileInputRef.current?.click();
   };
 
-  const handleSave = () => {
-    const storageKey = currentUser.role === 'student' ? 'students' : 'faculty';
-    const users = JSON.parse(localStorage.getItem(storageKey) || '[]');
-
-    const updatedUsers = users.map((user: any) => 
-      user.id === currentUser.id 
-        ? { ...user, ...formData }
-        : user
-    );
-
-    localStorage.setItem(storageKey, JSON.stringify(updatedUsers));
-    localStorage.setItem('currentUser', JSON.stringify({ ...currentUser, ...formData }));
-
-    toast.success("Profile updated successfully");
-    navigate('/profile');
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (!currentUser) {
+  const handleSave = async () => {
+    if (!profile) {
+      toast.error("Authentication required. Please login again.");
+      navigate('/login');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const id = profile.profile.id;
+    const endpoint = isStudent
+      ? `/profile/student/${id}`
+      : `/profile/faculty/${id}`;
+
+    try {
+      toast.info("Updating profile...");
+      const response = await profileApi.put(
+        endpoint,
+        cleanFormData(mapFrontendToBackend(formData))
+      );
+
+      if (response.status === 200) {
+        toast.success("Profile updated successfully");
+        navigate('/profile');
+      }
+    } catch (error) {
+      // Error handling remains the same
+      console.log(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!formData || !formData.email) {
     return <div>Loading...</div>;
   }
 
-  const isStudent = currentUser.role === 'student';
-  const NavbarComponent = isStudent ? StudentNavbar : FacultyNavbar;
-  const initials = currentUser.name ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U';
-
-  const sidebarItems = isStudent 
+  // const initials = currentUser.name ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U';
+  const initials = formData.name ? formData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U';
+  const sidebarItems = isStudent
     ? [
-        { id: 'basic', label: 'Basic Details', icon: User },
-        { id: 'education', label: 'Education Details', icon: GraduationCap }
-      ]
+      { id: 'basic', label: 'Basic Details', icon: User },
+      { id: 'education', label: 'Education Details', icon: GraduationCap }
+    ]
     : [
-        { id: 'basic', label: 'Basic Details', icon: User },
-        { id: 'work', label: 'Work Experience', icon: Briefcase }
-      ];
+      { id: 'basic', label: 'Basic Details', icon: User },
+      { id: 'work', label: 'Work Experience', icon: Briefcase }
+    ];
 
-    const getInputProps = (fieldName: string) => {
-        const nonEditableStudentFields = ['name', 'rollNumber', 'email'];
-        const nonEditableFacultyFields = ['name', 'facultyId', 'email', 'department'];
-        
-        const nonEditableFields = isStudent ? nonEditableStudentFields : nonEditableFacultyFields;
-        const isEditable = !nonEditableFields.includes(fieldName);
-        
-        return {
-            readOnly: !isEditable,
-            style: {
-                backgroundColor: isEditable ? 'white' : '#f5f5f5',
-                cursor: isEditable ? 'auto' : 'not-allowed',
-                opacity: isEditable ? 1 : 0.7,
-            },
-        };
+  const getInputProps = (fieldName: string) => {
+    const nonEditableStudentFields = ['name', 'rollNumber', 'email'];
+    const nonEditableFacultyFields = ['name', 'facultyId', 'email', 'department'];
+
+    const nonEditableFields = isStudent ? nonEditableStudentFields : nonEditableFacultyFields;
+    const isEditable = !nonEditableFields.includes(fieldName);
+
+    return {
+      readOnly: !isEditable,
+      style: {
+        backgroundColor: isEditable ? 'white' : '#f5f5f5',
+        cursor: isEditable ? 'auto' : 'not-allowed',
+        opacity: isEditable ? 1 : 0.7,
+      },
     };
+  };
 
   const renderBasicDetails = () => (
     <Card>
@@ -116,8 +408,8 @@ export default function EditProfile() {
         <div className="flex justify-center mb-6">
           <div className="relative">
             <Avatar className="w-24 h-24 cursor-pointer" onClick={handleAvatarClick}>
-              {formData.profileImage ? (
-                <AvatarImage src={formData.profileImage} alt="Profile" className="w-24 h-24" />
+              {formData.image ? (
+                <AvatarImage src={formData.image} alt="Profile" className="w-24 h-24" />
               ) : (
                 <AvatarFallback className="bg-blue-500 text-white w-24 h-24 text-2xl">
                   {initials}
@@ -167,12 +459,12 @@ export default function EditProfile() {
             </div>
           ) : (
             <div className="space-y-2">
-              <Label htmlFor="facultyId">Faculty ID *</Label>
+              <Label htmlFor="staffId">Faculty ID *</Label>
               <Input
-                id="facultyId"
-                value={formData.facultyId || ""}
-                onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
-                {...getInputProps('facultyId')}
+                id="staffId"
+                value={formData.staffId || ""}
+                onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
+                {...getInputProps('staffId')}
               />
             </div>
           )}
@@ -180,12 +472,12 @@ export default function EditProfile() {
           <div className="space-y-2">
             <Label htmlFor="email">Email *</Label>
             <Input
-                id="email"
-                type="email"
-                value={formData.email || ""}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                {...getInputProps('email')}
-              />
+              id="email"
+              type="email"
+              value={formData.email || ""}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              {...getInputProps('email')}
+            />
           </div>
 
           {isStudent && (
@@ -210,7 +502,7 @@ export default function EditProfile() {
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="firstGraduate">First Graduate</Label>
                 <Input
                   id="firstGraduate"
@@ -218,7 +510,26 @@ export default function EditProfile() {
                   onChange={(e) => setFormData({ ...formData, firstGraduate: e.target.value })}
                   {...getInputProps('firstGraduate')}
                 />
+              </div> */}
+              <div className="space-y-2">
+                <Label htmlFor="firstGraduate">First Graduate</Label>
+                <select
+                  id="firstGraduate"
+                  value={formData.firstGraduate || ""}
+                  onChange={(e) => setFormData({ ...formData, firstGraduate: e.target.value })}
+                  className="border p-2 rounded w-full"
+                  {...getInputProps('firstGraduate')}
+                >
+                  <option value="">Select option</option>
+                  {firstGraduateOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+
             </>
           )}
 
@@ -259,11 +570,11 @@ export default function EditProfile() {
           <div className="space-y-2">
             <Label htmlFor="mobile">Mobile Number</Label>
             <Input
-                id="mobile"
-                value={formData.mobile || ""}
-                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                {...getInputProps('mobile')}
-              />
+              id="mobile"
+              value={formData.phoneNum || ""}
+              onChange={(e) => setFormData({ ...formData, phoneNum: e.target.value })}
+              {...getInputProps('phoneNum')}
+            />
           </div>
 
           <div className="space-y-2">
@@ -279,13 +590,20 @@ export default function EditProfile() {
 
           <div className="space-y-2">
             <Label htmlFor="gender">Gender</Label>
-            <Input
+            <select
               id="gender"
               value={formData.gender || ""}
               onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              className="border p-2 rounded w-full" // Add styling if needed
               {...getInputProps('gender')}
-            />
+            >
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="others">Others</option>
+            </select>
           </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="bloodGroup">Blood Group</Label>
@@ -298,12 +616,12 @@ export default function EditProfile() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="aadharNumber">Aadhar Number</Label>
+            <Label htmlFor="adharNum">Aadhar Number</Label>
             <Input
-              id="aadharNumber"
-              value={formData.aadharNumber || ""}
-              onChange={(e) => setFormData({ ...formData, aadharNumber: e.target.value })}
-              {...getInputProps('aadharNumber')}
+              id="adharNum"
+              value={formData.adharNum || ""}
+              onChange={(e) => setFormData({ ...formData, adharNum: e.target.value })}
+              {...getInputProps('adharNum')}
             />
           </div>
 
@@ -347,8 +665,8 @@ export default function EditProfile() {
               <Label htmlFor="institution">Institution *</Label>
               <Input
                 id="institution"
-                value={formData.institution || ""}
-                onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                value={formData.institutionName || ""}
+                onChange={(e) => setFormData({ ...formData, institutionName: e.target.value })}
                 {...getInputProps('institution')}
               />
             </div>
@@ -416,10 +734,10 @@ export default function EditProfile() {
             <div className="space-y-2">
               <Label htmlFor="linkedinProfile">LinkedIn Profile</Label>
               <Input
-                id="linkedinProfile"
-                value={formData.linkedinProfile || ""}
-                onChange={(e) => setFormData({ ...formData, linkedinProfile: e.target.value })}
-                {...getInputProps('linkedinProfile')}
+                id="linkedInProfile"
+                value={formData.linkedInProfile || ""}
+                onChange={(e) => setFormData({ ...formData, linkedInProfile: e.target.value })}
+                {...getInputProps('linkedInProfile')}
               />
             </div>
           </div>
@@ -430,53 +748,61 @@ export default function EditProfile() {
           <h3 className="text-lg font-semibold">10th Standard</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="school10">School Name</Label>
+              <Label htmlFor="sslcSchoolName">School Name</Label>
               <Input
-                id="school10"
-                value={formData.school10 || ""}
-                onChange={(e) => setFormData({ ...formData, school10: e.target.value })}
-                {...getInputProps('school10')}
+                id="sslcSchoolName"
+                value={formData.sslcSchoolName || ""}
+                onChange={(e) => setFormData({ ...formData, sslcSchoolName: e.target.value })}
+                {...getInputProps('sslcSchoolName')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startYear10">Start Year</Label>
+              <Label htmlFor="sslcStartYear">Start Year</Label>
               <Input
-                id="startYear10"
-                value={formData.startYear10 || ""}
-                onChange={(e) => setFormData({ ...formData, startYear10: e.target.value })}
-                {...getInputProps('startYear10')}
+                id="sslcStartYear"
+                value={formData.sslcStartYear || ""}
+                onChange={(e) => setFormData({ ...formData, sslcStartYear: e.target.value })}
+                {...getInputProps('sslcStartYear')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endYear10">End Year</Label>
+              <Label htmlFor="sslcEndYear">End Year</Label>
               <Input
-                id="endYear10"
-                value={formData.endYear10 || ""}
-                onChange={(e) => setFormData({ ...formData, endYear10: e.target.value })}
-                {...getInputProps('endYear10')}
+                id="sslcEndYear"
+                value={formData.sslcEndYear || ""}
+                onChange={(e) => setFormData({ ...formData, sslcEndYear: e.target.value })}
+                {...getInputProps('sslcEndYear')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="percentage10">Percentage</Label>
+              <Label htmlFor="sslcPercentage">Percentage</Label>
               <Input
-                id="percentage10"
-                value={formData.percentage10 || ""}
-                onChange={(e) => setFormData({ ...formData, percentage10: e.target.value })}
-                {...getInputProps('percentage10')}
+                id="sslcPercentage"
+                value={formData.sslcPercentage || ""}
+                onChange={(e) => setFormData({ ...formData, sslcPercentage: e.target.value })}
+                {...getInputProps('sslcPercentage')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="board10">Board of Education</Label>
-              <Input
-                id="board10"
-                value={formData.board10 || ""}
-                onChange={(e) => setFormData({ ...formData, board10: e.target.value })}
-                {...getInputProps('board10')}
-              />
+              <Label htmlFor="hscboardOfEducation">Board of Education</Label>
+              <select
+                id="hscboardOfEducation"
+                value={formData.hscboardOfEducation || ""}
+                onChange={(e) => setFormData({ ...formData, hscboardOfEducation: e.target.value })}
+                className="border p-2 rounded w-full"
+                {...getInputProps('hscboardOfEducation')}
+              >
+                <option value="">Select board</option>
+                {sslcBoardOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -486,54 +812,63 @@ export default function EditProfile() {
           <h3 className="text-lg font-semibold">12th Standard / Diploma</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="school12">School Name</Label>
+              <Label htmlFor="hscSchoolName">School Name</Label>
               <Input
-                id="school12"
-                value={formData.school12 || ""}
-                onChange={(e) => setFormData({ ...formData, school12: e.target.value })}
-                {...getInputProps('school12')}
+                id="hscSchoolName"
+                value={formData.hscSchoolName || ""}
+                onChange={(e) => setFormData({ ...formData, hscSchoolName: e.target.value })}
+                {...getInputProps('hscSchoolName')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startYear12">Start Year</Label>
+              <Label htmlFor="hscStartYear">Start Year</Label>
               <Input
-                id="startYear12"
-                value={formData.startYear12 || ""}
-                onChange={(e) => setFormData({ ...formData, startYear12: e.target.value })}
-                {...getInputProps('startYear12')}
+                id="hscStartYear"
+                value={formData.hscStartYear || ""}
+                onChange={(e) => setFormData({ ...formData, hscStartYear: e.target.value })}
+                {...getInputProps('hscStartYear')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endYear12">End Year</Label>
+              <Label htmlFor="hscEndYear">End Year</Label>
               <Input
-                id="endYear12"
-                value={formData.endYear12 || ""}
-                onChange={(e) => setFormData({ ...formData, endYear12: e.target.value })}
-                {...getInputProps('endYear12')}
+                id="hscEndYear"
+                value={formData.hscEndYear || ""}
+                onChange={(e) => setFormData({ ...formData, hscEndYear: e.target.value })}
+                {...getInputProps('hscEndYear')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="percentage12">Percentage</Label>
+              <Label htmlFor="hscPercentage">Percentage</Label>
               <Input
-                id="percentage12"
-                value={formData.percentage12 || ""}
-                onChange={(e) => setFormData({ ...formData, percentage12: e.target.value })}
-                {...getInputProps('percentage12')}
+                id="hscPercentage"
+                value={formData.hscPercentage || ""}
+                onChange={(e) => setFormData({ ...formData, hscPercentage: e.target.value })}
+                {...getInputProps('hscPercentage')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="board12">Board of Education</Label>
-              <Input
-                id="board12"
-                value={formData.board12 || ""}
-                onChange={(e) => setFormData({ ...formData, board12: e.target.value })}
-                {...getInputProps('board12')}
-              />
+              <Label htmlFor="sslcboardOfEducation">Board of Education</Label>
+              <select
+                id="sslcboardOfEducation"
+                value={formData.sslcboardOfEducation || ""}
+                onChange={(e) => setFormData({ ...formData, sslcboardOfEducation: e.target.value })}
+                className="border p-2 rounded w-full"
+                {...getInputProps('sslcboardOfEducation')}
+              >
+                <option value="">Select board</option>
+                {sslcBoardOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
+
           </div>
         </div>
       </CardContent>
@@ -541,7 +876,8 @@ export default function EditProfile() {
   );
 
   const renderWorkExperience = () => {
-    const workExperiences = formData.workExperiences || [{}];
+    // Initialize workExperiences as an array, defaulting to empty array if undefined
+    const workExperiences = formData.workExperiences || [];
 
     const addExperience = () => {
       const newExperiences = [...workExperiences, {}];
@@ -567,7 +903,7 @@ export default function EditProfile() {
               <Briefcase className="h-5 w-5" />
               Work Experience
             </div>
-            <Button 
+            <Button
               type="button"
               variant="outline"
               size="sm"
@@ -593,47 +929,55 @@ export default function EditProfile() {
                   <span className="text-lg">×</span>
                 </Button>
               )}
-              
+
               <h3 className="text-lg font-semibold">Experience {index + 1}</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor={`organizationName-${index}`}>Organization Name *</Label>
+                  <Label htmlFor={`organizationName-${index}`}>Organization Name</Label>
                   <Input
                     id={`organizationName-${index}`}
                     value={experience.organizationName || ""}
                     onChange={(e) => updateExperience(index, 'organizationName', e.target.value)}
-                    {...getInputProps('organizationName')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`workStartYear-${index}`}>Start Year *</Label>
+                  <Label htmlFor={`designation-${index}`}>Designation</Label>
                   <Input
-                    id={`workStartYear-${index}`}
-                    value={experience.workStartYear || ""}
-                    onChange={(e) => updateExperience(index, 'workStartYear', e.target.value)}
-                    {...getInputProps('workStartYear')}
+                    id={`designation-${index}`}
+                    value={experience.designation || ""}
+                    onChange={(e) => updateExperience(index, 'designation', e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`workEndYear-${index}`}>End Year *</Label>
+                  <Label htmlFor={`startYear-${index}`}>Start Year</Label>
                   <Input
-                    id={`workEndYear-${index}`}
-                    value={experience.workEndYear || ""}
-                    onChange={(e) => updateExperience(index, 'workEndYear', e.target.value)}
-                    {...getInputProps('workEndYear')}
+                    id={`startYear-${index}`}
+                    type="date"
+                    value={experience.startYear || ""}
+                    onChange={(e) => updateExperience(index, 'startYear', e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`endYear-${index}`}>End Year</Label>
+                  <Input
+                    id={`endYear-${index}`}
+                    type="date"
+                    value={experience.endYear || ""}
+                    onChange={(e) => updateExperience(index, 'endYear', e.target.value)}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor={`workDescription-${index}`}>Description *</Label>
+                <Label htmlFor={`description-${index}`}>Description</Label>
                 <Textarea
-                  id={`workDescription-${index}`}
-                  value={experience.workDescription || ""}
-                  onChange={(e) => updateExperience(index, 'workDescription', e.target.value)}
+                  id={`description-${index}`}
+                  value={experience.description || ""}
+                  onChange={(e) => updateExperience(index, 'description', e.target.value)}
                 />
               </div>
 
@@ -660,6 +1004,7 @@ export default function EditProfile() {
       </Card>
     );
   };
+
 
   const renderContent = () => {
     switch (activeSection) {
@@ -697,11 +1042,10 @@ export default function EditProfile() {
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-colors ${
-                      activeSection === item.id
-                        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-colors ${activeSection === item.id
+                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                      }`}
                   >
                     <Icon className="h-5 w-5" />
                     {item.label}
@@ -719,8 +1063,8 @@ export default function EditProfile() {
               <Button variant="outline" onClick={() => navigate('/profile')}>
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
-                Save Changes
+              <Button onClick={handleSave} disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>

@@ -309,7 +309,7 @@ const GradeStudentSubmissionPage = () => {
       <Navbar />
       <div className="page-container max-w-4xl mx-auto max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link to={`/faculty/assignments/${assignmentId}/grade`} className="text-accent hover:text-accent-dark">
+          <Link to={`/faculty/assignments/${assignmentId}/grade`} className=" hover:text-accent-dark">
             ← Back to All Submissions
           </Link>
           <h1 className="text-3xl font-bold mt-4">Grade Submission</h1>
@@ -329,22 +329,22 @@ const GradeStudentSubmissionPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-secondary">Name</p>
+                  <p className="text-sm  ">Name</p>
                   <p className="font-medium">{submission.studentName}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-secondary">Roll Number</p>
+                  <p className="text-sm  ">Roll Number</p>
                   <p className="font-medium">{submission.studentRollNumber}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-secondary">Submitted On</p>
+                  <p className="text-sm  ">Submitted On</p>
                   <div className="flex items-center">
-                    <Calendar size={14} className="mr-1 text-secondary" />
+                    <Calendar size={14} className="mr-1  " />
                     <p className="font-medium">{formatDate(submission.submittedAt)}</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-secondary">Submitted Document</p>
+                  <p className="text-sm  ">Submitted Document</p>
                   <div className="mt-2 p-3 bg-light rounded-md flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="h-8 w-20 bg-primary rounded flex items-center justify-center text-white text-xs">
@@ -412,7 +412,7 @@ const GradeStudentSubmissionPage = () => {
                     </div>
                     <div>
                       <h3 className="font-medium">Faculty Feedback</h3>
-                      <p className="whitespace-pre-wrap text-secondary">{gradingData?.feedback}</p>
+                      <p className="whitespace-pre-wrap  ">{gradingData?.feedback}</p>
                     </div>
                     <Button
                       onClick={handleDeleteGrade}
@@ -438,10 +438,10 @@ const GradeStudentSubmissionPage = () => {
                             <RadioGroupItem value={value} id={value} className="peer sr-only" />
                             <Label
                               htmlFor={value}
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-3 hover:bg-light hover:text-accent-foreground peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent/10"
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-black bg-white p-3 hover:bg-light hover:text-accent-foreground peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent peer-data-[state=checked]:text-accent-foreground transition-colors cursor-pointer text-center text-sm font-medium"
                             >
                               {value}
-                              <span className="text-xs text-secondary">{label}</span>
+                              <span className="text-xs  ">{label}</span>
                             </Label>
                           </div>
                         ))}
@@ -451,7 +451,7 @@ const GradeStudentSubmissionPage = () => {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-medium">Feedback</h3>
-                        <span className="text-xs text-secondary">{feedback.length}/500 characters</span>
+                        <span className="text-xs  ">{feedback.length}/500 characters</span>
                       </div>
                       <Textarea
                         placeholder="Provide feedback on the student's work..."
