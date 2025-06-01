@@ -10,12 +10,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
 import { Calendar, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/service/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Student {
   stdId: string;
@@ -25,7 +32,7 @@ interface Student {
   deptName: string;
   batch: string;
   sem: string;
-  isPresent: boolean;
+  isPresent?: boolean;
 }
 
 interface Course {
@@ -33,10 +40,14 @@ interface Course {
   courseName: string;
 }
 
-interface FacultyAssignment {
+interface EmbedKey {
   facultyId: string;
   courseId: string;
-  rollNums: string[];
+}
+
+interface FacultyAssignment {
+  id: EmbedKey;
+  assignedRollNums: string[];
 }
 
 interface StudentDetails {
@@ -52,8 +63,9 @@ interface StudentDetails {
 const sessions = ["FN", "AN"];
 
 const FacultyAttendancePage = () => {
-  const [facultyName] = useState("Dr. Jane Smith");
-  const [facultyId] = useState("12"); // This should come from auth context or props
+  const { profile } = useAuth();
+  const facultyName = profile.profile.name.split(" "); // Assuming name is in "First Last" format
+  const facultyId = profile.profile.id; // This should come from auth context or props
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
@@ -61,6 +73,7 @@ const FacultyAttendancePage = () => {
   const [batches, setBatches] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [semesters, setSemesters] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     batch: "",
@@ -75,34 +88,110 @@ const FacultyAttendancePage = () => {
 
   useEffect(() => {
     // Fetch faculty courses when component mounts
-    const fetchFacultyCourses = async () => {
-      try {
-        const response = await api.get(`faculty-student-assigning/admin/faculty/${facultyId}`);
-        console.log(response);
-        const facultyAssignments: FacultyAssignment[] = response.data;
-        
-        // Get unique course IDs
-        const courseIds = [...new Set(facultyAssignments.map(assignment => assignment.courseId))];
-        
-        // Fetch course details for each course ID
-        const coursePromises = courseIds.map(async (courseId) => {
-          const courseResponse = await api.get(`course-enrollment/by-course/${courseId}`);
-          return {
-            courseId: courseId,
-            courseName: courseResponse.data.courseName || courseId // Fallback to courseId if name not available
-          };
-        });
-        
-        const fetchedCourses = await Promise.all(coursePromises);
-        setCourses(fetchedCourses);
-      } catch (error) {
-        console.error("Error fetching faculty courses:", error);
-        toast.error("Failed to load faculty courses");
-      }
-    };
 
     fetchFacultyCourses();
+    // fetchStudentsForCourse(formData.course);
   }, [facultyId]);
+
+  const fetchFacultyCourses = async () => {
+    try {
+      const response = await api.get(
+        `/faculty-student-assigning/admin/faculty/${profile.profile.id}`
+      );
+
+      // const courseIds = new Set(response.data.map((assignment: FacultyAssignment) => assignment.courseId));
+      const facultyAssignments: FacultyAssignment[] = response.data;
+
+      // Get unique course IDs
+      const courseIds = [
+        ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
+      ];
+
+      // Fetch course details for each course ID
+      const coursePromises = courseIds.map(async (courseId) => {
+        const courseResponse = await api.get(`course/detailsbyId`, {
+          params: {
+            id: courseId,
+          },
+        });
+
+        return {
+          courseId: courseId,
+          courseName: courseResponse.data[0].courseTitle || courseId, // Fallback to courseId if name not available
+        };
+      });
+
+      const fetchedCourses = await Promise.all(coursePromises);
+      setCourses(fetchedCourses);
+
+      const studentResponse = await api.get(
+        `faculty-student-assigning/admin/faculty/${profile.profile.id}`
+      );
+
+      const facultyAssignmentsData: FacultyAssignment[] = studentResponse.data;
+
+      const studentPromises = facultyAssignmentsData.map(async (assignment) => {
+        console.log(assignment);
+
+        const studentDetailsPromises = assignment.assignedRollNums?.map(
+          async (rollNum) => {
+            const studentResponse = await api.get(`profile/student/${rollNum}`);
+            console.log(studentResponse.data);
+
+            return studentResponse.data;
+          }
+        );
+
+        const studentDetails: StudentDetails[] = await Promise.all(
+          studentDetailsPromises
+        );
+        console.log(studentDetails);
+
+        return studentDetails.map((student) => ({
+          stdId: student.rollNum,
+          stdName: student.name,
+          rollNum: student.rollNum,
+          deptId: student.program,
+          deptName: student.program,
+          batch: student.year,
+          sem: student.semester,
+        }));
+      });
+      const allStudents = await Promise.all(studentPromises);
+      setStudents(allStudents.flat());
+
+      const uniqueBatches = [
+        ...new Set(
+          allStudents
+            .flat()
+            .map((student) => student.batch)
+            .filter((batch) => batch != null && batch !== undefined)
+        ),
+      ];
+      const uniqueDepartments = [
+        ...new Set(
+          allStudents
+            .flat()
+            .map((student) => student.deptName)
+            .filter((dept) => dept != null && dept !== undefined)
+        ),
+      ];
+      const uniqueSemesters = [
+        ...new Set(
+          allStudents
+            .flat()
+            .map((student) => student.sem)
+            .filter((sem) => sem != null && sem !== undefined)
+        ),
+      ];
+      setBatches(uniqueBatches);
+      setDepartments(uniqueDepartments);
+      setSemesters(uniqueSemesters);
+    } catch (error) {
+      console.error("Error fetching faculty courses:", error);
+      toast.error("Failed to load faculty courses");
+    }
+  };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -110,44 +199,56 @@ const FacultyAttendancePage = () => {
 
   const fetchStudentsForCourse = async (courseId: string) => {
     try {
-      const response = await api.get(`faculty-student-assigning/admin/course/${courseId}`);
+      const response = await api.get(
+        `faculty-student-assigning/admin/course/${courseId}`
+      );
       const assignments = response.data;
-      
+
       if (!assignments || assignments.length === 0) {
         toast.error("No students found for this course");
         return;
       }
 
       // Collect all roll numbers
-      const allRollNums = assignments.flatMap(assignment => assignment.assignedRollNums);
-      
+      const allRollNums = assignments.flatMap(
+        (assignment) => assignment.assignedRollNums
+      );
+
       // Fetch student details for each roll number
       const studentPromises = allRollNums.map(async (rollNum) => {
         const studentResponse = await api.get(`profile/student/${rollNum}`);
         return studentResponse.data;
       });
 
-      const studentDetails: StudentDetails[] = await Promise.all(studentPromises);
-      
+      const studentDetails: StudentDetails[] = await Promise.all(
+        studentPromises
+      );
+
       // Update dropdown options based on student data
-      const uniqueBatches = [...new Set(studentDetails.map(student => student.batch))];
-      const uniqueDepartments = [...new Set(studentDetails.map(student => student.deptName))];
-      const uniqueSemesters = [...new Set(studentDetails.map(student => student.sem))];
-      
+      const uniqueBatches = [
+        ...new Set(studentDetails.map((student) => student.batch)),
+      ];
+      const uniqueDepartments = [
+        ...new Set(studentDetails.map((student) => student.deptName)),
+      ];
+      const uniqueSemesters = [
+        ...new Set(studentDetails.map((student) => student.sem)),
+      ];
+
       setBatches(uniqueBatches);
       setDepartments(uniqueDepartments);
       setSemesters(uniqueSemesters);
 
       // Map student details to our Student interface
-      const mappedStudents: Student[] = studentDetails.map(student => ({
-        stdId: student.stdId,
-        stdName: student.stdName,
+      const mappedStudents: Student[] = studentDetails.map((student) => ({
+        stdId: student.rollNum,
+        stdName: student.name,
         rollNum: student.rollNum,
-        deptId: student.deptId,
-        deptName: student.deptName,
-        batch: student.batch,
-        sem: student.sem,
-        isPresent: true // Default to present
+        deptId: student.program,
+        deptName: student.program,
+        batch: student.year,
+        sem: student.semester,
+        isPresent: true,
       }));
 
       setStudents(mappedStudents);
@@ -165,13 +266,16 @@ const FacultyAttendancePage = () => {
       toast.error("Please select a course");
       return;
     }
+    // fetchFacultyCourses();
     fetchStudentsForCourse(formData.course);
   };
 
   const handleToggleAttendance = (stdId: string) => {
     setStudents((prev) =>
       prev.map((student) =>
-        student.stdId === stdId ? { ...student, isPresent: !student.isPresent } : student
+        student.stdId === stdId
+          ? { ...student, isPresent: !student.isPresent }
+          : student
       )
     );
   };
@@ -183,23 +287,26 @@ const FacultyAttendancePage = () => {
     }
 
     try {
-      const attendanceRecords = students.map(student => ({
+      setLoading(true);
+      const attendanceRecords = students.map((student) => ({
         stdId: student.stdId,
         stdName: student.stdName,
         facultyId: facultyId,
         facultyName: facultyName,
         courseId: formData.course,
-        courseName: courses.find(c => c.courseId === formData.course)?.courseName || formData.course,
+        courseName:
+          courses.find((c) => c.courseId === formData.course)?.courseName ||
+          formData.course,
         status: student.isPresent ? 1 : 0,
         session: formData.session,
         batch: student.batch,
         deptId: student.deptId,
         deptName: student.deptName,
         sem: student.sem,
-        dates: formData.date
+        dates: formData.date,
       }));
 
-      await api.post("attupdate", attendanceRecords);
+      await api.post("/attendance/attupdate", attendanceRecords);
 
       const absentees = students.filter((student) => !student.isPresent).length;
       setAbsenteeCount(absentees);
@@ -209,13 +316,16 @@ const FacultyAttendancePage = () => {
     } catch (error) {
       console.error("Error submitting attendance:", error);
       toast.error("Failed to submit attendance");
+    } finally{
+      setLoading(false);
     }
   };
 
-  const filteredStudents = students.filter(student => 
-    (!formData.batch || student.batch === formData.batch) &&
-    (!formData.department || student.deptName === formData.department) &&
-    (!formData.semester || student.sem === formData.semester)
+  const filteredStudents = students.filter(
+    (student) =>
+      (!formData.batch || student.batch === formData.batch) &&
+      (!formData.department || student.deptName === formData.department) &&
+      (!formData.semester || student.sem === formData.semester)
   );
 
   return (
@@ -226,13 +336,17 @@ const FacultyAttendancePage = () => {
       <div className="page-container max-w-4xl mx-auto">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Attendance Marking</h1>
-          <p className=" mt-2">Mark student attendance for a specific session</p>
+          <p className=" mt-2">
+            Mark student attendance for a specific session
+          </p>
         </div>
 
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Select Class Details</CardTitle>
-            <CardDescription>Fill in the details to generate the student list</CardDescription>
+            <CardDescription>
+              Fill in the details to generate the student list
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -260,9 +374,7 @@ const FacultyAttendancePage = () => {
 
               {/* 2. Batch */}
               <div className="space-y-2">
-                <Label htmlFor="batch">
-                  Batch
-                </Label>
+                <Label htmlFor="batch">Batch</Label>
                 <Select
                   value={formData.batch}
                   onValueChange={(value) => handleSelectChange("batch", value)}
@@ -272,7 +384,7 @@ const FacultyAttendancePage = () => {
                     <SelectValue placeholder="Select a batch" />
                   </SelectTrigger>
                   <SelectContent>
-                    {batches.map((batch) => (
+                    {batches.filter(Boolean).map((batch) => (
                       <SelectItem key={batch} value={batch}>
                         {batch}
                       </SelectItem>
@@ -283,12 +395,12 @@ const FacultyAttendancePage = () => {
 
               {/* 3. Department */}
               <div className="space-y-2">
-                <Label htmlFor="department">
-                  Department
-                </Label>
+                <Label htmlFor="department">Department</Label>
                 <Select
                   value={formData.department}
-                  onValueChange={(value) => handleSelectChange("department", value)}
+                  onValueChange={(value) =>
+                    handleSelectChange("department", value)
+                  }
                   disabled={!formData.course}
                 >
                   <SelectTrigger>
@@ -306,12 +418,12 @@ const FacultyAttendancePage = () => {
 
               {/* 4. Semester */}
               <div className="space-y-2">
-                <Label htmlFor="semester">
-                  Semester
-                </Label>
+                <Label htmlFor="semester">Semester</Label>
                 <Select
                   value={formData.semester}
-                  onValueChange={(value) => handleSelectChange("semester", value)}
+                  onValueChange={(value) =>
+                    handleSelectChange("semester", value)
+                  }
                   disabled={!formData.course}
                 >
                   <SelectTrigger>
@@ -334,7 +446,9 @@ const FacultyAttendancePage = () => {
                 </Label>
                 <Select
                   value={formData.session}
-                  onValueChange={(value) => handleSelectChange("session", value)}
+                  onValueChange={(value) =>
+                    handleSelectChange("session", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select session" />
@@ -376,7 +490,7 @@ const FacultyAttendancePage = () => {
                   Generate Student List
                 </Button>
               </div>
-              
+
               {/* View previous attendance */}
               <Button
                 className="mb-1 bg-primary hover:bg-primary-dark w-full"
@@ -395,8 +509,8 @@ const FacultyAttendancePage = () => {
               <CardDescription>
                 {formData.department && `${formData.department} - `}
                 {formData.batch && `${formData.batch} - `}
-                {formData.semester && `Semester ${formData.semester} `}
-                ({formData.session === "FN" ? "Forenoon" : "Afternoon"} Session)
+                {formData.semester && `Semester ${formData.semester} `}(
+                {formData.session === "FN" ? "Forenoon" : "Afternoon"} Session)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -404,25 +518,38 @@ const FacultyAttendancePage = () => {
                 <table className="w-full mb-4">
                   <thead>
                     <tr className="text-left border-b">
-                      <th className="px-4 py-3 text-sm font-medium text-primary">Roll Number</th>
-                      <th className="px-4 py-3 text-sm font-medium text-primary">Name</th>
-                      <th className="px-4 py-3 text-sm font-medium text-primary text-center">Attendance</th>
+                      <th className="px-4 py-3 text-sm font-medium text-primary">
+                        Roll Number
+                      </th>
+                      <th className="px-4 py-3 text-sm font-medium text-primary">
+                        Name
+                      </th>
+                      <th className="px-4 py-3 text-sm font-medium text-primary text-center">
+                        Attendance
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {filteredStudents.map((student) => (
                       <tr key={student.stdId}>
-                        <td className="px-4 py-3 text-secondary">{student.rollNum}</td>
-                        <td className="px-4 py-3 font-medium">{student.stdName}</td>
+                        <td className="px-4 py-3 ">{student.rollNum}</td>
+                        <td className="px-4 py-3 font-medium">
+                          {student.stdName}
+                        </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center items-center">
-                            <Label htmlFor={`attendance-${student.stdId}`} className="mr-2 text-sm">
+                            <Label
+                              htmlFor={`attendance-${student.stdId}`}
+                              className="mr-2 text-sm"
+                            >
                               {student.isPresent ? "Present" : "Absent"}
                             </Label>
                             <Switch
                               id={`attendance-${student.stdId}`}
                               checked={student.isPresent}
-                              onCheckedChange={() => handleToggleAttendance(student.stdId)}
+                              onCheckedChange={() =>
+                                handleToggleAttendance(student.stdId)
+                              }
                             />
                           </div>
                         </td>
@@ -442,8 +569,9 @@ const FacultyAttendancePage = () => {
                 <Button
                   onClick={handleSubmitAttendance}
                   className="bg-primary hover:bg-primary-dark"
+                  disabled={loading}
                 >
-                  Submit Attendance
+                  {loading ? "Submitting..." : "Submit Attendance"}
                 </Button>
               </div>
 
