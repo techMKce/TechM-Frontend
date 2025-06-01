@@ -1,4 +1,4 @@
-
+import axios from "axios";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,26 +6,155 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import StudentNavbar from "@/components/StudentNavbar";
 import FacultyNavbar from "@/components/FacultyNavbar";
+import { useAuth } from "@/hooks/useAuth";
+import profileApi from "@/service/api";
+import { toast } from 'sonner';
 
 export default function ViewProfile() {
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+
+
+
+
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    // if (!user.id) {
-    //   navigate('/');
-    //   return;
-    // }
-    setCurrentUser(user);
-  }, [navigate]);
+    console.log("profile:", profile); // Check if auth exists
+    if (!profile) {
+      console.warn("No profile - redirecting");
+      navigate('/');
+      return;
+    }
 
-  if (!currentUser) {
-    return <div>Loading...</div>;
+    const id = profile.profile.id;
+    console.log("Fetching profile for ID:", id);
+
+
+    const fetchProfile = async () => {
+      if (!profile) {
+        navigate('/login');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const id = profile.profile.id;
+        console.log("Fetching profile for ID:", id);
+
+        // Use different endpoints based on user role
+        const endpoint = profile.profile.role === 'STUDENT'
+          ? `/profile/student/${id}`
+          : `/profile/faculty/${id}`;
+
+        const response = await profileApi.get(endpoint);
+
+        if (response.data) {
+          setCurrentUser(mapBackendToFrontend(response.data));
+        } else {
+          throw new Error("No profile data received");
+        }
+      } catch (err) {
+        console.error("Profile fetch error:", err);
+
+        if (axios.isAxiosError(err)) {
+          if (err.response?.status === 404) {
+            setError("Profile not found. Please complete your profile setup.");
+          } else if (err.response?.status === 500) {
+            setError("Server error. Please try again later or contact support.");
+          } else {
+            setError(err.response?.data?.message || err.message || "Failed to load profile");
+          }
+        } else if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unknown error occurred");
+        }
+
+        toast.error("Failed to load profile data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [profile, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
-  const isStudent = currentUser.role === 'student';
+  
+
+
+  const isStudent = profile.profile.role === 'STUDENT';
   const NavbarComponent = isStudent ? StudentNavbar : FacultyNavbar;
+
+
+
+  function mapBackendToFrontend(data: any) {
+    console.log("Mapping backend data to frontend format:");
+    return {
+      // Basic Info
+      image: data.image,
+      name: data.name,
+      email: data.email,
+      department: data.department,
+      gender: data.gender,
+      dob: data.dob,
+      phoneNum: data.phoneNum || data.mobile, // Handle both field names
+      bloodGroup: data.bloodGroup,
+      nationality: data.nationality,
+      address: data.address,
+      adharNum: data.adharNum || data.aadharNumber,
+
+      // Family Info
+      fatherName: data.fatherName,
+      motherName: data.motherName,
+      firstGraduate: data.firstGraduate,
+
+      // Education Info
+      institutionName: data.institutionName || data.institution,
+      degree: data.degree,
+      program: data.program,
+      year: data.year,
+      semester: data.semester,
+      startYear: data.startYear,
+      gradutaionYear: data.gradutaionYear || data.expectedGraduation,
+      cgpa: data.cgpa,
+      rollNumber: data.rollNum || data.rollNum, // Handle both field names
+
+      // Social Profiles
+      githubProfile: data.githubProfile,
+      linkedInProfile: data.linkedInProfile,
+
+      // SSLC (10th) Details
+      sslcSchoolName: data.sslcSchoolName || data.school10,
+      sslcStartYear: data.sslcStartYear || data.startYear10,
+      sslcEndYear: data.sslcEndYear || data.endYear10,
+      sslcPercentage: data.sslcPercentage || data.percentage10,
+      sslcboardOfEducation: data.sslcboardOfEducation || data.board10,
+
+      // HSC (12th) Details
+      hscSchoolName: data.hscSchoolName || data.school12,
+      hscStartYear: data.hscStartYear || data.startYear12,
+      hscEndYear: data.hscEndYear || data.endYear12,
+      hscPercentage: data.hscPercentage || data.percentage12,
+      hscboardOfEducation: data.hscboardOfEducation || data.board12,
+
+      // Work Experience (for faculty)
+      workExperiences: data.workExperiences || []
+    };
+  }
 
   const renderBasicDetails = () => (
     <Card>
@@ -48,13 +177,13 @@ export default function ViewProfile() {
             {!isStudent && (
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Department</h3>
-                <p className="text-lg">{currentUser.department || "Not specified"}</p>
+                <p className="text-lg">{currentUser.program || "Not specified"}</p>
               </div>
             )}
 
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-1">Mobile Number</h3>
-              <p className="text-lg">{currentUser.mobile || "Not specified"}</p>
+              <p className="text-lg">{currentUser.phoneNum || "Not specified"}</p>
             </div>
 
             <div>
@@ -121,7 +250,7 @@ export default function ViewProfile() {
 
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-1">Aadhar Number</h3>
-              <p className="text-lg">{currentUser.aadharNumber || "Not specified"}</p>
+              <p className="text-lg">{currentUser.adharNum || "Not specified"}</p>
             </div>
           </div>
         </div>
@@ -148,7 +277,7 @@ export default function ViewProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Institution</h4>
-              <p className="text-lg">{currentUser.institution || "Not specified"}</p>
+              <p className="text-lg">{currentUser.institutionName || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Degree</h4>
@@ -164,7 +293,7 @@ export default function ViewProfile() {
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Expected Graduation</h4>
-              <p className="text-lg">{currentUser.expectedGraduation || "Not specified"}</p>
+              <p className="text-lg">{currentUser.gradutaionYear || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">CGPA/Percentage</h4>
@@ -179,19 +308,23 @@ export default function ViewProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">School Name</h4>
-              <p className="text-lg">{currentUser.school10 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.sslcSchoolName || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Start Year</h4>
-              <p className="text-lg">{currentUser.startYear10 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.sslcStartYear || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">End Year</h4>
-              <p className="text-lg">{currentUser.endYear10 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.sslcEndYear || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Percentage</h4>
-              <p className="text-lg">{currentUser.percentage10 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.sslcPercentage || "Not specified"}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Board of Education</h4>
+              <p className="text-lg">{currentUser.sslcboardOfEducation || "Not specified"}</p>
             </div>
           </div>
         </div>
@@ -202,19 +335,23 @@ export default function ViewProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">School Name</h4>
-              <p className="text-lg">{currentUser.school12 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.hscSchoolName || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Start Year</h4>
-              <p className="text-lg">{currentUser.startYear12 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.hscStartYear || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">End Year</h4>
-              <p className="text-lg">{currentUser.endYear12 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.hscEndYear || "Not specified"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Percentage</h4>
-              <p className="text-lg">{currentUser.percentage12 || "Not specified"}</p>
+              <p className="text-lg">{currentUser.hscPercentage || "Not specified"}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Board of Education</h4>
+              <p className="text-lg">{currentUser.hscboardOfEducation || "Not specified"}</p>
             </div>
           </div>
         </div>
@@ -249,7 +386,7 @@ export default function ViewProfile() {
             workExperiences.map((experience: any, index: number) => (
               <div key={index} className="border-b pb-6 last:border-b-0 last:pb-0">
                 <h3 className="text-lg font-semibold mb-4">Experience {index + 1}</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <h4 className="text-sm font-medium text-gray-500 mb-1">Organization Name</h4>
@@ -258,7 +395,7 @@ export default function ViewProfile() {
                   <div>
                     <h4 className="text-sm font-medium text-gray-500 mb-1">Duration</h4>
                     <p className="text-lg">
-                      {experience.workStartYear && experience.workEndYear 
+                      {experience.workStartYear && experience.workEndYear
                         ? `${experience.workStartYear} - ${experience.workEndYear}`
                         : "Not specified"}
                     </p>

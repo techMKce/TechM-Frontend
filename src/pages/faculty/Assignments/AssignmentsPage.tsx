@@ -74,7 +74,7 @@ const AssignmentsPage = () => {
     try {
       setDeletingId(id);
 
-      await axios.delete(`${API_BASE}/assignments`, {
+      await api.delete(`/assignments`, {
         params: { assignmentId: id },
       });
 

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { FileText, Calendar, Download, Eye, Pencil, Save, X } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import axios from "axios";
+import api from "@/service/api";
 
 interface StudentSubmission {
   id: number;
@@ -58,7 +59,7 @@ const ReviewStudentSubmissionPage = () => {
 
       try {
         // Fetch submission details
-        const submissionRes = await axios.get("https://assignmentservice-2a8o.onrender.com/api/submissions/id", {
+        const submissionRes = await api.get("/submissions/id", {
           params: { submissionId },
         });
 
@@ -83,7 +84,7 @@ const ReviewStudentSubmissionPage = () => {
         }
 
         // Fetch gradings for the assignment
-        const gradingRes = await axios.get("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+        const gradingRes = await api.get("/gradings", {
           params: { assignmentId },
         });
 
@@ -131,7 +132,7 @@ const ReviewStudentSubmissionPage = () => {
     if (!confirmDelete) return;
 
     try {
-      const response = await axios.delete("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+      const response = await api.delete("/gradings", {
         data: {
           studentRollNumber: submission.studentRollNumber,
           assignmentId,
@@ -171,7 +172,7 @@ const ReviewStudentSubmissionPage = () => {
     };
 
     try {
-      const response = await axios.post("https://assignmentservice-2a8o.onrender.com/api/gradings", requestBody);
+      const response = await api.post("/gradings", requestBody);
 
       if (response.status === 200) {
         toast.success("Grade updated successfully.");
@@ -202,7 +203,7 @@ const ReviewStudentSubmissionPage = () => {
 
     try {
       const link = document.createElement("a");
-      link.href = `https://assignmentservice-2a8o.onrender.com/api/submissions/download?submissionId=${submissionId}`;
+      link.href = `http://localhost:8080/api/v1/submissions/download?submissionId=${submissionId}`;
       link.setAttribute("download", submission?.document || "document.pdf");
       document.body.appendChild(link);
       link.click();
@@ -231,7 +232,7 @@ const ReviewStudentSubmissionPage = () => {
     }
 
     try {
-      const response = await axios.get("https://assignmentservice-2a8o.onrender.com/api/submissions/download", {
+      const response = await api.get("/submissions/download", {
         params: { submissionId },
         responseType: "blob",
       });
@@ -241,7 +242,7 @@ const ReviewStudentSubmissionPage = () => {
 
       // Check if the response is text (possible base64)
       if (contentType.includes('text') || contentType.includes('json')) {
-        const textResponse = await axios.get("https://assignmentservice-2a8o.onrender.com/api/submissions/download", {
+        const textResponse = await api.get("/submissions/download", {
           params: { submissionId },
           responseType: "text",
         });

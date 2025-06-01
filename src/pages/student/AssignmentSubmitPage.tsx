@@ -404,7 +404,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Calendar, Upload, ArrowLeft, X, Check } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import axios from "axios";
-
+import api from '../../service/api';
+//Sanjay For Verify User
+import { useAuth } from "@/hooks/useAuth";
 interface Assignment {
   title: string;
   dueDate: string;
@@ -414,6 +416,10 @@ interface Assignment {
 }
 
 const AssignmentSubmitPage = () => {
+
+  // Sanjay For Verify User
+  const { profile } = useAuth();
+
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const [studentName] = useState("John Doe");
   const [studentRollNumber] = useState("CS101");
@@ -432,7 +438,7 @@ const AssignmentSubmitPage = () => {
   useEffect(() => {
     const fetchAssignment = async () => {
       try {
-        const response = await axios.get("https://assignmentservice-2a8o.onrender.com/api/assignments/id", {
+        const response = await api.get("/assignments/id", {
           params: { assignmentId }
         });
         setAssignment(response.data.assignment);
@@ -444,6 +450,7 @@ const AssignmentSubmitPage = () => {
       } catch (err: any) {
         setError(err?.response?.data?.message || "Failed to fetch assignment details.");
         toast.error("Error fetching assignment");
+        console.log(err);
       } finally {
         setLoading(false);
       }
@@ -451,17 +458,19 @@ const AssignmentSubmitPage = () => {
 
     const checkSubmissionStatusAndGrading = async () => {
       try {
-        const response = await axios.get("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+        const response = await api.get("/gradings", {
           params: { assignmentId }
         });
 
         const submissions = response.data.submissions || [];
         const gradings = response.data.gradings || [];
+        console.log("Response from gradings API:", submissions);
+        console.log("Response from gradings API:", gradings);
 
-        const userSubmission = submissions.find((sub: any) => sub.studentRollNumber === studentRollNumber);
-        const userGrading = gradings.find((g: any) => g.studentRollNumber === studentRollNumber);
+        const userSubmission = submissions.find((sub: any) => sub.studentRollNumber === profile.profile.id);
+        const userGrading = gradings.find((g: any) => g.studentRollNumber === profile.profile.id);
 
-        setIsSubmitted(!!userSubmission);
+        setIsSubmitted(userSubmission == null ? false : true);
         if (userSubmission) {
           setSubmittedAt(userSubmission.submittedAt);
         }
@@ -508,12 +517,14 @@ const AssignmentSubmitPage = () => {
     const formData = new FormData();
     formData.append("assignmentId", assignmentId!);
     formData.append("studentName", studentName);
-    formData.append("studentRollNumber", studentRollNumber);
+    formData.append("studentRollNumber", profile?.profile?.id || studentRollNumber);
     formData.append("file", files[0]);
+    formData.append("studentDepartment", profile.profile.department); // Example department, replace as needed
+    formData.append("studentSemester", profile.profile.year); // Example semester, replace as needed
 
     try {
-      const response = await axios.post(
-        "https://assignmentservice-2a8o.onrender.com/api/submissions",
+      const response = await api.post(
+        "/submissions",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -535,7 +546,7 @@ const AssignmentSubmitPage = () => {
     if (!confirmed) return;
 
     try {
-      await axios.delete("https://assignmentservice-2a8o.onrender.com/api/submissions", {
+      await api.delete("/submissions", {
         data: {
           assignmentId,
           studentRollNumber,
@@ -613,8 +624,8 @@ const AssignmentSubmitPage = () => {
               </CardHeader>
               <CardContent>
                 <h2 className="text-2xl font-bold text-primary mb-2">{assignment.title}</h2>
-                <p className="text-secondary mb-4">{assignment.courseName}</p>
-                <div className="flex items-center text-sm text-secondary mb-6">
+                <p className=" mb-4">{assignment.courseName}</p>
+                <div className="flex items-center text-sm mb-6">
                   <Calendar size={16} className="mr-1" />
                   <span>Due: {formatDate(assignment.dueDate)}</span>
                 </div>
@@ -711,7 +722,7 @@ const AssignmentSubmitPage = () => {
                       }}
                       onDrop={handleDrop}
                       className={`border-2 border-dashed rounded-md p-6 text-center transition ${
-                        dragActive ? "border-blue-500 bg-blue-50" : "border-secondary/30 bg-white"
+                        dragActive ? "border-blue-500 bg-blue-50" : " bg-white"
                       }`}
                     >
                       <input
@@ -726,11 +737,11 @@ const AssignmentSubmitPage = () => {
                         htmlFor="file-upload"
                         className="flex flex-col items-center justify-center cursor-pointer"
                       >
-                        <Upload className="h-12 w-12 text-secondary mb-2" />
-                        <p className="text-secondary text-sm mb-1">
+                        <Upload className="h-12 w-12 mb-2" />
+                        <p className=" text-sm mb-1">
                           Drag & drop files here or click to browse
                         </p>
-                        <p className="text-xs text-secondary">
+                        <p className="text-xs ">
                           Supports: PDF, DOC, DOCX, ZIP (Max: 10MB)
                         </p>
                       </label>
@@ -748,7 +759,7 @@ const AssignmentSubmitPage = () => {
                                 </div>
                                 <div className="ml-3">
                                   <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
-                                  <p className="text-xs text-secondary">
+                                  <p className="text-xs">
                                     {(file.size / 1024).toFixed(1)} KB
                                   </p>
                                 </div>
