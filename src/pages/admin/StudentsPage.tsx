@@ -108,7 +108,8 @@ const StudentsPage = () => {
         department: "",
         year: ""
       });
-      setIsEditDialogOpen(false); // ✅ Add this to close the dialog if needed
+      setIsEditDialogOpen(false); 
+      window.location.reload(); // reload the page to reflect changes
     } catch (error) {
       console.error("Error updating Student:", error);
       toast.error("Error updating Student");

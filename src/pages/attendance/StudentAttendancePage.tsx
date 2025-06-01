@@ -11,6 +11,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { BarChart4 } from "lucide-react";
 import api from "@/service/api";
+import { useAuth } from "@/hooks/useAuth";
 
 // Define interface for the API response data
 interface AttendanceData {
@@ -27,9 +28,10 @@ interface AttendanceData {
 }
 
 const StudentAttendancePage = () => {
+  const {profile} = useAuth();
   // State variables
-  const [studentId] = useState("l302"); // Hardcoded for now, can be made dynamic later
-  const [studentName, setStudentName] = useState("");
+  const studentId = profile.profile.id; // Hardcoded for now, can be made dynamic later
+  const studentName = profile.profile.name; // Hardcoded for now, can be made dynamic later
   const [selectedSemester, setSelectedSemester] = useState("");
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,18 +55,24 @@ const StudentAttendancePage = () => {
     setError("");
     
     try {
-      const response = await api.get<AttendanceData[]>(`/attendance/getstudent?id=${studentId}`);
+      const response = await api.get<AttendanceData[]>(`/attendance/getstudent`,
+        {
+          params: {
+            id: studentId,
+          }
+        }
+      );
       console.log("Fetched attendance data:", response);
       setAttendanceData(response.data);
       
       // Set student name from the first record if available
-      if (response.data.length > 0) {
-        setStudentName(response.data[0].stdName);
-      }
+ 
       
       // Filter data for the selected semester
       const semNumber = parseInt(semester.split(" ")[1]);
       const semesterData = response.data.filter(item => item.sem === semNumber);
+
+      console.log("Filtered semester data:", semesterData);
       
       // Check if data exists for this semester
       if (semesterData.length === 0) {
@@ -75,7 +83,7 @@ const StudentAttendancePage = () => {
       }
       
       // Process FN (forenoon) session data
-      const fnData = semesterData.find(item => item.session.toLowerCase() === "forenoon");
+      const fnData = semesterData.find(item => item.session === "FN");
       if (fnData) {
         setFnSessionData({
           conducted: fnData.totaldays,
@@ -87,7 +95,8 @@ const StudentAttendancePage = () => {
       }
       
       // Process AN (afternoon) session data
-      const anData = semesterData.find(item => item.session.toLowerCase() === "afternoon");
+      const anData = semesterData.find(item => item.session === "AN");
+      console.log("AN Data:", anData);
       if (anData) {
         setAnSessionData({
           conducted: anData.totaldays,
@@ -97,7 +106,8 @@ const StudentAttendancePage = () => {
       } else {
         setAnSessionData({ conducted: 0, attended: 0, percentage: 0 });
       }
-      
+      console.log("FN Session Data:", fnSessionData);
+      console.log("AN Session Data:", anSessionData);
     } catch (err) {
       console.error("Error fetching attendance data:", err);
       setError("Failed to fetch attendance data. Please try again later.");
@@ -146,7 +156,7 @@ const StudentAttendancePage = () => {
       <div className="page-container max-w-5xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Attendance Dashboard</h1>
-          <p className="text-secondary mt-2">Track your attendance statistics</p>
+          <p className=" mt-2">Track your attendance statistics</p>
         </div>
 
         <div className="mb-6">
@@ -191,25 +201,25 @@ const StudentAttendancePage = () => {
 
                 <div className="flex flex-wrap justify-center gap-6">
                   <div className="text-center">
-                    <p className="text-xs text-secondary">Required</p>
+                    <p className="text-xs ">Required</p>
                     <p className="text-2xl font-bold">75%</p>
-                    <p className="text-xs text-secondary">Minimum</p>
+                    <p className="text-xs ">Minimum</p>
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs text-secondary">Current</p>
+                    <p className="text-xs ">Current</p>
                     <p className="text-2xl font-bold">
                       {loading ? "Loading..." : !selectedSemester || error ? "--" : `${dynamicOverallPercentage}%`}
                     </p>
-                    <p className="text-xs text-secondary">Attendance</p>
+                    <p className="text-xs ">Attendance</p>
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs text-secondary">Risk Status</p>
+                    <p className="text-xs ">Risk Status</p>
                     <p className={`text-2xl font-bold ${!selectedSemester || error ? "text-gray-500" : dynamicOverallPercentage >= 75 ? "text-green-500" : "text-red-500"}`}>
                       {loading ? "Loading..." : !selectedSemester || error ? "--" : dynamicOverallPercentage >= 75 ? "Safe" : "At Risk"}
                     </p>
-                    <p className="text-xs text-secondary">Status</p>
+                    <p className="text-xs ">Status</p>
                   </div>
                 </div>
               </div>

@@ -14,14 +14,17 @@ import {
 } from "@heroicons/react/24/outline";
 import DisplayAssignments from "./DisplayAssignments";
 import StudentProgressReport from "./StudentProgressReport";
-import StudentProgressDisplay from "./StudentProgressDisplay"
+import StudentProgressDisplay from "./StudentProgressDisplay";
 import api from "@/service/api";
 import StudentNavbar from "../StudentNavbar";
 import FacultyNavbar from "../FacultyNavbar";
+import { isAsyncFunction } from "node:util/types";
+import { toast } from '@/components/ui/sonner';
+import { useToast } from "@/hooks/use-toast";
 
 function ViewCourse() {
   const { profile } = useAuth();
-  const role = profile.profile.role
+  const role = profile.profile.role;
   const { id } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -29,14 +32,14 @@ function ViewCourse() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
-    course_id: '',
-    courseTitle: '',
-    courseDescription: '',
-    instructorName: '',
-    dept: '',
-    duration: '0',
-    credit: '0',
-    isActive: true
+    course_id: "",
+    courseTitle: "",
+    courseDescription: "",
+    instructorName: "",
+    dept: "",
+    duration: "0",
+    credit: "0",
+    isActive: true,
   });
 
   const [newSection, setNewSection] = useState({
@@ -51,7 +54,7 @@ function ViewCourse() {
     sectionDesc: "",
     createdAt: null,
     updatedAt: null,
-    course: { course_id: null }
+    course: { course_id: null },
   });
 
   const [currentSectionId, setCurrentSectionId] = useState(null);
@@ -72,61 +75,75 @@ function ViewCourse() {
   const [showReport, setShowReport] = useState(false);
   const [error, setError] = useState(null);
   const isInitialRender = useRef(false);
+  const [isEnrolled, setIsEnrolled] = useState(
+    role === "FACULTY" || role === "ADMIN"
+  );
+  const { toast } = useToast();
+
+
 
   // Initial fetch for course details
   useEffect(() => {
-    if(course == null) {
+    if (course == null) {
       return;
     }
     const fetchSection = async () => {
       try {
-        const sectionResponse = await api.get(`/course/section/details?id=${course.course_id}`);
-        console.log("View Course Invoked",course.course_id);
+        const sectionResponse = await api.get(
+          `/course/section/details?id=${course.course_id}`
+        );
+        console.log("View Course Invoked", course.course_id);
         const sections = Array.isArray(sectionResponse.data)
           ? sectionResponse.data
           : [sectionResponse.data];
 
         setCourseSection(sections); // Update state
-
       } catch (error) {
         console.error("Error fetching section at section Details:", error);
       }
-    }
-    fetchSection()
+    };
+    fetchSection();
     console.log("View Course Invoked", course);
-    // eslint-disable-next-line
-  }, [course])
 
-  // course editing 
+    const enrollmentSatus = async () => {
+      if (profile.profile.role === "STUDENT") {
+        const enrolled = await api.get(
+          `/course-enrollment/check/${course.course_id}/${profile.profile.id}`
+        );
+        setIsEnrolled(enrolled.data);
+      }
+    };
+    enrollmentSatus();
+    // eslint-disable-next-line
+  }, [course]);
+
+  // course editing
   const handleEditCourse = async () => {
     setEditData({
       course_id: course.course_id,
-      courseTitle: course.courseTitle || '',
-      courseDescription: course.courseDescription || '',
-      instructorName: course.instructorName || '',
-      dept: course.dept || '',
-      duration: course.duration?.toString() || '0',
-      credit: course.credit?.toString() || '0',
-      isActive: course.isActive !== undefined ? course.isActive : true
+      courseTitle: course.courseTitle || "",
+      courseDescription: course.courseDescription || "",
+      instructorName: course.instructorName || "",
+      dept: course.dept || "",
+      duration: course.duration?.toString() || "0",
+      credit: course.credit?.toString() || "0",
+      isActive: course.isActive !== undefined ? course.isActive : true,
     });
     setIsEditing(true);
   };
   // Ensure user.role is typed as string or a union of all possible roles
-  const isEnrolled =
-    (role === "FACULTY" || role === "ADMIN")
-      ? true
-      : localStorage.getItem(`enrolled_${id}`) === "true";
+
   // save updated course data
   interface EditData {
-      course_id: string;
-      courseTitle: string;
-      courseDescription: string;
-      instructorName: string;
-      dept: string;
-      duration: number;
-      credit: number;
-      isActive: boolean;
-    }
+    course_id: string;
+    courseTitle: string;
+    courseDescription: string;
+    instructorName: string;
+    dept: string;
+    duration: number;
+    credit: number;
+    isActive: boolean;
+  }
 
   interface Course {
     course_id: string;
@@ -157,10 +174,7 @@ function ViewCourse() {
       };
 
       // Make PUT request to update the course
-      const response = await api.put(
-        "/course/update",
-        updatedCourse
-      );
+      const response = await api.put("/course/update", updatedCourse);
 
       // Update local state only after successful API response
       setCourse({
@@ -173,7 +187,6 @@ function ViewCourse() {
 
       // Optional: Show success message
       console.log("Course updated successfully:", response.data);
-
     } catch (error: any) {
       console.error("Error updating course:", error);
       alert("Failed to update course. Please try again.");
@@ -186,17 +199,14 @@ function ViewCourse() {
       const requestBody = {
         sectionTitle: newSection.sectionTitle,
         sectionDesc: newSection.sectionDesc,
-        course: { course_id: course.course_id }
+        course: { course_id: course.course_id },
       };
       // Make API call to add section
-      const response = await api.post(
-        '/course/section/add',
-        requestBody
-      );
+      const response = await api.post("/course/section/add", requestBody);
       // If the API returns the newly created section
       const createdSection = response.data;
       // Update local state with the new section
-      setCourseSection(prevSections => [
+      setCourseSection((prevSections) => [
         ...prevSections,
         {
           section_id: Number(createdSection.section_id),
@@ -204,12 +214,11 @@ function ViewCourse() {
           sectionDesc: createdSection.sectionDesc,
           createdAt: createdSection.createdAt || new Date().toISOString(),
           updatedAt: createdSection.updatedAt || new Date().toISOString(),
-        }
+        },
       ]);
       // Reset form
       setNewSection({ sectionTitle: "", sectionDesc: "" });
       setShowAddSection(false);
-
     } catch (error) {
       console.error("Error adding section:", error);
     }
@@ -223,7 +232,7 @@ function ViewCourse() {
       sectionDesc: section.sectionDesc,
       createdAt: section.createdAt,
       updatedAt: section.updatedAt,
-      course: { course_id: course.course_id }
+      course: { course_id: course.course_id },
     });
   };
   // handle save section - called by handle edit section
@@ -240,7 +249,7 @@ function ViewCourse() {
         sectionDesc: sectionEditData.sectionDesc,
         createdAt: sectionEditData.createdAt,
         updatedAt: now,
-        course: { course_id: course.course_id }
+        course: { course_id: course.course_id },
       };
 
       const response = await api.put("/course/section/update", payload);
@@ -252,12 +261,14 @@ function ViewCourse() {
         sectionDesc: "",
         createdAt: null,
         updatedAt: null,
-        course: { course_id: null }
+        course: { course_id: null },
       });
       setError(null);
     } catch (err) {
       console.error("Failed to update section:", err);
-      setError(err.response?.data?.message || err.message || "Failed to update section");
+      setError(
+        err.response?.data?.message || err.message || "Failed to update section"
+      );
     }
   };
   // handle delete / remove section (delete icon)
@@ -268,16 +279,15 @@ function ViewCourse() {
         await api.delete(`/course/section/delete`, {
           data: requestBody,
           headers: {
-            'Content-Type': 'text/plain'
-          }
+            "Content-Type": "text/plain",
+          },
         });
 
-        setCourseSection(prevSections =>
-          prevSections.filter(s => s.section_id !== sectionId)
+        setCourseSection((prevSections) =>
+          prevSections.filter((s) => s.section_id !== sectionId)
         );
 
         console.log("Section deleted successfully");
-
       } catch (error) {
         console.error("Error while deleting section:", error);
 
@@ -290,461 +300,499 @@ function ViewCourse() {
     }
   };
 
+  const handleEnroll = async () => {
+    setLoading(true);
+    const response  = await api.post('/course-enrollment', {
+      courseId: course.course_id,
+      rollNum: profile.profile.id,
+    });
+    if( response.status === 200) {
+      setIsEnrolled(true);
+      toast({
+        title: "Enrolled Successfully",
+        description: `You have successfully enrolled in ${course.courseTitle}.`,
+      });
+    }else {
+      toast({
+        variant: "destructive",
+        title: "Enrollment Failed",
+        description: response.data.message || "An error occurred during enrollment",
+      });
+    }
+    setLoading(false);
+  }
+
   // if (course == null) return <div className="text-center py-10">Loading course...</div>;
 
   return (
     <>
-    {(profile.profile.role=='STUDENT')?<StudentNavbar/>:<FacultyNavbar/>}
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Edit Course Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg">
-            <h2 className="text-2xl font-bold mb-6 text-gray-900">
-              Edit Course
-            </h2>
-            <form onSubmit={handleSaveCourse}>
-              <div className="mb-5">
-                <label className="block text-gray-800 mb-2 font-medium">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={editData.courseTitle}
-                  onChange={(e) =>
-                    setEditData({ ...editData, courseTitle: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  required
-                />
-              </div>
-              <div className="mb-5">
-                <label className="block text-gray-800 mb-2 font-medium">
-                  Description
-                </label>
-                <textarea
-                  value={editData.courseDescription}
-                  onChange={(e) =>
-                    setEditData({
-                      ...editData,
-                      courseDescription: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  rows={3}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-4 mb-5">
-                <div>
+      {profile.profile.role == "STUDENT" ? (
+        <StudentNavbar />
+      ) : (
+        <FacultyNavbar />
+      )}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Edit Course Modal */}
+        {isEditing && (
+          <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg">
+              <h2 className="text-2xl font-bold mb-6 text-gray-900">
+                Edit Course
+              </h2>
+              <form onSubmit={handleSaveCourse}>
+                <div className="mb-5">
                   <label className="block text-gray-800 mb-2 font-medium">
-                    Duration
+                    Title
                   </label>
                   <input
                     type="text"
-                    value={editData.duration}
+                    value={editData.courseTitle}
                     onChange={(e) =>
-                      setEditData({ ...editData, duration: e.target.value })
+                      setEditData({ ...editData, courseTitle: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                    placeholder="e.g., 8 weeks"
+                    required
                   />
                 </div>
-                <div>
+                <div className="mb-5">
                   <label className="block text-gray-800 mb-2 font-medium">
-                    Credits
+                    Description
                   </label>
-                  <input
-                    type="number"
-                    value={editData.credit}
+                  <textarea
+                    value={editData.courseDescription}
                     onChange={(e) =>
                       setEditData({
                         ...editData,
-                        credit: e.target.value,
+                        courseDescription: e.target.value,
                       })
                     }
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    rows={3}
+                    required
                   />
                 </div>
-                <div>
-                  <label className="block text-gray-800 mb-2 font-medium">
-                    Status
-                  </label>
-                  <select
-                    value={editData.isActive ? "true" : "false"}
-                    onChange={(e) =>
-                      setEditData({
-                        ...editData,
-                        isActive: e.target.value === "true",
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                <div className="grid grid-cols-3 gap-4 mb-5">
+                  <div>
+                    <label className="block text-gray-800 mb-2 font-medium">
+                      Duration
+                    </label>
+                    <input
+                      type="text"
+                      value={editData.duration}
+                      onChange={(e) =>
+                        setEditData({ ...editData, duration: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      placeholder="e.g., 8 weeks"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-800 mb-2 font-medium">
+                      Credits
+                    </label>
+                    <input
+                      type="number"
+                      value={editData.credit}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          credit: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-800 mb-2 font-medium">
+                      Status
+                    </label>
+                    <select
+                      value={editData.isActive ? "true" : "false"}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          isActive: e.target.value === "true",
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 font-medium"
                   >
-                    <option value="true">Active</option>
-                    <option value="false">Inactive</option>
-                  </select>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium"
+                  >
+                    Save Changes
+                  </button>
                 </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Main Layout */}
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left Side (Course Content) */}
-        <div className="w-full lg:w-[70%]">
-          {/* Course Header */}
-          <div className="flex flex-col md:flex-row gap-8 mb-10">
-            <div className="md:w-1/3 relative">
-              <img
-                src={course?.imageUrl || "https://via.placeholder.com/300x200.png?text=Course+Image"}
-                alt={course?.courseTitle}
-                className="w-full rounded-xl shadow-md border border-gray-200"
-              />
+              </form>
             </div>
-            {/* Left side course details */}
-            <div className="md:w-2/3">
-              <h1 className="text-4xl font-extrabold mb-3 text-gray-800">
-                {course.courseTitle}
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <span className="px-3 py-1 bg-gray-200 text-gray-900 rounded-full text-xs font-semibold">
-                  {course.dept}
-                </span>
-                <span className="text-gray-600 text-sm">
-                  By{" "}
-                  <span className="text-red-600">{course.instructorName}</span>
-                </span>
-                <span className="text-gray-600 text-sm">
-                  Duration: {course.duration}
-                </span>
-                <span className="text-gray-600 text-sm">
-                  Credits: {course.credit}
-                </span>
-                <span className="text-gray-600 text-sm">
-                  Status: {course.isActive ? "Active" : "Inactive"}
-                </span>
-                <span className="text-gray-600 text-sm">
-                  Created: {new Date(course.createdAt).toLocaleDateString()}
-                </span>
-                {course.updatedAt && (
-                  <span className="text-gray-600 text-sm">
-                    Updated: {new Date(course.updatedAt).toLocaleDateString()}
+          </div>
+        )}
+
+        {/* Main Layout */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left Side (Course Content) */}
+          <div className="w-full lg:w-[70%]">
+            {/* Course Header */}
+            <div className="flex flex-col md:flex-row gap-8 mb-10">
+              <div className="md:w-1/3 relative">
+                <img
+                  src={
+                    course?.imageUrl ||
+                    "https://via.placeholder.com/300x200.png?text=Course+Image"
+                  }
+                  alt={course?.courseTitle}
+                  className="w-full rounded-xl shadow-md border border-gray-200"
+                />
+              </div>
+              {/* Left side course details */}
+              <div className="md:w-2/3">
+                <h1 className="text-4xl font-extrabold mb-3 text-gray-800">
+                  {course.courseTitle}
+                </h1>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <span className="px-3 py-1 bg-gray-200 text-gray-900 rounded-full text-xs font-semibold">
+                    {course.dept}
                   </span>
+                  <span className="text-gray-600 text-sm">
+                    By{" "}
+                    <span className="text-red-600">
+                      {course.instructorName}
+                    </span>
+                  </span>
+                  <span className="text-gray-600 text-sm">
+                    Duration: {course.duration}
+                  </span>
+                  <span className="text-gray-600 text-sm">
+                    Credits: {course.credit}
+                  </span>
+                  <span className="text-gray-600 text-sm">
+                    Status: {course.isActive ? "Active" : "Inactive"}
+                  </span>
+                  <span className="text-gray-600 text-sm">
+                    Created: {new Date(course.createdAt).toLocaleDateString()}
+                  </span>
+                  {course.updatedAt && (
+                    <span className="text-gray-600 text-sm">
+                      Updated: {new Date(course.updatedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <p className="text-base text-gray-800 mb-6">
+                  {course.courseDescription}
+                </p>
+                {!isEnrolled && role === "STUDENT" ? (
+                  <button
+                    onClick={handleEnroll}
+                    disabled={loading}
+                    className="px-6 py-3 bg-gray-800 text-white rounded-xl shadow hover:bg-gray-900 transition font-bold cursor-pointer"
+                  >
+                    {loading ? "Enrolling..." : "Enroll Now"}
+                  </button>
+                ) : (
+                  <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-xl inline-block font-semibold shadow">
+                    {role === "FACULTY" || role === "ADMIN"
+                      ? "You have editing access"
+                      : "You're enrolled in this course"}
+                  </div>
                 )}
               </div>
-              <p className="text-base text-gray-800 mb-6">
-                {course.courseDescription}
-              </p>
-              {!isEnrolled && role === "STUDENT" ? (
-                <button
-                  onClick={() => localStorage.setItem(`enrolled_${id}`, "true")}
-                  className="px-6 py-3 bg-gray-800 text-white rounded-xl shadow hover:bg-gray-900 transition font-bold cursor-pointer"
-                >
-                  Enroll Now
-                </button>
-              ) : (
-                <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-xl inline-block font-semibold shadow">
-                  {role === "FACULTY" || role === "ADMIN"
-                    ? "You have editing access"
-                    : "You're enrolled in this course"}
-                </div>
-              )}
             </div>
-          </div>
 
-          {/* Toggle between Sections and Assignments and View report button */}
-          <div className="flex mb-4 border-b border-gray-200">
-            <button
-              onClick={() => {
-                setShowSection(true);
-                setShowAssignments(false);
-                setShowReport(false);
-              }}
-              className={`px-4 py-2 font-medium ${
-                showSection
-                  ? "text-gray-800 border-b-2 border-gray-800"
-                  : "text-gray-500"
-              }`}
-            >
-              Sections
-            </button>
-            <button
-              onClick={() => {
-                setShowSection(false);
-                setShowAssignments(true);
-                setShowReport(false);
-              }}
-              className={`px-4 py-2 font-medium ${
-                showAssignments
-                  ? "text-gray-800 border-b-2 border-gray-800"
-                  : "text-gray-500"
-              }`}
-            >
-              Assignments
-            </button>
-            {role === "FACULTY" && (
+            {/* Toggle between Sections and Assignments and View report button */}
+            <div className="flex mb-4 border-b border-gray-200">
               <button
                 onClick={() => {
-                  setShowSection(false);
+                  setShowSection(true);
                   setShowAssignments(false);
-                  setShowReport(true);
+                  setShowReport(false);
                 }}
                 className={`px-4 py-2 font-medium ${
-                  showReport
+                  showSection
                     ? "text-gray-800 border-b-2 border-gray-800"
                     : "text-gray-500"
                 }`}
               >
-                View Report
+                Sections
               </button>
-            )}
-          </div>
-          {/* handle add section */}
-          {showSection && (
-            <>
-              {(isEnrolled ||
-                role === "FACULTY" ||
-                role === "ADMIN") && (
-                <div className="mt-4">
-                  {(role === "FACULTY" || role === "ADMIN") && (
-                    <div className="mb-4">
-                      {showAddSection && (
-                        <div className="mt-4 p-6 bg-gray-100 rounded-xl shadow">
-                          <h3 className="font-semibold mb-2 text-gray-800">
-                            Add New Section
-                          </h3>
-                          <div className="grid gap-4">
-                            <input
-                              type="text"
-                              placeholder="Section Title"
-                              value={newSection.sectionTitle}
-                              onChange={(e) =>
-                                setNewSection({
-                                  ...newSection,
-                                  sectionTitle: e.target.value,
-                                })
-                              }
-                              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                            />
-                            <textarea
-                              placeholder="Section Content"
-                              value={newSection.sectionDesc}
-                              onChange={(e) =>
-                                setNewSection({
-                                  ...newSection,
-                                  sectionDesc: e.target.value,
-                                })
-                              }
-                              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                              rows={3}
-                            />
-                            <button
-                              onClick={handleAddSection}
-                              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-semibold cursor-pointer"
-                              disabled={!newSection.sectionTitle}
-                            >
-                              Add Section
-                            </button>
+              <button
+                onClick={() => {
+                  setShowSection(false);
+                  setShowAssignments(true);
+                  setShowReport(false);
+                }}
+                className={`px-4 py-2 font-medium ${
+                  showAssignments
+                    ? "text-gray-800 border-b-2 border-gray-800"
+                    : "text-gray-500"
+                }`}
+              >
+                Assignments
+              </button>
+              {role === "FACULTY" && (
+                <button
+                  onClick={() => {
+                    setShowSection(false);
+                    setShowAssignments(false);
+                    setShowReport(true);
+                  }}
+                  className={`px-4 py-2 font-medium ${
+                    showReport
+                      ? "text-gray-800 border-b-2 border-gray-800"
+                      : "text-gray-500"
+                  }`}
+                >
+                  View Report
+                </button>
+              )}
+            </div>
+            {/* handle add section */}
+            {showSection && (
+              <>
+                {(isEnrolled || role === "FACULTY" || role === "ADMIN") && (
+                  <div className="mt-4">
+                    {(role === "FACULTY" || role === "ADMIN") && (
+                      <div className="mb-4">
+                        {showAddSection && (
+                          <div className="mt-4 p-6 bg-gray-100 rounded-xl shadow">
+                            <h3 className="font-semibold mb-2 text-gray-800">
+                              Add New Section
+                            </h3>
+                            <div className="grid gap-4">
+                              <input
+                                type="text"
+                                placeholder="Section Title"
+                                value={newSection.sectionTitle}
+                                onChange={(e) =>
+                                  setNewSection({
+                                    ...newSection,
+                                    sectionTitle: e.target.value,
+                                  })
+                                }
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                              />
+                              <textarea
+                                placeholder="Section Content"
+                                value={newSection.sectionDesc}
+                                onChange={(e) =>
+                                  setNewSection({
+                                    ...newSection,
+                                    sectionDesc: e.target.value,
+                                  })
+                                }
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                rows={3}
+                              />
+                              <button
+                                onClick={handleAddSection}
+                                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-semibold cursor-pointer"
+                                disabled={!newSection.sectionTitle}
+                              >
+                                Add Section
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* section view */}
-                  {(!showAddSection || role === "STUDENT") && (
-                    <div className="space-y-6">
-                      {courseSection.length > 0 ? (
-                        courseSection.map((section) => (
-                          <div
-                            key={section.section_id}
-                            className="border border-gray-200 rounded-xl shadow bg-white overflow-hidden"
-                          >
-                            <div className="bg-gray-100 px-6 py-4 flex justify-between items-center">
-                              <div className="flex items-center gap-2">
+                        )}
+                      </div>
+                    )}
+                    {/* section view */}
+                    {(!showAddSection || role === "STUDENT") && (
+                      <div className="space-y-6">
+                        {courseSection.length > 0 ? (
+                          courseSection.map((section) => (
+                            <div
+                              key={section.section_id}
+                              className="border border-gray-200 rounded-xl shadow bg-white overflow-hidden"
+                            >
+                              <div className="bg-gray-100 px-6 py-4 flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  {editingSectionId === section.section_id ? (
+                                    <input
+                                      type="text"
+                                      value={sectionEditData.sectionTitle}
+                                      onChange={(e) =>
+                                        setSectionEditData({
+                                          ...sectionEditData,
+                                          sectionTitle: e.target.value,
+                                        })
+                                      }
+                                      className="px-3 py-1 border border-gray-200 rounded-lg"
+                                      onKeyDown={(e) =>
+                                        e.key === "Enter" &&
+                                        handleSaveSection(e)
+                                      }
+                                    />
+                                  ) : (
+                                    <h3 className="font-semibold text-lg text-gray-800">
+                                      {section.sectionTitle}
+                                    </h3>
+                                  )}
+                                  {(role === "FACULTY" || role === "ADMIN") && (
+                                    <div className="flex gap-1">
+                                      {editingSectionId ===
+                                      section.section_id ? (
+                                        <>
+                                          <button
+                                            onClick={handleSaveSection}
+                                            className="text-gray-900 hover:text-gray-800 font-semibold"
+                                          >
+                                            Save
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              setEditingSectionId(null)
+                                            }
+                                            className="text-gray-500 hover:text-gray-800 font-semibold"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <button
+                                            onClick={() =>
+                                              handleEditSection(section)
+                                            }
+                                            className="text-gray-900 hover:text-gray-800"
+                                          >
+                                            <PencilSquareIcon className="w-5 h-5 cursor-pointer" />
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              handleRemoveSection(
+                                                section.section_id
+                                              )
+                                            }
+                                            className="text-gray-500 hover:text-gray-800"
+                                          >
+                                            <TrashIcon className="w-5 h-5 cursor-pointer " />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="p-6">
                                 {editingSectionId === section.section_id ? (
-                                  <input
-                                    type="text"
-                                    value={sectionEditData.sectionTitle}
+                                  <textarea
+                                    value={sectionEditData.sectionDesc}
                                     onChange={(e) =>
                                       setSectionEditData({
                                         ...sectionEditData,
-                                        sectionTitle: e.target.value,
+                                        sectionDesc: e.target.value,
                                       })
                                     }
-                                    className="px-3 py-1 border border-gray-200 rounded-lg"
-                                    onKeyDown={(e) =>
-                                      e.key === "Enter" && handleSaveSection(e)
-                                    }
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg mb-4"
+                                    rows={4}
                                   />
                                 ) : (
-                                  <h3 className="font-semibold text-lg text-gray-800">
-                                    {section.sectionTitle}
-                                  </h3>
+                                  <p className="mb-4 text-gray-800">
+                                    {section.sectionDesc}
+                                  </p>
                                 )}
-                                {(role === "FACULTY" ||
-                                  role === "ADMIN") && (
-                                  <div className="flex gap-1">
-                                    {editingSectionId === section.section_id ? (
-                                      <>
-                                        <button
-                                          onClick={handleSaveSection}
-                                          className="text-gray-900 hover:text-gray-800 font-semibold"
-                                        >
-                                          Save
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            setEditingSectionId(null)
-                                          }
-                                          className="text-gray-500 hover:text-gray-800 font-semibold"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <button
-                                          onClick={() =>
-                                            handleEditSection(section)
-                                          }
-                                          className="text-gray-900 hover:text-gray-800"
-                                        >
-                                          <PencilSquareIcon className="w-5 h-5 cursor-pointer" />
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            handleRemoveSection(
-                                              section.section_id
-                                            )
-                                          }
-                                          className="text-gray-500 hover:text-gray-800"
-                                        >
-                                          <TrashIcon className="w-5 h-5 cursor-pointer " />
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
+                                <SectionContent
+                                  key={section.section_id}
+                                  section={section}
+                                  // user={user}
+                                />
                               </div>
                             </div>
-                            <div className="p-6">
-                              {editingSectionId === section.section_id ? (
-                                <textarea
-                                  value={sectionEditData.sectionDesc}
-                                  onChange={(e) =>
-                                    setSectionEditData({
-                                      ...sectionEditData,
-                                      sectionDesc: e.target.value,
-                                    })
-                                  }
-                                  className="w-full px-4 py-2 border border-gray-200 rounded-lg mb-4"
-                                  rows={4}
-                                />
-                              ) : (
-                                <p className="mb-4 text-gray-800">
-                                  {section.sectionDesc}
-                                </p>
-                              )}
-                              <SectionContent
-                                key={section.section_id}
-                                section={section}
-                                // user={user}
-                              />
-                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 text-gray-400 text-lg">
+                            No sections available yet
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-6 text-gray-400 text-lg">
-                          No sections available yet
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {showAssignments && (
-            <DisplayAssignments
-              courseId={course.course_id}
-              showAssignments={showAssignments}
-            />
-          )}
-          {showReport && (
-            <div className="mt-4">
-              <StudentProgressReport courseId={course.course_id} />
-            </div>
-          )}
-        </div>
-
-        {/* Right Side (Progress) */}
-        <div className="w-full lg:w-[30%]">
-          <div className="sticky top-24 space-y-4">
-            {role === "STUDENT" && (
-              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">
-                  Course Progress
-                </h2>
-                <StudentProgressDisplay
-                  courseId={course.course_id}
-                  studentId={course.section_id}
-                />
-              </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Quick Actions / Handle add section and handle edit course details */}
-            {(role === "FACULTY" || role === "ADMIN") && (
-              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">
-                  Quick Actions
-                </h2>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setShowAddSection((prev) => !prev)}
-                    className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
-                  >
-                    <PlusIcon className="w-5 h-5" />
-                    {showAddSection ? "Hide Add Section" : "Add New Section"}
-                  </button>
-                  <button
-                    onClick={handleEditCourse}
-                    className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
-                  >
-                    <PencilSquareIcon className="w-5 h-5" />
-                    Edit Course Details
-                  </button>
-                  {/* create assignment button link to assignment team page */}
-                  <Link to="/faculty/assignments/create" state={{course_id: course.course_id}}>
-                    <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
-                      <PlusIcon className="w-5 h-5" />
-                      Create New Assignment
-                    </button>
-                  </Link>
-                </div>
+            {showAssignments && (
+              <DisplayAssignments
+                courseId={course.course_id}
+                showAssignments={showAssignments}
+              />
+            )}
+            {showReport && (
+              <div className="mt-4">
+                <StudentProgressReport courseId={course.course_id} />
               </div>
             )}
           </div>
+
+          {/* Right Side (Progress) */}
+          {isEnrolled && (
+            <div className="w-full lg:w-[30%]">
+              <div className="sticky top-24 space-y-4">
+                {role === "STUDENT" && (
+                  <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                    <h2 className="text-xl font-bold mb-4 text-gray-800">
+                      Course Progress
+                    </h2>
+                    <StudentProgressDisplay
+                      courseId={course.course_id}
+                      studentId={course.section_id}
+                    />
+                  </div>
+                )}
+
+                {/* Quick Actions / Handle add section and handle edit course details */}
+                {(role === "FACULTY" || role === "ADMIN") && (
+                  <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                    <h2 className="text-xl font-bold mb-4 text-gray-800">
+                      Quick Actions
+                    </h2>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => setShowAddSection((prev) => !prev)}
+                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+                      >
+                        <PlusIcon className="w-5 h-5" />
+                        {showAddSection
+                          ? "Hide Add Section"
+                          : "Add New Section"}
+                      </button>
+                      <button
+                        onClick={handleEditCourse}
+                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+                      >
+                        <PencilSquareIcon className="w-5 h-5" />
+                        Edit Course Details
+                      </button>
+                      {/* create assignment button link to assignment team page */}
+                      <Link
+                        to="/faculty/assignments/create"
+                        state={{ course_id: course.course_id }}
+                      >
+                        <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
+                          <PlusIcon className="w-5 h-5" />
+                          Create New Assignment
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
     </>
   );
 }
