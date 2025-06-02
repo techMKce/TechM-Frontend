@@ -12,20 +12,23 @@ import { Calendar, Upload, Link as LinkIcon, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import api from "@/service/api";
 import "react-datepicker/dist/react-datepicker.css";
+import { useAuth } from "@/hooks/useAuth";
 
 const CreateAssignmentPage = () => {
+  const {profile} = useAuth();
   const location = useLocation();
-  const { course_id } = location.state || {};
+  const { course_id, courseTitle } = location.state || {};
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
     courseId: course_id || "",
+    courseTitle: courseTitle || "",
     dueTimestamp: null as Date | null,
     description: "",
     resourceLink: "",
   });
   const [files, setFiles] = useState<File[]>([]);
-  const [facultyName] = useState("Dr. Jane Smith");
+  const [facultyName] = profile.profile.name;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -60,6 +63,8 @@ const CreateAssignmentPage = () => {
       const formPayload = new FormData();
       formPayload.append("title", formData.title);
       formPayload.append("courseId", formData.courseId);
+      formPayload.append("courseName", formData.courseTitle);
+      formPayload.append("courseFaculty", profile.profile.name);
       formPayload.append("dueDate", formattedDueDate);
       formPayload.append("description", formData.description);
       formPayload.append("resourceLink", formData.resourceLink);

@@ -434,6 +434,7 @@ const AssignmentSubmitPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [isDueDateOver, setIsDueDateOver] = useState(false);
+  const [rejected, setRejected] = useState(false);
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -470,7 +471,10 @@ const AssignmentSubmitPage = () => {
         const userSubmission = submissions.find((sub: any) => sub.studentRollNumber === profile.profile.id);
         const userGrading = gradings.find((g: any) => g.studentRollNumber === profile.profile.id);
 
+        console.log("User Submission:", userSubmission);
+
         setIsSubmitted(userSubmission == null ? false : true);
+        setRejected(userSubmission.status === "Rejected");
         if (userSubmission) {
           setSubmittedAt(userSubmission.submittedAt);
         }
@@ -666,11 +670,99 @@ const AssignmentSubmitPage = () => {
                             )}
                           </>
                         )}
+                        {rejected && (
+                          <p className="text-yellow-700 text-sm mt-2 font-semibold">
+                            Your submission was rejected. Please resubmit your assignment.
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div className="mt-4">
-                      {isDueDateOver ? (
+                      {rejected ? (
+                        <>
+                          {/* Allow resubmission if rejected */}
+                          <div
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDragActive(true);
+                            }}
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDragActive(false);
+                            }}
+                            onDrop={handleDrop}
+                            className={`border-2 border-dashed rounded-md p-6 text-center transition ${
+                              dragActive ? "border-blue-500 bg-blue-50" : " bg-white"
+                            }`}
+                          >
+                            <input
+                              id="file-upload"
+                              type="file"
+                              multiple
+                              className="hidden"
+                              onChange={handleFileChange}
+                              disabled={isDueDateOver}
+                            />
+                            <label
+                              htmlFor="file-upload"
+                              className="flex flex-col items-center justify-center cursor-pointer"
+                            >
+                              <Upload className="h-12 w-12 mb-2" />
+                              <p className=" text-sm mb-1">
+                                Drag & drop files here or click to browse
+                              </p>
+                              <p className="text-xs ">
+                                Supports: PDF, DOC, DOCX, ZIP (Max: 10MB)
+                              </p>
+                            </label>
+                          </div>
+
+                          {files.length > 0 && (
+                            <div className="mt-4">
+                              <h4 className="text-sm font-medium mb-2">Uploaded Files:</h4>
+                              <div className="space-y-2">
+                                {files.map((file, index) => (
+                                  <div key={index} className="flex items-center justify-between bg-light p-2 rounded">
+                                    <div className="flex items-center">
+                                      <div className="flex-shrink-0 h-8 w-8 bg-primary rounded flex items-center justify-center text-white text-xs">
+                                        {file.name.split(".").pop()?.toUpperCase()}
+                                      </div>
+                                      <div className="ml-3">
+                                        <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
+                                        <p className="text-xs">
+                                          {(file.size / 1024).toFixed(1)} KB
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                      onClick={() => removeFile(index)}
+                                    >
+                                      <X size={16} />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="mt-6">
+                            <Button
+                              onClick={handleSubmit}
+                              className="bg-primary hover:bg-primary-dark"
+                              disabled={files.length === 0 || isDueDateOver}
+                            >
+                              Resubmit Assignment
+                            </Button>
+                          </div>
+                        </>
+                      ) : isDueDateOver ? (
                         <span className="text-red-600 text-sm font-semibold">
                           Due Date Over: Cannot unsubmit
                         </span>
