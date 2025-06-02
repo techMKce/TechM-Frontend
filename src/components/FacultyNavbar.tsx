@@ -66,7 +66,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
 
   const menuItems = [
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
-    { label: "Students", path: "/faculty/students", icon: Users },
+    // { label: "Students", path: "/faculty/students", icon: Users },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
     { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
   ];

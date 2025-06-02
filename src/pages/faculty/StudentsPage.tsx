@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Users, GraduationCap } from "lucide-react";
-
+import api from "@/service/api";
+import { useAuth } from "@/hooks/useAuth";
 interface Student {
   id: string;
   rollNumber: string;
@@ -46,17 +47,36 @@ const StudentsPage = () => {
   const [enrolledStudents, setEnrolledStudents] = useState<Student[]>([]);
   const [assignedStudents, setAssignedStudents] = useState<Student[]>([]);
   const [facultyCourses, setFacultyCourses] = useState<Course[]>([]);
-
+  const { profile } = useAuth();
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-
+  const [totalStudents, setTotalStudents] = useState<number>(0);
   useEffect(() => {
     loadStudents();
   }, [currentUser.id]);
-
-  const loadStudents = () => {
+      let enrollments = []
+  const loadStudents = async() => {
     const students = JSON.parse(localStorage.getItem('students') || '[]');
+    // fetching course and faculty Id
+    let courseAndFacultyId=[]
+    try{
+      courseAndFacultyId=await api.get(`/faculty-student-assigning/admin/faculty/${profile.profile.id}`).then((response) => response.data);
+      console.log("Fetched faculty-student assignments:", courseAndFacultyId);
+    } catch (error) {
+      console.error("Error fetching faculty-student assignments:", error);
+    }
     const courses = JSON.parse(localStorage.getItem('courses') || '[]');
-    const enrollments = JSON.parse(localStorage.getItem('enrollments') || '[]');
+    //fetcching enrollments
+    try{
+      enrollments=courseAndFacultyId.map( async (item: any) => {
+        let response=await api.get(`/course-enrollment/by-course/${item.courseId}`).then((response) => response.data);
+        enrollments=response;
+        console.log("Fetched enrollments for course:", enrollments);
+      })
+      console.log("Fetched enrollments:", enrollments);
+    } catch (error) {
+      console.error("Error fetching enrollments:", error);
+    }
+
     const assignments = JSON.parse(localStorage.getItem('assignments') || '[]');
 
     // Get faculty's courses
@@ -116,7 +136,7 @@ const StudentsPage = () => {
             className="flex items-center gap-2"
           >
             <GraduationCap className="h-4 w-4" />
-            All Enrolled Students ({enrolledStudents.length})
+            All Enrolled Students {}
           </Button>
           <Button 
             variant={activeFilter === 'assigned' ? 'default' : 'outline'}
