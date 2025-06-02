@@ -2,7 +2,8 @@ import StudentNavbar from "@/components/StudentNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Calendar, Award } from "lucide-react";
 import { useState, useEffect } from "react";
-
+import api from '../../service/api';
+import {useAuth} from "@/hooks/useAuth";
 interface Course {
   id: string;
   courseId: string;
@@ -21,6 +22,7 @@ interface Enrollment {
 }
 
 const StudentDashboard = () => {
+  const { profile } = useAuth();
   const [stats, setStats] = useState({
     enrolledCourses: 0,
     availableCourses: 0,
@@ -33,36 +35,74 @@ const StudentDashboard = () => {
     loadStats();
   }, [currentUser.id]);
 
-  const loadStats = () => {
+  const loadStats = async() => {
     // Get enrolled courses
     const enrollments = JSON.parse(localStorage.getItem('enrollments') || '[]');
     const studentEnrollments = enrollments.filter((enrollment: Enrollment) => enrollment.studentId === currentUser.id);
 
     // Get all active courses
-    const allCourses = JSON.parse(localStorage.getItem('courses') || '[]');
-    const activeCourses = allCourses.filter((course: Course) => course.isEnabled);
+let allCourses = [];
+
+try {
+  const response = await api.get('/course/details');
+  allCourses = [...response.data].length > 0 ? response.data : [];
+  console.log("Fetched all courses:", allCourses);
+} catch (error) {
+  console.error("Error fetching all courses:", error);
+  allCourses = []; // fallback in case of error
+}
+
+  const activeCourses = allCourses.filter((course) => course.isActive);
 
     // Calculate enrolled course IDs
     const enrolledCourseIds = studentEnrollments.map((enrollment: Enrollment) => enrollment.courseId);
 
     // Get enrolled courses details
-    const enrolledCoursesData = activeCourses.filter((course: Course) => enrolledCourseIds.includes(course.id));
+    console.log("Fetching enrolled courses for student:", profile.profile.id);
+    const enrolledCoursesData =await api.get(`/course-enrollment/by-student/${profile.profile.id}`)
+  .then(response => response.data)
+  .catch(error => {
+    console.error("Error fetching enrolled courses:", error);
+  });
+
 
     // Calculate available courses (not enrolled in)
     const availableCoursesData = activeCourses.filter((course: Course) => !enrolledCourseIds.includes(course.id));
 
     // Calculate attendance percentage (placeholder)
-    const attendanceRecords = JSON.parse(localStorage.getItem('attendance') || '[]');
-    const studentAttendance = attendanceRecords.filter((record: any) => record.studentId === currentUser.id);
-    const attendancePercentage = studentAttendance.length > 0 
-      ? Math.round((studentAttendance.filter((record: any) => record.present).length / studentAttendance.length) * 100)
-      : 0;
+let attendancePercentage = 0;
 
-    setStats({
-      enrolledCourses: enrolledCoursesData.length,
-      availableCourses: availableCoursesData.length,
-      attendancePercentage
-    });
+try {
+  const response = await api.get('/attendance/getstudent', {
+    params: { id: profile.profile.id }
+  });
+
+  const attendanceRecords = Array.isArray(response.data) ? response.data : [];
+  console.log("Fetched attendance records:", attendanceRecords);
+
+  // Filter records for the current user
+  const studentAttendance = attendanceRecords.filter(
+    (record: any) => record.studentId === currentUser.id
+  );
+
+  const totalSessions = studentAttendance.length;
+  const attendedSessions = studentAttendance.filter((record: any) => record.present).length;
+
+  if (totalSessions > 0) {
+    attendancePercentage = Math.round((attendedSessions / totalSessions) * 100);
+  }
+} catch (error) {
+  console.error("Error fetching attendance records:", error);
+  attendancePercentage = 0;
+}
+
+// Update stats
+setStats({
+  enrolledCourses: Array.isArray(enrolledCoursesData) ? enrolledCoursesData.length : 0,
+  availableCourses: Array.isArray(availableCoursesData) ? availableCoursesData.length : 0,
+  attendancePercentage
+});
+
   };
 
   return (
