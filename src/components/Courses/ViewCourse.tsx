@@ -778,7 +778,7 @@ function ViewCourse() {
                       {/* create assignment button link to assignment team page */}
                       <Link
                         to="/faculty/assignments/create"
-                        state={{ course_id: course.course_id }}
+                        state={{ course_id: course.course_id, courseTitle: course.courseTitle }}
                       >
                         <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
                           <PlusIcon className="w-5 h-5" />

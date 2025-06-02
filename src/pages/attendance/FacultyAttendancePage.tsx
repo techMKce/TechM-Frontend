@@ -40,13 +40,11 @@ interface Course {
   courseName: string;
 }
 
-interface EmbedKey {
-  facultyId: string;
-  courseId: string;
-}
+
 
 interface FacultyAssignment {
-  id: EmbedKey;
+    facultyId: string;
+  courseId: string;
   assignedRollNums: string[];
 }
 
@@ -74,6 +72,8 @@ const FacultyAttendancePage = () => {
   const [departments, setDepartments] = useState<string[]>([]);
   const [semesters, setSemesters] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [ allStudents, setAllStudents ] = useState<StudentDetails[]>([]);
+  const [facultyAssignments, setFacultyAssignments] = useState<FacultyAssignment[]>([]);
 
   const [formData, setFormData] = useState({
     batch: "",
@@ -129,64 +129,59 @@ const FacultyAttendancePage = () => {
       );
 
       const facultyAssignmentsData: FacultyAssignment[] = studentResponse.data;
+      setFacultyAssignments(facultyAssignmentsData);
+      
+      
+      const studResponse = await api.get("/profile/student");
 
-      const studentPromises = facultyAssignmentsData.map(async (assignment) => {
-        console.log(assignment);
-
-        const studentDetailsPromises = assignment.assignedRollNums?.map(
-          async (rollNum) => {
-            const studentResponse = await api.get(`profile/student/${rollNum}`);
-            console.log(studentResponse.data);
-
-            return studentResponse.data;
-          }
-        );
-
-        const studentDetails: StudentDetails[] = await Promise.all(
-          studentDetailsPromises
-        );
-        console.log(studentDetails);
-
-        return studentDetails.map((student) => ({
-          stdId: student.rollNum,
-          stdName: student.name,
-          rollNum: student.rollNum,
-          deptId: student.program,
-          deptName: student.program,
-          batch: student.year,
-          sem: student.semester,
+      const allStudents: StudentDetails[] = studResponse.data.map((student: StudentDetails) => ({
+        stdId: student.rollNum,
+        stdName: student.name,
+        rollNum: student.rollNum,
+        deptId: student.program,
+        deptName: student.program,
+        batch: student.year,
+        sem: student.semester,
         }));
-      });
-      const allStudents = await Promise.all(studentPromises);
-      setStudents(allStudents.flat());
+      console.log("All Students Data:", allStudents);
 
-      const uniqueBatches = [
-        ...new Set(
-          allStudents
-            .flat()
-            .map((student) => student.batch)
-            .filter((batch) => batch != null && batch !== undefined)
-        ),
-      ];
-      const uniqueDepartments = [
-        ...new Set(
-          allStudents
-            .flat()
-            .map((student) => student.deptName)
-            .filter((dept) => dept != null && dept !== undefined)
-        ),
-      ];
-      const uniqueSemesters = [
-        ...new Set(
-          allStudents
-            .flat()
-            .map((student) => student.sem)
-            .filter((sem) => sem != null && sem !== undefined)
-        ),
-      ];
-      setBatches(uniqueBatches);
-      setDepartments(uniqueDepartments);
-      setSemesters(uniqueSemesters);
+      const assignedRollNums = facultyAssignmentsData.flatMap(a => a.assignedRollNums);
+      const filteredStudents = allStudents.filter(student =>
+        assignedRollNums.includes(student.rollNum)
+      );
+
+      // setStudents(filteredStudents);
+      setAllStudents(filteredStudents);
+
+      console.log("Filtered Students:", filteredStudents);
+
+      // const uniqueBatches = [
+      //   ...new Set(
+      //     allStudents
+      //       .flat()
+      //       .map((student) => student.batch)
+      //       .filter((batch) => batch != null && batch !== undefined)
+      //   ),
+      // ];
+      // const uniqueDepartments = [
+      //   ...new Set(
+      //     allStudents
+      //       .flat()
+      //       .map((student) => student.deptName)
+      //       .filter((dept) => dept != null && dept !== undefined)
+      //   ),
+      // ];
+      // const uniqueSemesters = [
+      //   ...new Set(
+      //     allStudents
+      //       .flat()
+      //       .map((student) => student.sem)
+      //       .filter((sem) => sem != null && sem !== undefined)
+      //   ),
+      // ];
+      // setBatches(uniqueBatches);
+      // setDepartments(uniqueDepartments);
+      // setSemesters(uniqueSemesters);
     } catch (error) {
       console.error("Error fetching faculty courses:", error);
       toast.error("Failed to load faculty courses");
@@ -199,62 +194,55 @@ const FacultyAttendancePage = () => {
 
   const fetchStudentsForCourse = async (courseId: string) => {
     try {
-      const response = await api.get(
-        `faculty-student-assigning/admin/course/${courseId}`
-      );
-      const assignments = response.data;
-
-      if (!assignments || assignments.length === 0) {
-        toast.error("No students found for this course");
+      if (!courseId) {
+        setStudents([]);
+        setBatches([]);
+        setDepartments([]);
+        setSemesters([]);
         return;
       }
 
-      // Collect all roll numbers
-      const allRollNums = assignments.flatMap(
-        (assignment) => assignment.assignedRollNums
+      console.log("Fetching students for course11:", courseId);
+
+
+      // Find the assignment for the selected course
+      const assignment = facultyAssignments.find(a => a.courseId === courseId);
+      if (!assignment) {
+        setStudents([]);
+        setBatches([]);
+        setDepartments([]);
+        setSemesters([]);
+        return;
+      }
+
+      // Filter students assigned to this course
+      const assignedStudents = allStudents.filter(student =>
+        assignment.assignedRollNums.includes(student.rollNum)
       );
 
-      // Fetch student details for each roll number
-      const studentPromises = allRollNums.map(async (rollNum) => {
-        const studentResponse = await api.get(`profile/student/${rollNum}`);
-        return studentResponse.data;
-      });
-
-      const studentDetails: StudentDetails[] = await Promise.all(
-        studentPromises
-      );
-
-      // Update dropdown options based on student data
-      const uniqueBatches = [
-        ...new Set(studentDetails.map((student) => student.batch)),
-      ];
-      const uniqueDepartments = [
-        ...new Set(studentDetails.map((student) => student.deptName)),
-      ];
-      const uniqueSemesters = [
-        ...new Set(studentDetails.map((student) => student.sem)),
-      ];
+      // Extract unique batches, departments, semesters from assigned students
+      const uniqueBatches = [...new Set(assignedStudents.map(s => s.batch).filter(Boolean))];
+      const uniqueDepartments = [...new Set(assignedStudents.map(s => s.deptName).filter(Boolean))];
+      const uniqueSemesters = [...new Set(assignedStudents.map(s => s.sem).filter(Boolean))];
 
       setBatches(uniqueBatches);
       setDepartments(uniqueDepartments);
       setSemesters(uniqueSemesters);
 
-      // Map student details to our Student interface
-      const mappedStudents: Student[] = studentDetails.map((student) => ({
-        stdId: student.rollNum,
-        stdName: student.name,
-        rollNum: student.rollNum,
-        deptId: student.program,
-        deptName: student.program,
-        batch: student.year,
-        sem: student.semester,
-        isPresent: true,
+      // Further filter students based on selected batch, department, semester
+      const filtered = assignedStudents.filter(student =>
+        (!formData.batch || student.batch === formData.batch) &&
+        (!formData.department || student.deptName === formData.department) &&
+        (!formData.semester || student.sem === formData.semester)
+      );
+
+      // Add isPresent default value
+      const studentsWithAttendance = filtered.map(s => ({
+        ...s,
+        isPresent: true
       }));
 
-      setStudents(mappedStudents);
-      setIsFormSubmitted(false);
-      setAbsenteeCount(0);
-      toast.success("Student list generated successfully");
+      setStudents(studentsWithAttendance);
     } catch (error) {
       console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
@@ -286,13 +274,20 @@ const FacultyAttendancePage = () => {
       return;
     }
 
+    const filteredStudents = students.filter(
+    (student) =>
+      (!formData.batch || student.batch === formData.batch) &&
+      (!formData.department || student.deptName === formData.department) &&
+      (!formData.semester || student.sem === formData.semester)
+  );
+
     try {
       setLoading(true);
-      const attendanceRecords = students.map((student) => ({
+      const attendanceRecords = filteredStudents.map((student) => ({
         stdId: student.stdId,
         stdName: student.stdName,
-        facultyId: facultyId,
-        facultyName: facultyName,
+        facultyId: profile.profile.id,
+        facultyName: profile.profile.name,
         courseId: formData.course,
         courseName:
           courses.find((c) => c.courseId === formData.course)?.courseName ||
@@ -305,6 +300,8 @@ const FacultyAttendancePage = () => {
         sem: student.sem,
         dates: formData.date,
       }));
+
+      console.log("Attendance Records:", attendanceRecords);
 
       await api.post("/attendance/attupdate", attendanceRecords);
 
@@ -327,6 +324,7 @@ const FacultyAttendancePage = () => {
       (!formData.department || student.deptName === formData.department) &&
       (!formData.semester || student.sem === formData.semester)
   );
+
 
   return (
     <>
@@ -357,7 +355,17 @@ const FacultyAttendancePage = () => {
                 </Label>
                 <Select
                   value={formData.course}
-                  onValueChange={(value) => handleSelectChange("course", value)}
+                  onValueChange={(value) => {
+                    handleSelectChange("course", value);
+                    // Reset other fields when course changes
+                    setFormData((prev) => ({
+                      ...prev,
+                      batch: "",
+                      department: "",
+                      semester: "",
+                    }));
+                    fetchStudentsForCourse(value);
+                  } }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a course" />
@@ -481,7 +489,7 @@ const FacultyAttendancePage = () => {
               </div>
 
               {/* 7. Button */}
-              <div className="flex items-end">
+              {/* <div className="flex items-end">
                 <Button
                   onClick={handleGenerateList}
                   className="mb-1 bg-primary hover:bg-primary-dark w-full"
@@ -489,15 +497,17 @@ const FacultyAttendancePage = () => {
                 >
                   Generate Student List
                 </Button>
-              </div>
+              </div> */}
 
               {/* View previous attendance */}
-              <Button
-                className="mb-1 bg-primary hover:bg-primary-dark w-full"
-                onClick={() => navigate("/faculty/attendance/view")}
-              >
-                View Previous Attendance
-              </Button>
+                <div className="flex justify-end items-end col-span-full">
+                <Button
+                  className="mb-1 bg-primary hover:bg-primary-dark"
+                  onClick={() => navigate("/faculty/attendance/view")}
+                >
+                  View Previous Attendance
+                </Button>
+                </div>
             </div>
           </CardContent>
         </Card>

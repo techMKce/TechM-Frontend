@@ -88,12 +88,14 @@ const StudentAttendancePage = () => {
         setFnSessionData({
           conducted: fnData.totaldays,
           attended: fnData.presentcount,
-          percentage: fnData.percentage
+          percentage: fnData.presentcount > 0 ? (fnData.presentcount / fnData.totaldays) * 100 : 0
         });
       } else {
         setFnSessionData({ conducted: 0, attended: 0, percentage: 0 });
       }
       
+      console.log("FN Data:", fnData);
+      console.log("FN Session Data:", fnSessionData);
       // Process AN (afternoon) session data
       const anData = semesterData.find(item => item.session === "AN");
       console.log("AN Data:", anData);
@@ -101,12 +103,12 @@ const StudentAttendancePage = () => {
         setAnSessionData({
           conducted: anData.totaldays,
           attended: anData.presentcount,
-          percentage: anData.percentage
+          percentage: anData.presentcount > 0 ? (anData.presentcount / anData.totaldays) * 100 : 0
         });
       } else {
         setAnSessionData({ conducted: 0, attended: 0, percentage: 0 });
       }
-      console.log("FN Session Data:", fnSessionData);
+      console.log("AN Data:", anData);
       console.log("AN Session Data:", anSessionData);
     } catch (err) {
       console.error("Error fetching attendance data:", err);

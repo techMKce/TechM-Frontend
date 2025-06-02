@@ -40,11 +40,13 @@ const GradeStudentSubmissionPage = () => {
   const [submission, setSubmission] = useState<StudentSubmission | null>(null);
   const [gradingData, setGradingData] = useState<Grading | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false); // Track viewer state
   const [viewerUrl, setViewerUrl] = useState<string | null>(null); // Store file URL
   const viewerRef = useRef<HTMLDivElement | null>(null); // Ref for viewer container
   const isGraded = gradingData !== null;
+  const [submissionStatus, setSubmissionStatus] = useState<"Accepted" | "Rejected">("Accepted");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,6 +75,7 @@ const GradeStudentSubmissionPage = () => {
               title: sub.assignmentTitle || "Unknown Assignment",
             },
           });
+          setSubmissionStatus(sub.status || "Accepted");
         } else {
           toast.error("Failed to load submission details.");
         }
@@ -87,6 +90,10 @@ const GradeStudentSubmissionPage = () => {
           setGrade(grading.grade);
           setFeedback(grading.feedback);
           setIsEditing(false);
+          // Set submission status if it exists in the grading data
+          if (grading.status) {
+            setSubmissionStatus(grading.status);
+          }
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -289,6 +296,38 @@ const GradeStudentSubmissionPage = () => {
     return new Date(dateString).toLocaleString(undefined, options);
   };
 
+  // Only handle rejection, as submissions are accepted by default
+  const handleStatusChange = async () => {
+    if (!submission || !assignmentId || !submissionId) {
+      toast.error("Submission data or assignment ID not available");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await api.post("/submissions/status", {
+        submissionId,
+        assignmentId,
+        status: "Rejected",
+      });
+
+      console.log("Response:", response);
+
+      if (response.status >= 200 && response.status < 300) {
+        toast.success("Submission Rejected successfully.");
+        setSubmissionStatus("Rejected");
+        navigate(-1);
+
+      } else {
+        toast.error(response.data?.message || "Failed to reject submission");
+      }
+    } catch (error) {
+      toast.error("Network error: Could not reject submission");
+    }finally {
+      setIsLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="page-container max-w-4xl mx-auto">Loading submission details...</div>;
   }
@@ -372,6 +411,23 @@ const GradeStudentSubmissionPage = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Add submission status indicator */}
+                <div>
+                  <p className="text-sm">Submission Status</p>
+                  <div className={`mt-2 p-2 rounded-md inline-flex items-center ${
+                    submissionStatus === "Accepted" ? "bg-green-100 text-green-800" :
+                    submissionStatus === "Rejected" ? "bg-red-100 text-red-800" :
+                    "bg-yellow-100 text-yellow-800"
+                  }`}>
+                    <div className={`h-2 w-2 rounded-full mr-2 ${
+                      submissionStatus === "Accepted" ? "bg-green-500" :
+                      submissionStatus === "Rejected" ? "bg-red-500" :
+                      "bg-yellow-500"
+                    }`}></div>
+                    <p className="font-medium capitalize">{submissionStatus}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -404,6 +460,22 @@ const GradeStudentSubmissionPage = () => {
                 <CardTitle className="text-lg">Grading</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                  <Button
+                    onClick={() => handleStatusChange()}
+                    className={`flex-1 ${
+                      submissionStatus === "Rejected" 
+                        ? "bg-red-700 hover:bg-red-800" 
+                        : "bg-red-600 hover:bg-red-700"
+                    }`}
+                    disabled={submissionStatus === "Rejected" || isLoading}
+                  >
+                    {isLoading
+                      ? "Rejecting..."
+                      : submissionStatus === "Rejected"
+                        ? "Rejected ✗"
+                        : "Reject Submission"}
+                  </Button>
+
                 {isGraded && !isEditing ? (
                   <div className="space-y-4">
                     <div>
@@ -412,7 +484,7 @@ const GradeStudentSubmissionPage = () => {
                     </div>
                     <div>
                       <h3 className="font-medium">Faculty Feedback</h3>
-                      <p className="whitespace-pre-wrap  ">{gradingData?.feedback}</p>
+                      <p className="whitespace-pre-wrap">{gradingData?.feedback}</p>
                     </div>
                     <Button
                       onClick={handleDeleteGrade}
@@ -423,6 +495,7 @@ const GradeStudentSubmissionPage = () => {
                   </div>
                 ) : (
                   <>
+
                     <div>
                       <h3 className="font-medium mb-3">Select Grade</h3>
                       <RadioGroup value={grade} onValueChange={setGrade} className="grid grid-cols-3 gap-2">
@@ -465,6 +538,7 @@ const GradeStudentSubmissionPage = () => {
                     <Button
                       onClick={handleSubmitGrade}
                       className="w-full bg-primary hover:bg-primary-dark flex items-center gap-2"
+                      disabled={submissionStatus === "Rejected"}
                     >
                       <FileText size={16} />
                       {isEditing || isGraded ? "Update Grade" : "Submit Grade"}
