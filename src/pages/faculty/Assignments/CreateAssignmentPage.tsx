@@ -300,7 +300,7 @@ const CreateAssignmentPage = () => {
     resourceLink: "",
   });
   const [files, setFiles] = useState<File[]>([]);
-  const [isDragging, setIsDragging] = useState(false); // State to track drag status
+  const [isDragging, setIsDragging] = useState(false); 
   const [facultyName] = profile.profile.name;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

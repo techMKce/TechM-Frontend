@@ -10,7 +10,7 @@ interface Assignment {
   description: string;
   createdAt: string;
   fileno?: string;
-  resourcelink?: string;
+  resourceLink?: string;
 }
 interface ApiResponse {
   assignments: Assignment[];
@@ -143,9 +143,9 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
               )}
               <div className="mt-4 flex justify-between items-center">
                 <span className="text-sm text-gray-500">
-                  {assignment.resourcelink ? (
+                  {assignment.resourceLink ? (
                     <a
-                      href={assignment.resourcelink}
+                      href={assignment.resourceLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
