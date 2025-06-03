@@ -19,8 +19,9 @@ import api from "@/service/api";
 import StudentNavbar from "../StudentNavbar";
 import FacultyNavbar from "../FacultyNavbar";
 import { isAsyncFunction } from "node:util/types";
-import { toast } from '@/components/ui/sonner';
+import { toast } from "@/components/ui/sonner";
 import { useToast } from "@/hooks/use-toast";
+import { Section } from "lucide-react";
 
 function ViewCourse() {
   const { profile } = useAuth();
@@ -29,7 +30,9 @@ function ViewCourse() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course>(state?.course);
-
+  const [currentCourseId, setCurrentCourseId] = useState(
+    state?.course.course_id
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     course_id: "",
@@ -75,24 +78,35 @@ function ViewCourse() {
   const [showReport, setShowReport] = useState(false);
   const [error, setError] = useState(null);
   const isInitialRender = useRef(false);
+  const courseRef = useRef(course);
   const [isEnrolled, setIsEnrolled] = useState(
     role === "FACULTY" || role === "ADMIN"
   );
   const { toast } = useToast();
 
-
-
-  // Initial fetch for course details
   useEffect(() => {
-    if (course == null) {
+    if (course) {
+      console.log("Updated course data:", course);
+      // Perform actions with the updated state
+    }
+  }, [course]);
+
+  // Initial fetch for course details/section
+  useEffect(() => {
+    if (!course?.course_id) {
       return;
     }
     const fetchSection = async () => {
       try {
+        setLoading(true);
+
         const sectionResponse = await api.get(
           `/course/section/details?id=${course.course_id}`
         );
+
+        // Merge the course data carefully
         console.log("View Course Invoked", course.course_id);
+
         const sections = Array.isArray(sectionResponse.data)
           ? sectionResponse.data
           : [sectionResponse.data];
@@ -100,6 +114,8 @@ function ViewCourse() {
         setCourseSection(sections); // Update state
       } catch (error) {
         console.error("Error fetching section at section Details:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchSection();
@@ -115,10 +131,10 @@ function ViewCourse() {
     };
     enrollmentSatus();
     // eslint-disable-next-line
-  }, [course]);
+  }, [course?.course_id, newSection]);
 
   // course editing
-  const handleEditCourse = async () => {
+  const handleEditCourse = () => {
     setEditData({
       course_id: course.course_id,
       courseTitle: course.courseTitle || "",
@@ -160,36 +176,36 @@ function ViewCourse() {
     [key: string]: any;
   }
 
-  const handleSaveCourse = async (
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<void> => {
+  const handleSaveCourse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    // Track latest value
     try {
       // Prepare the data for API request
-      const updatedCourse: EditData & { duration: number; credit: number } = {
+      const updatedCourse = {
+        ...course,
         ...editData,
         duration: parseInt(editData.duration),
         credit: parseInt(editData.credit),
       };
 
-      // Make PUT request to update the course
-      const response = await api.put("/course/update", updatedCourse);
 
-      // Update local state only after successful API response
-      setCourse({
-        ...course,
-        ...updatedCourse,
-        updatedAt: new Date().toISOString(),
-      });
+      console.log("updatedCourse (req body) : ", updatedCourse);
+      // Make PUT request to update the course
+      
+      await api.put("/course/update", updatedCourse);
 
       setIsEditing(false);
-
-      // Optional: Show success message
-      console.log("Course updated successfully:", response.data);
     } catch (error: any) {
       console.error("Error updating course:", error);
       alert("Failed to update course. Please try again.");
+    } finally {
+      // This shows the state value AT THE TIME OF RENDER
+      console.log("Course from props:", course);
+
+      // For the actual updated value, use a ref
+
+      courseRef.current = course;
+      console.log("Actual current state:", courseRef.current);
     }
   };
   // handle add new section
@@ -253,6 +269,18 @@ function ViewCourse() {
       };
 
       const response = await api.put("/course/section/update", payload);
+      setCourseSection((prevSections) =>
+        prevSections.map((section) =>
+          section.section_id === sectionEditData.section_id
+            ? {
+                ...section,
+                sectionTitle: payload.sectionTitle,
+                sectionDesc: payload.sectionDesc,
+                updatedAt: payload.updatedAt,
+              }
+            : section
+        )
+      );
 
       setEditingSectionId(null);
       setSectionEditData({
@@ -302,25 +330,26 @@ function ViewCourse() {
 
   const handleEnroll = async () => {
     setLoading(true);
-    const response  = await api.post('/course-enrollment', {
+    const response = await api.post("/course-enrollment", {
       courseId: course.course_id,
       rollNum: profile.profile.id,
     });
-    if( response.status === 200) {
+    if (response.status === 200) {
       setIsEnrolled(true);
       toast({
         title: "Enrolled Successfully",
         description: `You have successfully enrolled in ${course.courseTitle}.`,
       });
-    }else {
+    } else {
       toast({
         variant: "destructive",
         title: "Enrollment Failed",
-        description: response.data.message || "An error occurred during enrollment",
+        description:
+          response.data.message || "An error occurred during enrollment",
       });
     }
     setLoading(false);
-  }
+  };
 
   // if (course == null) return <div className="text-center py-10">Loading course...</div>;
 
@@ -778,7 +807,10 @@ function ViewCourse() {
                       {/* create assignment button link to assignment team page */}
                       <Link
                         to="/faculty/assignments/create"
-                        state={{ course_id: course.course_id, courseTitle: course.courseTitle }}
+                        state={{
+                          course_id: course.course_id,
+                          courseTitle: course.courseTitle,
+                        }}
                       >
                         <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
                           <PlusIcon className="w-5 h-5" />

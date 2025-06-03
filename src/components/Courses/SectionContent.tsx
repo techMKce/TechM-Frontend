@@ -81,6 +81,10 @@ const SectionContent = ({ section }: SectionContentProps) => {
     // Unified content submission handler
     const handleSubmitContent = async (contentType: string, contentUrl: string, contentTitle: string) => {
         if (!window.confirm(`Are you sure you want to Add this ${contentType}?`)) return;
+        if(contentUrl.trim()=== ''){
+            alert("Couldn't find any url");
+            return;
+        }
         try {
             const requestBody = {
                 contentType: contentType.toUpperCase(),
@@ -228,7 +232,8 @@ const SectionContent = ({ section }: SectionContentProps) => {
                                         rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline truncate"
                                     >
-                                        {pdf.content.split('/').pop() || 'PDF Document'}
+                                        {/* pdf.content.split('/').pop() for now use beacuse one pdf has null */}
+                                        {pdf.content|| 'PDF Document'}
                                     </a>
                                 </div>
                             </div>
