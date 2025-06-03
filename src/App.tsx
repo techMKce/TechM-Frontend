@@ -211,11 +211,6 @@ const AppRoutes = () => (
           <EditAssignmentPage />
         </RoleProtectedRoute>
       } />
-      <Route path="/assignments/edit/:assignmentId" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <EditAssignmentPage />
-        </RoleProtectedRoute>
-      } />
       <Route path="/faculty/assignments/:assignmentId/grade" element={
         <RoleProtectedRoute allowedRoles={["FACULTY"]}>
           <GradeSubmissionsPage />
