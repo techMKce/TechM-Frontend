@@ -103,6 +103,7 @@ const FacultyAttendancePage = () => {
       const facultyAssignments: FacultyAssignment[] = response.data;
 
       // Get unique course IDs
+      console.log("Sample Attendance Page ",facultyAssignments);
       const courseIds = [
         ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
       ];
