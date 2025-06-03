@@ -196,13 +196,13 @@ const AssignStudentsPage = () => {
     }
   };
 
-  const handleFacultySelect = (facultyId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedFaculty((prev) => [...prev, facultyId]);
-    } else {
-      setSelectedFaculty((prev) => prev.filter((id) => id !== facultyId));
-    }
-  };
+  // const handleFacultySelect = (facultyId: string, checked: boolean) => {
+  //   if (checked) {
+  //     setSelectedFaculty((prev) => [...prev, facultyId]);
+  //   } else {
+  //     setSelectedFaculty((prev) => prev.filter((id) => id !== facultyId));
+  //   }
+  // };
 
   const handleAssignStudents = async () => {
     if (selectedCourse === null ||

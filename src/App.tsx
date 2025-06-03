@@ -52,6 +52,7 @@ const queryClient = new QueryClient();
 import { Outlet, Navigate } from "react-router-dom";
 import CourseList from "./components/Courses/CourseList";
 import ViewCourse from "./components/Courses/ViewCourse";
+import Exams from "./components/ExamForStudentAndFaculty/Exams";
 
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -186,6 +187,11 @@ const AppRoutes = () => (
           <FacultyAttendancePage />
         </RoleProtectedRoute>
       } />
+      <Route path="/faculty/exams" element={
+        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+          <ExamTimetablePage/>
+        </RoleProtectedRoute>
+      } />
       <Route path="/faculty/attendance/view" element={
         <RoleProtectedRoute allowedRoles={["FACULTY"]}>
           <PreviousAttendancePage />
@@ -207,11 +213,6 @@ const AppRoutes = () => (
         </RoleProtectedRoute>
       } />
       <Route path="/faculty/assignments/:assignmentId/edit" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <EditAssignmentPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/assignments/edit/:assignmentId" element={
         <RoleProtectedRoute allowedRoles={["FACULTY"]}>
           <EditAssignmentPage />
         </RoleProtectedRoute>
@@ -243,6 +244,11 @@ const AppRoutes = () => (
           
          <CourseList />
          {/* <StudentCoursesPage/> */}
+        </RoleProtectedRoute>
+      } />
+      <Route path="/student/exams" element={
+        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+          <ExamTimetablePage/>
         </RoleProtectedRoute>
       } />
       <Route path="/student/courses/:courseId" element={
