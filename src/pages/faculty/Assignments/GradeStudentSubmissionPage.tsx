@@ -213,12 +213,31 @@ const GradeStudentSubmissionPage = () => {
     }
 
     try {
+      const response = await api("/submissions/download", {
+        params: { submissionId },
+        responseType: "blob",
+      });
+
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = "document";
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const url = window.URL.createObjectURL(blob);
+
       const link = document.createElement("a");
-      link.href = `/submissions/download?submissionId=${submissionId}`;
-      link.setAttribute("download", "");
+      link.href = url;
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       toast.info("Document downloaded successfully.");
     } catch (err) {
       console.error("Download error:", err);
