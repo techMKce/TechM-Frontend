@@ -30,7 +30,7 @@ const AssignmentsPage = () => {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const API_BASE = "https://assignmentservice-2a8o.onrender.com/api";
+
 
   useEffect(() => {
     const fetchAssignments = async () => {

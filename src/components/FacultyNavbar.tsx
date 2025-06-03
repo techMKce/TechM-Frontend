@@ -15,7 +15,9 @@ import {
   Home,
   BookOpen,
   ListTodoIcon,
+  Book,
 } from "lucide-react";
+
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 
@@ -62,7 +64,14 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
     navigate("/login");
   };
 
-  const initials = currentUser?.name
+  const menuItems = [
+    { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
+    { label: "Courses", path: "/faculty/courses", icon: BookOpen },
+    { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
+    {label: "Exams", path: "/faculty/exams", icon: Book }
+  ];
+
+  const initials = currentUser.name
     ? currentUser.name
       .split(" ")
       .map((n: string) => n[0])

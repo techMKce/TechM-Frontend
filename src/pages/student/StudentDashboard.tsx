@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Calendar, Award } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from '../../service/api';
+
 import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
@@ -66,9 +67,11 @@ const StudentDashboard = () => {
     loadStats();
   }, [currentUser.id]);
 
+
   const loadStats = async () => {
     try {
       setLoading(prev => ({ ...prev, available: true, enrolled: true }));
+
 
       // Fetch all courses
       const allCoursesResponse = await api.get('/course/details');
