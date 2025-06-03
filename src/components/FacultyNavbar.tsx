@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,75 +13,70 @@ import {
   User,
   LogOut,
   Home,
-  Users,
   BookOpen,
-  UserCheck,
   ListTodoIcon,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import axios from "axios";
 
 interface FacultyNavbarProps {
   currentPage?: string;
 }
 
 const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
-  const { signOut,isAuthenticated } = useAuth();
+  const { signOut, user } = useAuth(); // Assuming `user` contains email or id
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(() =>
-    JSON.parse(localStorage.getItem("currentUser") || "{}")
-  );
-
-  // Listen for profile updates
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const updatedUser = JSON.parse(
-        localStorage.getItem("currentUser") || "{}"
-      );
-      setCurrentUser(updatedUser);
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    // Also listen for manual updates within the same tab
-    const interval = setInterval(() => {
-      const updatedUser = JSON.parse(
-        localStorage.getItem("currentUser") || "{}"
-      );
-      if (JSON.stringify(updatedUser) !== JSON.stringify(currentUser)) {
-        setCurrentUser(updatedUser);
-      }
-    }, 500);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, [currentUser]);
-
-  const handleLogout = () => {
-    signOut();
-    // navigate("/");
-  };
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const menuItems = [
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
-    // { label: "Students", path: "/faculty/students", icon: Users },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
     { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
   ];
 
-  const initials = currentUser.name
+  useEffect(() => {
+    const fetchAllFaculty = async () => {
+      try {
+        const response = await axios.get("/api/faculty/all"); // Replace with your real endpoint
+        const allFaculty = response.data;
+
+        // Filter using email or ID — replace with actual logic
+        const matchedFaculty = allFaculty.find(
+          (f: any) => f.email === user?.email // or f.id === user?.id
+        );
+
+        setCurrentUser(matchedFaculty);
+      } catch (error) {
+        console.error("Error fetching faculty list:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllFaculty();
+  }, [user]);
+
+  const handleLogout = () => {
+    signOut();
+    navigate("/login");
+  };
+
+  const initials = currentUser?.name
     ? currentUser.name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
     : "F";
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/login" />;
-  // }
+  if (loading) {
+    return (
+      <nav className="bg-white shadow-lg border-b h-16 flex items-center px-6">
+        <p className="text-sm text-muted-foreground">Loading profile...</p>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-white shadow-lg border-b">
@@ -99,7 +94,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
                     key={item.path}
                     variant={currentPage === item.path ? "default" : "ghost"}
                     onClick={() => navigate(item.path)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm"
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
@@ -108,19 +103,17 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
               })}
             </div>
           </div>
+
           <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative h-8 w-8 rounded-full"
+                  className="relative h-8 w-8 rounded-full p-0"
                 >
                   <Avatar className="h-8 w-8">
-                    {currentUser.profileImage ? (
-                      <AvatarImage
-                        src={currentUser.profileImage}
-                        alt="Profile"
-                      />
+                    {currentUser?.image ? (
+                      <AvatarImage src={currentUser.image} alt="Profile" />
                     ) : (
                       <AvatarFallback className="bg-green-500 text-white">
                         {initials}
@@ -129,24 +122,25 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
+
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{currentUser.name}</p>
+                    <p className="font-medium">{currentUser?.name}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {currentUser.email}
+                      {currentUser?.email}
                     </p>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="mr-2 h-4 w-4" />
-                  <span>My Profile</span>
+                  My Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

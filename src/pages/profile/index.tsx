@@ -68,6 +68,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-gray-50">
       <NavbarComponent currentPage="/profile" />
+      
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 text-center">My Profile</h1>
@@ -75,7 +76,7 @@ export default function Profile() {
         </div>
 
         <ProfileComponent
-          userType={ profile.profile.role.toLowerCase() as 'student' | 'faculty'}
+          userType={profile.profile.role.toLowerCase() as 'student' | 'faculty'}
           currentUser={currentUser}
           onUpdate={handleUpdate}
         />

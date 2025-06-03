@@ -3,22 +3,43 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Calendar, Award } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from '../../service/api';
-import {useAuth} from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
 interface Course {
-  id: string;
-  courseId: string;
-  name: string;
-  description: string;
-  facultyId: string;
-  facultyName: string;
-  isEnabled: boolean;
+  course_id: number;
+  courseCode: string | null;
+  courseTitle: string;
+  courseDescription: string;
+  instructorName: string;
+  dept: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  duration: number;
+  credit: number;
+  imageUrl: string;
 }
 
 interface Enrollment {
-  id: string;
-  studentId: string;
   courseId: string;
-  enrolledAt: string;
+  rollNums: string[];
+  courseDetails?: Course;
 }
 
 const StudentDashboard = () => {
@@ -29,80 +50,157 @@ const StudentDashboard = () => {
     attendancePercentage: 0
   });
 
+  const [availableCoursesList, setAvailableCoursesList] = useState<Course[]>([]);
+  const [enrolledCoursesList, setEnrolledCoursesList] = useState<Enrollment[]>([]);
+  const [loading, setLoading] = useState({
+    available: false,
+    enrolled: false
+  });
+
+  const [showAvailableCoursesModal, setShowAvailableCoursesModal] = useState(false);
+  const [showEnrolledCoursesModal, setShowEnrolledCoursesModal] = useState(false);
+
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
   useEffect(() => {
     loadStats();
   }, [currentUser.id]);
 
-  const loadStats = async() => {
-    // Get enrolled courses
-    const enrollments = JSON.parse(localStorage.getItem('enrollments') || '[]');
-    const studentEnrollments = enrollments.filter((enrollment: Enrollment) => enrollment.studentId === currentUser.id);
+  const loadStats = async () => {
+    try {
+      setLoading(prev => ({ ...prev, available: true, enrolled: true }));
 
-    // Get all active courses
-let allCourses = [];
+      // Fetch all courses
+      const allCoursesResponse = await api.get('/course/details');
+      const allCourses: Course[] = allCoursesResponse.data || [];
+      const activeCourses = allCourses.filter(course => course.isActive);
 
-try {
-  const response = await api.get('/course/details');
-  allCourses = [...response.data].length > 0 ? response.data : [];
-  console.log("Fetched all courses:", allCourses);
-} catch (error) {
-  console.error("Error fetching all courses:", error);
-  allCourses = []; // fallback in case of error
-}
+      // Fetch enrolled courses
+      const enrolledResponse = await api.get(`/course-enrollment/by-student/${profile.profile.id}`);
+      const enrolledCoursesData: Enrollment[] = enrolledResponse.data || [];
 
-  const activeCourses = allCourses.filter((course) => course.isActive);
+      // Combine enrollment data with course details
+      const enrichedEnrollments = enrolledCoursesData.map(enrollment => {
+        const courseDetails = allCourses.find(c => c.course_id.toString() === enrollment.courseId);
+        return {
+          ...enrollment,
+          courseDetails: courseDetails || {
+            course_id: parseInt(enrollment.courseId),
+            courseTitle: `Course ${enrollment.courseId}`,
+            courseDescription: '',
+            instructorName: 'Unknown',
+            dept: '',
+            createdAt: '',
+            updatedAt: '',
+            isActive: false,
+            duration: 0,
+            credit: 0,
+            imageUrl: '',
+            courseCode: null
+          }
+        };
+      });
 
-    // Calculate enrolled course IDs
-    const enrolledCourseIds = studentEnrollments.map((enrollment: Enrollment) => enrollment.courseId);
+      // Update stats
+      setStats({
+        enrolledCourses: enrichedEnrollments.length,
+        availableCourses: activeCourses.length - enrichedEnrollments.length,
+        attendancePercentage: 0 // Will be updated below
+      });
 
-    // Get enrolled courses details
-    console.log("Fetching enrolled courses for student:", profile.profile.id);
-    const enrolledCoursesData =await api.get(`/course-enrollment/by-student/${profile.profile.id}`)
-  .then(response => response.data)
-  .catch(error => {
-    console.error("Error fetching enrolled courses:", error);
-  });
+      setEnrolledCoursesList(enrichedEnrollments);
 
+      // Fetch attendance data
+      const attendanceResponse = await api.get('/attendance/getstudent', {
+        params: { id: profile.profile.id }
+      });
 
-    // Calculate available courses (not enrolled in)
-    const availableCoursesData = activeCourses.filter((course: Course) => !enrolledCourseIds.includes(course.id));
+      const attendanceRecords = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : [];
+      const studentAttendance = attendanceRecords.filter(record => record.studentId === currentUser.id);
 
-    // Calculate attendance percentage (placeholder)
-let attendancePercentage = 0;
+      if (studentAttendance.length > 0) {
+        const attendedSessions = studentAttendance.filter(record => record.present).length;
+        const attendancePercentage = Math.round((attendedSessions / studentAttendance.length) * 100);
+        setStats(prev => ({ ...prev, attendancePercentage }));
+      }
 
-try {
-  const response = await api.get('/attendance/getstudent', {
-    params: { id: profile.profile.id }
-  });
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+    } finally {
+      setLoading({ available: false, enrolled: false });
+    }
+  };
 
-  const attendanceRecords = Array.isArray(response.data) ? response.data : [];
-  console.log("Fetched attendance records:", attendanceRecords);
+  const fetchEnrolledCourses = async () => {
+    try {
+      setLoading(prev => ({ ...prev, enrolled: true }));
 
-  // Filter records for the current user
-  const studentAttendance = attendanceRecords.filter(
-    (record: any) => record.studentId === currentUser.id
-  );
+      const enrolledResponse = await api.get(`/course-enrollment/by-student/${profile.profile.id}`);
+      const enrolledCoursesData: Enrollment[] = enrolledResponse.data || [];
 
-  const totalSessions = studentAttendance.length;
-  const attendedSessions = studentAttendance.filter((record: any) => record.present).length;
+      const allCoursesResponse = await api.get('/course/details');
+      const allCourses: Course[] = allCoursesResponse.data || [];
 
-  if (totalSessions > 0) {
-    attendancePercentage = Math.round((attendedSessions / totalSessions) * 100);
-  }
-} catch (error) {
-  console.error("Error fetching attendance records:", error);
-  attendancePercentage = 0;
-}
+      const enrichedEnrollments = enrolledCoursesData.map(enrollment => {
+        const courseDetails = allCourses.find(c => c.course_id.toString() === enrollment.courseId);
+        return {
+          ...enrollment,
+          courseDetails: courseDetails || {
+            course_id: parseInt(enrollment.courseId),
+            courseTitle: `Course ${enrollment.courseId}`,
+            courseDescription: '',
+            instructorName: 'Unknown',
+            dept: '',
+            createdAt: '',
+            updatedAt: '',
+            isActive: false,
+            duration: 0,
+            credit: 0,
+            imageUrl: '',
+            courseCode: null
+          }
+        };
+      });
 
-// Update stats
-setStats({
-  enrolledCourses: Array.isArray(enrolledCoursesData) ? enrolledCoursesData.length : 0,
-  availableCourses: Array.isArray(availableCoursesData) ? availableCoursesData.length : 0,
-  attendancePercentage
-});
+      setEnrolledCoursesList(enrichedEnrollments);
+      setStats(prev => ({ ...prev, enrolledCourses: enrichedEnrollments.length }));
 
+    } catch (error) {
+      console.error("Error fetching enrolled courses:", error);
+    } finally {
+      setLoading(prev => ({ ...prev, enrolled: false }));
+    }
+  };
+
+  const fetchAvailableCourses = async () => {
+    try {
+      setLoading(prev => ({ ...prev, available: true }));
+      const response = await api.get('/course/details');
+      const allCourses: Course[] = response.data || [];
+      const activeCourses = allCourses.filter(course => course.isActive);
+
+      const enrolledCourseIds = enrolledCoursesList.map(enrollment => enrollment.courseId);
+      const availableCourses = activeCourses.filter(course =>
+        !enrolledCourseIds.includes(course.course_id.toString())
+      );
+
+      setAvailableCoursesList(availableCourses);
+      setStats(prev => ({ ...prev, availableCourses: availableCourses.length }));
+    } catch (error) {
+      console.error("Error fetching available courses:", error);
+    } finally {
+      setLoading(prev => ({ ...prev, available: false }));
+    }
+  };
+
+  const handleEnrolledCoursesClick = async () => {
+    await fetchEnrolledCourses();
+    setShowEnrolledCoursesModal(true);
+  };
+
+  const handleAvailableCoursesClick = async () => {
+    await fetchAvailableCourses();
+    setShowAvailableCoursesModal(true);
   };
 
   return (
@@ -115,7 +213,11 @@ setStats({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow duration-300">
+          {/* Enrolled Courses Card */}
+          <Card
+            className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+            onClick={handleEnrolledCoursesClick}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Enrolled Courses</CardTitle>
               <div className="p-2 rounded-full bg-blue-500">
@@ -127,10 +229,19 @@ setStats({
               <CardDescription className="text-xs text-muted-foreground">
                 Courses you're currently enrolled in
               </CardDescription>
+
+              {loading.enrolled && (
+                <p className="text-xs text-gray-500 mt-1">Loading...</p>
+              )}
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow duration-300">
+
+          {/* Available Courses Card */}
+          <Card
+            className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+            onClick={handleAvailableCoursesClick}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Available Courses</CardTitle>
               <div className="p-2 rounded-full bg-orange-500">
@@ -142,9 +253,13 @@ setStats({
               <CardDescription className="text-xs text-muted-foreground">
                 New courses available to enroll
               </CardDescription>
+              {loading.available && (
+                <p className="text-xs text-gray-500 mt-1">Loading...</p>
+              )}
             </CardContent>
           </Card>
 
+          {/* Attendance Card */}
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Attendance Percentage</CardTitle>
@@ -161,6 +276,110 @@ setStats({
           </Card>
         </div>
       </div>
+
+      {/* Enrolled Courses Modal */}
+      <Dialog open={showEnrolledCoursesModal} onOpenChange={setShowEnrolledCoursesModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Your Enrolled Courses</DialogTitle>
+            <DialogDescription>
+              List of all your enrolled courses ({enrolledCoursesList.length})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {enrolledCoursesList.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Course ID</TableHead>
+                    <TableHead>Title</TableHead>
+
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {enrolledCoursesList.map((enrollment) => (
+                    <TableRow key={enrollment.courseId}>
+                      <TableCell>{enrollment.courseId}</TableCell>
+                      <TableCell>{enrollment.courseDetails?.courseTitle}</TableCell>
+
+                      {/* <TableCell>
+                        <Badge variant={enrollment.courseDetails?.isActive ? "default" : "secondary"}>
+                          {enrollment.courseDetails?.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell> */}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">No enrolled courses</h3>
+                <p className="text-sm text-gray-500">
+                  You haven't enrolled in any courses yet
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Available Courses Modal */}
+      <Dialog open={showAvailableCoursesModal} onOpenChange={setShowAvailableCoursesModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Available Courses</DialogTitle>
+            <DialogDescription>
+              List of all available courses ({availableCoursesList.length})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {loading.available ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Loading available courses...</p>
+              </div>
+            ) : availableCoursesList.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Course ID</TableHead>
+                    <TableHead>Title</TableHead>
+
+
+                    <TableHead>Department</TableHead>
+
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {availableCoursesList.map((course) => (
+                    <TableRow key={course.course_id}>
+                      <TableCell className="font-medium">{course.course_id}</TableCell>
+                      <TableCell>{course.courseTitle}</TableCell>
+
+                      <TableCell>{course.dept}</TableCell>
+
+                      <TableCell>
+                        <Badge variant={course.isActive ? "default" : "secondary"}>
+                          {course.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">No courses available</h3>
+                <p className="text-sm text-gray-500">
+                  There are currently no courses available for enrollment
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

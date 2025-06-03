@@ -78,13 +78,13 @@ export default function EditProfile() {
     // achievements: "",
     // researchDetails: ""
     workExperiences: [] as Array<{
-      organizationName?: string;
-      designation?: string;
-      startYear?: string;
-      endYear?: string;
-      description?: string;
-      achievements?: string;
-      researchDetails?: string;
+      institutionName: string;
+      designation: string;
+      startYear: string;
+      endYear: string;
+      description: string;
+      achievements: string;
+      researchDetails: string;
     }>,
 
 
@@ -131,56 +131,6 @@ export default function EditProfile() {
   if (!formData || !formData.email) {
     return <div>Loading...</div>;
   }
-
-
-
-
-
-
-
-  // function mapBackendToFrontend(data) {
-  //   return {
-  //     name: data.name || "",
-  //     email: data.email || "",
-  //     department: data.department || "",
-  //     gender: data.gender || "",
-  //     dob: data.dob || "",
-  //     phoneNum: data.phoneNum || "",
-  //     bloodGroup: data.bloodGroup || "",
-  //     nationality: data.nationality || "",
-  //     address: data.address || "",
-  //     adharNum: data.adharNum || "",
-  //     fatherName: data.fatherName || "",
-  //     motherName: data.motherName || "",
-  //     firstGraduate: data.firstGraduate || "",
-  //     institution: data.institutionName || "",
-  //     degree: data.degree || "",
-  //     program: data.program || "",
-  //     startYear: data.startYear || data.year || "",
-  //     expectedGraduation: data.gradutaionYear || "",
-  //     cgpa: data.cgpa || "",
-  //     githubProfile: data.githubProfile || "",
-  //     linkedInProfile: data.linkedInProfile || "",
-  //     sslcSchoolName: data.sslcSchoolName || "",
-  //     sslcStartYear: data.sslcStartYear || "",
-  //     sslcEndYear: data.sslcEndYear || "",
-  //     sslcPercentage: data.sslcPercentage || "",
-  //     sslcboardOfEducation: data.sslcboardOfEducation || "",
-  //     hscSchoolName: data.hscSchoolName || "",
-  //     hscStartYear: data.hscStartYear || "",
-  //     hscEndYear: data.hscEndYear || "",
-  //     hscPercentage: data.hscPercentage || "",
-  //     hscboardOfEducation: data.hscboardOfEducation || "",
-  //     rollNumber: data.rollNum || "",
-  //     staffId: data.staffId || "",
-  //     experience: data.experience || "",
-  //     designation: data.designation || "",
-  //     endYear: data.endYear || "",
-  //     description: data.description || "",
-  //     achievements: data.achievements || "",
-  //     researchDetails: data.researchDetails || ""
-  //   };
-  // }
 
   function mapBackendToFrontend(data: any) {
     // Always return all fields expected by formData, with defaults if missing
@@ -278,8 +228,8 @@ export default function EditProfile() {
         staffId: data.staffId || "",
         experience: data.experience || "",
         designation: data.designation || "",
-        workExperiences: data.workExperiences?.map(exp => ({
-          organizationName: exp.organizationName || "",
+        workExperiences: data.workExperiences?.map((exp: any) => ({
+          institutionName: exp.institutionName || "",
           designation: exp.designation || "",
           startYear: exp.startYear || "",
           endYear: exp.endYear || "",
