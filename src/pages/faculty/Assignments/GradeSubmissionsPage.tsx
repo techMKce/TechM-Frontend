@@ -165,8 +165,8 @@ const GradeSubmissionsPage = () => {
       <Navbar />
       <div className="page-container max-w-4xl mx-auto max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link
-            to="/faculty/assignments"
+         <Link
+            to={assignment?.courseId ? `/faculty/courses/${assignment.courseId}` : "/faculty/courses"}
           >
             ← Back to Assignments
           </Link>
