@@ -6,7 +6,10 @@ import { Calendar, Download, FileText } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import api from "@/service/api";
+import api from "../../service/api";
+import { useAuth } from "@/hooks/useAuth";
+import StudentNavbar from "@/components/StudentNavbar";
+import FacultyNavbar from "@/components/FacultyNavbar";
 
 interface ExamInfo {
   Date: string;
@@ -17,8 +20,7 @@ interface ExamInfo {
 }
 
 const ExamTimetablePage = () => {
-  const [userType] = useState<"student" | "faculty">("faculty");
-  const [userName] = useState(userType === "faculty" ? "Dr. Jane Smith" : "John Doe");
+  const {profile}=useAuth();
   const [examData, setExamData] = useState<ExamInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -204,8 +206,8 @@ const ExamTimetablePage = () => {
 
   return (
     <>
-      <Navbar />
-      <div className="page-container max-w-5xl mx-auto">
+      {profile.profile.role=="STUDENT"?<StudentNavbar/>:<FacultyNavbar/>}
+      <div className="page-container max-w-5xl mx-auto mt-3">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Exam Timetable</h1>
           <p className="mt-2">View and download exam schedules</p>

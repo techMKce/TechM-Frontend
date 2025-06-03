@@ -52,7 +52,6 @@ const queryClient = new QueryClient();
 import { Outlet, Navigate } from "react-router-dom";
 import CourseList from "./components/Courses/CourseList";
 import ViewCourse from "./components/Courses/ViewCourse";
-import Exams from "./components/ExamForStudentAndFaculty/Exams";
 
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
