@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Upload, X, File as FileIcon } from "lucide-react";
 
 interface Section {
   section_id: number;
@@ -32,6 +33,7 @@ interface Content {
 interface SectionContentProps {
   section: Section;
 }
+
 // get youtube video
 function getYouTubeEmbedUrl(url) {
   // If already an embed URL, return as-is
@@ -61,10 +63,10 @@ const SectionContent = ({ section }: SectionContentProps) => {
   const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
-  const [pdfUrl, setPdfUrl] = useState("");
   const [pdfTitle, setPdfTitle] = useState("");
-  const [pdfFile, setPdfFile] = useState(null);
-  const [uploadMethod, setUploadMethod] = useState<"file" | "url">("file");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
 
   // Fetch content when section changes
   useEffect(() => {
@@ -86,7 +88,8 @@ const SectionContent = ({ section }: SectionContentProps) => {
       fetchContent();
     }
   }, [section.section_id]);
-  //   handle to show add video form
+
+  // Handle to show add video form
   const handleAddVideo = async (sectionId: number) => {
     setCurrentSectionId(sectionId);
     setShowVideoForm(true);
@@ -98,86 +101,33 @@ const SectionContent = ({ section }: SectionContentProps) => {
     setShowPdfForm(true);
   };
 
-  const handleFileUpload = (file) => {
-    if (file.type !== "application/pdf") {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid File",
-        text: "Please upload a PDF file only",
-      });
-      return;
-    }
-    setPdfFile(file);
-    // Set default title if not already set
-    if (!pdfTitle) {
-      setPdfTitle(file.name.replace(/\.[^/.]+$/, "")); // Remove file extension
-    }
-  };
-  const handlePdfSubmit = () => {
-    if (uploadMethod === "file" && !pdfFile) {
-      toast.error("Please select a PDF file");
-      return;
-    }
-
-    if (uploadMethod === "url" && !pdfUrl) {
-      toast.error("Please enter a PDF URL");
-      return;
-    }
-
-    if (uploadMethod === "url" && !pdfUrl.endsWith(".pdf")) {
-      toast.error("URL must point to a PDF file");
-      return;
-    }
-
-    handleSubmitContent(
-      "PDF",
-      uploadMethod === "file" ? pdfFile : pdfUrl,
-      pdfTitle
-    );
-
-    // Reset form
-    setPdfFile(null);
-    setPdfUrl("");
-    setPdfTitle("");
-    setShowPdfForm(false);
-  };
-  // Unified content submission handler
   const handleSubmitContent = async (
     contentType: string,
     contentUrl: File | string,
     contentTitle: string
   ) => {
-    const isYoutubeUrl =
-      videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-
-    // Basic URL validation
-    if (!contentUrl) {
-      await Swal.fire({
-        icon: "error",
-        title: "Missing URL",
-        text: "Please enter a video URL",
-        confirmButtonColor: "#2563eb",
-      });
-      return;
-    }
-
     try {
-      // Only proceed if user confirmed
+      const formData = new FormData();
+      formData.append("contentType", contentTitle || contentType.toUpperCase());
+      
+      if (contentUrl instanceof File) {
+        formData.append("file", contentUrl);
+      } else {
+        formData.append("content", contentUrl);
+      }
+      
+      formData.append("section_id", currentSectionId?.toString() || "");
 
-      const requestBody = {
-        contentType: contentTitle ? contentTitle : contentType.toUpperCase(),
-        content: contentUrl,
-        section: { section_id: currentSectionId },
-      };
-
-      await api.post("/course/section/content/add", requestBody);
+      await api.post("/course/section/content/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       // Refetch content to update UI
       const contentResponse = await api.get(
         `/course/section/content/details?id=${currentSectionId}`
       );
-
-      // Update section
       setContents(contentResponse.data);
 
       // Close form and reset
@@ -185,93 +135,33 @@ const SectionContent = ({ section }: SectionContentProps) => {
       setShowPdfForm(false);
       setVideoUrl("");
       setVideoTitle("");
-      setPdfUrl("");
+      setPdfFile(null);
       setPdfTitle("");
+      
+      toast.success(`${contentType} added successfully`);
     } catch (error) {
-      console.error("Error adding video:", error);
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to add video. Please try again.",
-        confirmButtonColor: "#2563eb",
-      });
+      console.error("Error adding content:", error);
+      toast.error(`Failed to add ${contentType}. Please try again.`);
     }
   };
-  // for pdf open
-  const onclickShowPdf = () => {
-    return (event: React.MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      const pdfUrl = event.currentTarget.href;
 
-      // Create modal overlay
-      const modal = document.createElement("div");
-      Object.assign(modal.style, {
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100%",
-        height: "100%",
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: "1000",
-      });
-
-      // Create PDF container
-      const pdfContainer = document.createElement("div");
-      Object.assign(pdfContainer.style, {
-        backgroundColor: "#fff",
-        borderRadius: "8px",
-        width: "80%",
-        maxWidth: "800px",
-        height: "80%",
-        padding: "20px",
-        position: "relative",
-        boxShadow: "0 0 10px rgba(0,0,0,0.25)",
-      });
-
-      // Create iframe for PDF display
-      const iframe = document.createElement("iframe");
-      iframe.src = pdfUrl;
-      Object.assign(iframe.style, {
-        width: "100%",
-        height: "100%",
-        border: "none",
-      });
-
-      // Create close button
-      const closeButton = document.createElement("button");
-      closeButton.textContent = "×";
-      Object.assign(closeButton.style, {
-        position: "absolute",
-        top: "10px",
-        right: "10px",
-        width: "30px",
-        height: "30px",
-        fontSize: "18px",
-        backgroundColor: "#f44336",
-        color: "white",
-        border: "none",
-        borderRadius: "50%",
-        cursor: "pointer",
-      });
-
-      closeButton.onclick = () => document.body.removeChild(modal);
-
-      pdfContainer.appendChild(closeButton);
-      pdfContainer.appendChild(iframe);
-      modal.appendChild(pdfContainer);
-      document.body.appendChild(modal);
-    };
+  // Handle PDF viewing
+  const handleViewPdf = (pdfUrl: string) => {
+    setPdfViewerUrl(pdfUrl);
   };
+
+  // Close PDF viewer
+  const closePdfViewer = () => {
+    setPdfViewerUrl(null);
+  };
+
   // Remove Content Handler
   const handleRemoveContent = async (
     contentId: number,
     contentType: string
   ) => {
     if (
-      !window.confirm(`Are you sure you want to delete this ${contentType} ? `)
+      !window.confirm(`Are you sure you want to delete this ${contentType}?`)
     )
       return;
 
@@ -281,14 +171,27 @@ const SectionContent = ({ section }: SectionContentProps) => {
       });
 
       setContents((prev) => prev.filter((c) => c.content_id !== contentId));
+      toast.success(`${contentType} deleted successfully`);
     } catch (error: any) {
       console.error(`Error deleting ${contentType}:`, error);
-      alert(error.response?.data?.message || `Failed to delete ${contentType}`);
+      toast.error(error.response?.data?.message || `Failed to delete ${contentType}`);
     }
   };
 
+  // Section filteration by pdf/video
   const videos = contents.filter((c) => c.contentType === "VIDEO");
-  const pdfs = contents.filter((c) => c.contentType === "PDF");
+  const pdfs = contents.filter((c) => {
+    // Check if contentType is explicitly "PDF"
+    const isPdfType = c.contentType?.toUpperCase() === "PDF";
+
+    // Check if content URL ends with .pdf (case insensitive)
+    const hasPdfExtension = c.content?.toLowerCase()?.endsWith(".pdf");
+
+    // Check if contentType contains "PDF" (case insensitive)
+    const contentTypeHasPdf = c.contentType?.toLowerCase()?.includes("pdf");
+
+    return isPdfType || hasPdfExtension || contentTypeHasPdf;
+  });
 
   if (loading) return <div>Loading content...</div>;
 
@@ -390,16 +293,12 @@ const SectionContent = ({ section }: SectionContentProps) => {
                 </div>
                 <div className="flex items-center gap-2 p-3 bg-white rounded border border-gray-200">
                   <DocumentTextIcon className="w-8 h-8 text-red-500" />
-                  <a
-                    href={pdf.content}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => handleViewPdf(pdf.content)}
                     className="text-blue-600 hover:underline truncate"
-                    onClick={onclickShowPdf}
                   >
-                    {/* pdf.content.split('/').pop() for now use beacuse one pdf has null */}
-                    {pdf.content || "PDF Document"}
-                  </a>
+                    {pdf.content.split('/').pop() || "PDF Document"}
+                  </button>
                 </div>
               </div>
             ))}
@@ -408,59 +307,8 @@ const SectionContent = ({ section }: SectionContentProps) => {
           <p className="text-gray-400">No PDFs added yet</p>
         )}
       </div>
-      {/* Video Form */}
-      {/* {showVideoForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Add New Video</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Video URL
-                </label>
-                <input
-                  type="text"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  className="mt-1 h-10 block w-full rounded-md border-gray-300 shadow-sm"
-                  placeholder="https://youtube.com/..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Title (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={videoTitle}
-                  onChange={(e) => setVideoTitle(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  placeholder="Introduction Video"
-                />
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowVideoForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleSubmitContent("VIDEO", videoUrl, videoTitle)
-                  }
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer"
-                >
-                  Add Video
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
 
+      {/* Video Form */}
       {showVideoForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
@@ -501,7 +349,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
                 <button
                   type="button"
                   onClick={() =>
-                    handleSubmitContent("Video", videoUrl, videoTitle)
+                    handleSubmitContent("VIDEO", videoUrl, videoTitle)
                   }
                   className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700"
                 >
@@ -519,167 +367,91 @@ const SectionContent = ({ section }: SectionContentProps) => {
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-medium mb-4">Add PDF Content</h3>
             <div className="space-y-4">
-              {/* Toggle between File and URL upload */}
-              <div className="flex border-b border-gray-200">
-                <button
-                  className={`px-4 py-2 font-medium ${
-                    uploadMethod === "file"
-                      ? "text-blue-600 border-b-2 border-blue-600"
-                      : "text-gray-500"
-                  }`}
-                  onClick={() => setUploadMethod("file")}
-                >
-                  Upload File
-                </button>
-                <button
-                  className={`px-4 py-2 font-medium ${
-                    uploadMethod === "url"
-                      ? "text-blue-600 border-b-2 border-blue-600"
-                      : "text-gray-500"
-                  }`}
-                  onClick={() => setUploadMethod("url")}
-                >
-                  Enter URL
-                </button>
+              {/* Drag and Drop Area */}
+              <div
+                className={`border-2 border-dashed rounded-md p-6 text-center transition ${
+                  dragActive
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-300 bg-white"
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type === "application/pdf") {
+                    setPdfFile(file);
+                    if (!pdfTitle) {
+                      setPdfTitle(file.name.replace(/\.[^/.]+$/, ""));
+                    }
+                  } else {
+                    toast.error("Please upload a PDF file only");
+                  }
+                }}
+                onClick={() => document.getElementById("pdf-upload")?.click()}
+              >
+                <input
+                  id="pdf-upload"
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.type !== "application/pdf") {
+                        toast.error("Please upload a PDF file only");
+                        return;
+                      }
+                      setPdfFile(file);
+                      if (!pdfTitle) {
+                        setPdfTitle(file.name.replace(/\.[^/.]+$/, ""));
+                      }
+                    }
+                  }}
+                />
+                <div className="flex flex-col items-center justify-center space-y-2">
+                  <Upload className="h-12 w-12 mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-600 mb-1">
+                    Drag & drop PDF here or click to browse
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    PDF files only (Max: 10MB)
+                  </p>
+                </div>
               </div>
 
-              {/* File Upload Section */}
-              {uploadMethod === "file" && (
-                <>
-                  <div
-                    className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-blue-500 transition-colors"
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.classList.add(
-                        "border-blue-500",
-                        "bg-blue-50"
-                      );
-                    }}
-                    onDragLeave={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.classList.remove(
-                        "border-blue-500",
-                        "bg-blue-50"
-                      );
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.classList.remove(
-                        "border-blue-500",
-                        "bg-blue-50"
-                      );
-                      const file = e.dataTransfer.files[0];
-                      if (file && file.type === "application/pdf") {
-                        setPdfFile(file);
-                      } else {
-                        toast.error("Please upload a PDF file only");
-                      }
-                    }}
-                    onClick={() =>
-                      document.getElementById("pdf-upload")?.click()
-                    }
-                  >
-                    <input
-                      id="pdf-upload"
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setPdfFile(file);
-                      }}
-                    />
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <svg
-                        className="w-12 h-12 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                        />
-                      </svg>
-                      <p className="text-sm text-gray-600">
-                        Drag and drop your PDF here, or{" "}
-                        <span className="text-blue-600">click to browse</span>
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PDF files only (Max 10MB)
-                      </p>
-                    </div>
+              {/* Selected File Info */}
+              {pdfFile && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <FileIcon className="w-5 h-5 text-red-500" />
+                    <span className="text-sm truncate max-w-xs">
+                      {pdfFile.name}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {(pdfFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </span>
                   </div>
-
-                  {pdfFile && (
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                      <div className="flex items-center space-x-2">
-                        <svg
-                          className="w-5 h-5 text-red-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <span className="text-sm truncate max-w-xs">
-                          {pdfFile.name}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {(pdfFile.size / (1024 * 1024)).toFixed(2)} MB
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setPdfFile(null)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* URL Input Section */}
-              {uploadMethod === "url" && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    PDF URL
-                  </label>
-                  <input
-                    type="url"
-                    value={pdfUrl}
-                    onChange={(e) => setPdfUrl(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                    placeholder="https://example.com/document.pdf"
-                    pattern="https?://.+\.pdf"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Must be a direct link to a PDF file
-                  </p>
+                  <button
+                    onClick={() => setPdfFile(null)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               )}
 
-              {/* Title Input (Common for both methods) */}
+              {/* Title Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Title (Optional)
@@ -696,24 +468,63 @@ const SectionContent = ({ section }: SectionContentProps) => {
               {/* Action Buttons */}
               <div className="flex justify-end space-x-3">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowPdfForm(false);
                     setPdfFile(null);
-                    setPdfUrl("");
                     setPdfTitle("");
+                    setDragActive(false);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handlePdfSubmit}
+                  type="button"
+                  onClick={() => {
+                    if (pdfFile) {
+                      handleSubmitContent("PDF", pdfFile, pdfTitle);
+                    }
+                  }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer disabled:bg-blue-300"
-                  disabled={uploadMethod === "file" ? !pdfFile : !pdfUrl}
+                  disabled={!pdfFile}
                 >
-                  {uploadMethod === "file" ? "Upload PDF" : "Add PDF URL"}
+                  Upload PDF
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer Modal */}
+      {pdfViewerUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-full max-h-screen flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-medium">PDF Viewer</h3>
+              <button
+                onClick={closePdfViewer}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1">
+              <iframe
+                src={`http://localhost:8083/api/v1/course/section/content/view/${pdfViewerUrl.split('/').pop()}`}
+                className="w-full h-full"
+                frameBorder="0"
+              ></iframe>
+            </div>
+            <div className="p-4 border-t flex justify-end">
+              <a
+                href={`http://localhost:8083/api/v1/course/section/content/download/${pdfViewerUrl.split('/').pop()}`}
+                download
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Download PDF
+              </a>
             </div>
           </div>
         </div>
