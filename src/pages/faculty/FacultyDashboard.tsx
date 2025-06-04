@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import api from "@/service/api";
-import { useAuth } from '../../hooks/useAuth';
+
+import api from "../../service/api";
+import {useAuth} from '../../hooks/useAuth';
 
 interface Course {
   course_id: number;

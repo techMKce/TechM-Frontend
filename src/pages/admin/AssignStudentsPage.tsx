@@ -19,7 +19,9 @@ import { Checkbox } from "../../components/ui/checkbox";
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import api from "../../service/api";
+
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
+
 
 interface Student {
   id: string;
@@ -235,6 +237,7 @@ const AssignStudentsPage = () => {
     }
     return null;
   };
+
 
   const handleAssignStudents = async () => {
     if (!selectedCourse || selectedUsers.length === 0 || !selectedFaculty) {

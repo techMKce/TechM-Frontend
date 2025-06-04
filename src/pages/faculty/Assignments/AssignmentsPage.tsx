@@ -30,7 +30,7 @@ const AssignmentsPage = () => {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const API_BASE = "https://assignmentservice-2a8o.onrender.com/api";
+
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -180,7 +180,7 @@ const AssignmentsPage = () => {
 
                     <Link
                       to={`/faculty/assignments/${assignment.id}/grade`}
-                      className="flex items-center justify-center w-full py-2 mt-2 bg-accent hover:bg-accent-dark bg-primary text-white rounded transition-colors"
+                      className="flex items-center justify-center w-full py-2 mt-2 bg-accent hover:bg-accent-dark text-white rounded transition-colors"
                     >
                       <FileEdit size={16} className="mr-2" />
                       Grade Submissions

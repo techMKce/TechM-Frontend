@@ -48,8 +48,11 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
 
   const menuItems = [
     { label: "Dashboard", path: "/student/dashboard", icon: Home },
+
     { label: "Courses", path: "/student/courses", icon: BookOpen },
     { label: "Attendance", path: "/student/attendance", icon: ListTodoIcon },
+    {label: "Exams", path: "/student/exams", icon: Book }
+
   ];
 
   const userName = currentUser?.name || "Student";

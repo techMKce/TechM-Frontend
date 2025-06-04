@@ -9,7 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { User, LogOut, Home, BookOpen, ListTodoIcon } from "lucide-react";
+
 import { useAuth } from "@/hooks/useAuth";
 import profileApi from "@/service/api"; // Import the same API instance used in index.tsx
 
@@ -23,11 +25,6 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const menuItems = [
-    { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
-    { label: "Courses", path: "/faculty/courses", icon: BookOpen },
-    { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
-  ];
 
   useEffect(() => {
     const fetchFacultyData = async () => {
@@ -52,6 +49,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
     navigate("/login");
   };
 
+
   const userName = currentUser?.name || "Faculty";
   const userEmail = currentUser?.email || "faculty@example.com";
   const initials = userName
@@ -59,6 +57,14 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
     .map((n: string) => n[0])
     .join("")
     .toUpperCase();
+  const menuItems = [
+    { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
+    { label: "Courses", path: "/faculty/courses", icon: BookOpen },
+    { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
+    {label: "Exams", path: "/faculty/exams", icon: Book }
+  ];
+
+
 
   if (loading) {
     return (

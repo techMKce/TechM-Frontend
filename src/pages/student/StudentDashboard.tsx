@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Calendar, Award } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from '../../service/api';
+
 import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
@@ -20,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+
 
 interface Course {
   course_id: number;
@@ -85,6 +87,7 @@ const StudentDashboard = () => {
   const loadStats = async () => {
     try {
       setLoading(prev => ({ ...prev, available: true, enrolled: true, attendance: true }));
+
 
       // First fetch the enrolled course IDs for the student
       const enrolledResponse = await api.get(`/course-enrollment/by-student/${profile.profile.id}`);
