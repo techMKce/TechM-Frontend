@@ -93,13 +93,10 @@ export default function ViewProfile() {
           ? `/profile/student/${profile.profile.id}`
           : `/profile/faculty/${profile.profile.id}`;
 
-        console.log("Fetching profile from:", endpoint);
         const response = await profileApi.get(endpoint);
 
         if (response.data) {
-          console.log("Raw API response:", response.data);
           const mappedData = mapBackendToFrontend(response.data);
-          console.log("Mapped profile data:", mappedData);
           setCurrentUser(mappedData);
         } else {
           throw new Error("No profile data received");

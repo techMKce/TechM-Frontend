@@ -11,7 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
-import { User, LogOut, Home, BookOpen, ListTodoIcon } from "lucide-react";
+import { User, LogOut, Home, BookOpen, ListTodoIcon, Book } from "lucide-react";
 
 
 import { useAuth } from "@/hooks/useAuth";
