@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/StudentNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Calendar, Upload, ArrowLeft, X, Check, Eye, Download } from "lucide-react";
+import { Calendar, Upload, ArrowLeft, X, Check, Download } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import api from '../../service/api';
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,11 @@ interface Assignment {
   fileName?: string;
 }
 
+interface SubmittedFile {
+  name: string;
+  size: number;
+}
+
 const AssignmentSubmitPage = () => {
   const { profile } = useAuth();
   const { assignmentId } = useParams<{ assignmentId: string }>();
@@ -25,6 +30,7 @@ const AssignmentSubmitPage = () => {
   const [studentRollNumber] = useState("CS101");
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [submittedFiles, setSubmittedFiles] = useState<SubmittedFile[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isGraded, setIsGraded] = useState(false);
   const [grade, setGrade] = useState<string | null>(null);
@@ -35,9 +41,6 @@ const AssignmentSubmitPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [isDueDateOver, setIsDueDateOver] = useState(false);
   const [rejected, setRejected] = useState(false);
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
-  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
-  const viewerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -75,6 +78,7 @@ const AssignmentSubmitPage = () => {
         setRejected(userSubmission?.status === "Rejected");
         if (userSubmission) {
           setSubmittedAt(userSubmission.submittedAt);
+          setSubmittedFiles([{ name: userSubmission.fileName, size: userSubmission.fileSize }]);
         }
         if (userGrading) {
           setIsGraded(true);
@@ -91,24 +95,17 @@ const AssignmentSubmitPage = () => {
       fetchAssignment();
       checkSubmissionStatusAndGrading();
     }
-
-    return () => {
-      if (viewerUrl) {
-        window.URL.revokeObjectURL(viewerUrl);
-      }
-    };
   }, [assignmentId, profile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && !isDueDateOver) {
-      const fileArray = Array.from(e.target.files);
-      setFiles((prev) => [...prev, ...fileArray]);
+    if (e.target.files && !isDueDateOver && e.target.files[0]) {
+      setFiles([e.target.files[0]]);
     }
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = () => {
     if (!isDueDateOver) {
-      setFiles((prev) => prev.filter((_, i) => i !== index));
+      setFiles([]);
     }
   };
 
@@ -119,7 +116,12 @@ const AssignmentSubmitPage = () => {
     }
 
     if (files.length === 0) {
-      toast.error("Please upload at least one file");
+      toast.error("Please upload a file");
+      return;
+    }
+
+    if (files[0].size > 15 * 1024 * 1024) {
+      toast.error("File size exceeds 15MB limit.");
       return;
     }
 
@@ -140,6 +142,8 @@ const AssignmentSubmitPage = () => {
       toast.success("Assignment submitted successfully");
       setIsSubmitted(true);
       setSubmittedAt(response.data.submission?.submittedAt || new Date().toISOString());
+      setSubmittedFiles([{ name: files[0].name, size: files[0].size }]);
+      setFiles([]);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to submit assignment");
       console.error("Submit error:", err);
@@ -164,6 +168,7 @@ const AssignmentSubmitPage = () => {
       });
       setIsSubmitted(false);
       setFiles([]);
+      setSubmittedFiles([]);
       setSubmittedAt(null);
       setIsGraded(false);
       setGrade(null);
@@ -179,48 +184,9 @@ const AssignmentSubmitPage = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (!isDueDateOver && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files);
-      setFiles((prev) => [...prev, ...droppedFiles]);
+    if (!isDueDateOver && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFiles([e.dataTransfer.files[0]]);
       e.dataTransfer.clearData();
-    }
-  };
-
-  const handleViewDocument = async () => {
-    if (isViewerOpen) {
-      setIsViewerOpen(false);
-      if (viewerUrl) {
-        window.URL.revokeObjectURL(viewerUrl);
-        setViewerUrl(null);
-      }
-      return;
-    }
-
-    if (!assignmentId) {
-      toast.error("Assignment ID not available");
-      return;
-    }
-
-    try {
-      const response = await api.get("/assignments/download", {
-        params: { assignmentId },
-        responseType: "blob",
-      });
-
-      const contentType = response.headers['content-type'] || 'application/pdf';
-      if (!contentType.includes('pdf') && !contentType.includes('image')) {
-        toast.error("File type not supported for viewing. Please download the file.");
-        return;
-      }
-
-      const blob = new Blob([response.data], { type: contentType });
-      const fileUrl = window.URL.createObjectURL(blob);
-      setViewerUrl(fileUrl);
-      setIsViewerOpen(true);
-      toast.info("Document opened for viewing");
-    } catch (err: any) {
-      console.error("View error:", err);
-      toast.error(err?.response?.data?.message || "Failed to view document. Try downloading it.");
     }
   };
 
@@ -267,7 +233,7 @@ const AssignmentSubmitPage = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <p className="text-lg">Loading assignment...</p>
+        <p className="text-lg text-gray-600">Loading assignment...</p>
       </div>
     );
   }
@@ -281,239 +247,246 @@ const AssignmentSubmitPage = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <div className="flex-1 flex flex-col">
         <Navbar />
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-          <Link
-            to={`/student/courses/${assignment.courseId}`}
-            className="flex items-center text-accent hover:text-accent-dark mb-4"
-          >
-            <ArrowLeft size={16} className="mr-1" />
-            Back to Assignment
-          </Link>
+        <div className="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <Link
+              to={`/student/courses/${assignment.courseId}`}
+              className="flex items-center text-primary hover:text-primary-dark text-lg font-semibold transition-all duration-200"
+            >
+              <ArrowLeft size={24} className="mr-2" />
+              Back to Course
+            </Link>
+        
+          </div>
 
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Assignment Details */}
-            <Card className="shadow-md w-full lg:w-1/2">
-              <CardHeader>
-                <CardTitle>Assignment Details</CardTitle>
+            <Card className="shadow-xl w-full lg:w-1/2 bg-white rounded-lg">
+              <CardHeader className="p-8 text-center">
+                <CardTitle className="text-3xl font-bold text-primary">Assignment Details</CardTitle>
               </CardHeader>
-              <CardContent>
-                <h2 className="text-2xl font-bold text-primary mb-2">{assignment.title}</h2>
-                <p className="mb-4">{assignment.courseName}</p>
-                <div className="flex items-center text-sm mb-6">
-                  <Calendar size={16} className="mr-1" />
-                  <span>Due: {formatDate(assignment.dueDate)}</span>
-                </div>
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Description</h3>
-                  <p>{assignment.description}</p>
+              <CardContent className="p-8 bg-gray-00 rounded-b-lg space-y-6">
+                <div>
+                  <span className="text-lg font-semibold text-gray-600">Assignment Title: </span>
+                  <span className="text-lg text-black">{assignment.title}</span>
                 </div>
                 <div>
-                  <p className="text-sm">Faculty Uploaded File</p>
-                  <div className="mt-2 p-3 bg-light rounded-md flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="h-8 w-20 bg-primary rounded flex items-center justify-center text-white text-xs">
-                        {assignment.fileName ? assignment.fileName.split(".").pop()?.toUpperCase() : "DOCUMENT"}
-                      </div>
-                      <p className="ml-2 font-medium truncate max-w-[120px]">{assignment.fileName || "Assignment File"}</p>
-                    </div>
-                    <div className="flex space-x-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleViewDocument}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Eye size={16} />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleDownloadDocument}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Download size={16} />
-                      </Button>
-                    </div>
+                  <span className="text-lg font-semibold text-gray-600">Course Title: </span>
+                  <span className="text-lg text-black">{assignment.courseName}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-lg font-semibold text-gray-600">Due Date: </span>
+                  <Calendar size={20} className="ml-2 mr-1 text-gray-600" />
+                  <span className="text-lg text-black">{formatDate(assignment.dueDate)}</span>
+                </div>
+                <div>
+                  <span className="text-lg font-semibold text-gray-600">Description: </span>
+                  <div className="bg-gray-50 p-3 rounded-md mt-1">
+                    <p className="text-lg text-gray-800 font-medium">{assignment.description}</p>
                   </div>
                 </div>
-                {isViewerOpen && viewerUrl && (
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium mb-2">Document Viewer</h4>
-                    <div ref={viewerRef} style={{ width: "100%", maxHeight: "80vh", overflow: "auto" }}>
-                      <iframe
-                        src={viewerUrl}
-                        style={{ width: "100%", height: "500px", border: "none" }}
-                        title="Faculty Document Viewer"
-                      />
+                {assignment.fileName && (
+                  <div>
+                    <p className="text-lg font-semibold text-gray-600">Faculty Uploaded File:</p>
+                    <div className="mt-2 p-3 bg-gray-50 rounded-md flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="h-8 w-20 bg-primary rounded flex items-center justify-center text-white text-xs">
+                          {assignment.fileName.split(".").pop()?.toUpperCase() || "FILE"}
+                        </div>
+                        <p className="ml-2 text-lg font-medium truncate max-w-[200px] text-gray-800">
+                          {assignment.fileName}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleDownloadDocument}
+                        className="flex items-center space-x-1 text-base text-white"
+                      >
+                        <Download size={20} />
+                        <span>Download</span>
+                      </Button>
                     </div>
-                    <Button
-                      onClick={handleViewDocument}
-                      className="mt-2 bg-red-600 hover:bg-red-700"
-                    >
-                      Close Viewer
-                    </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Submit Your Work */}
-            <Card className="shadow-md w-full lg:w-1/2">
-              <CardHeader>
-                <CardTitle>Submit Your Work</CardTitle>
+            {/* Submit Your Work / Your Submission */}
+            <Card className="shadow-xl w-full lg:w-1/2 bg-white rounded-lg">
+              <CardHeader className="p-8 text-center">
+                <CardTitle className="text-3xl font-bold text-primary">
+                  {isSubmitted ? "Your Submission" : "Submit Your Work"}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                {isSubmitted ? (
-                  <div className="space-y-4">
-                    <div className="bg-green-50 border border-green-200 rounded-md p-4 flex items-start">
-                      <Check size={20} className="text-green-500 mr-3 mt-1" />
-                      <div>
-                        <h3 className="font-medium text-green-700">Assignment Submitted</h3>
-                        <p className="text-green-600 text-sm">
-                          Your assignment has been successfully submitted.
+              <CardContent className="p-8 space-y-6">
+                {isSubmitted && (
+                  <div className="bg-green-100 border border-green-300 rounded-lg p-6 shadow-sm animate-pulse-once">
+                    <div className="flex items-center mb-2">
+                      <div className="bg-green-200 rounded-full p-1">
+                        <Check size={28} className="text-green-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-green-800 ml-2">Assignment Submitted</h3>
+                    </div>
+                    <p className="text-lg text-green-700">Your assignment was successfully submitted.</p>
+                    {submittedAt && (
+                      <p className="text-base text-green-600 mt-2">
+                        Submitted on: {formatDate(submittedAt)}
+                      </p>
+                    )}
+                    {submittedFiles.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-base font-bold text-green-700">Submitted File:</p>
+                        <div className="space-y-1 mt-1">
+                          {submittedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center text-base text-gray-600">
+                              <span className="truncate max-w-[200px]">{file.name}</span>
+                              <span className="ml-2">({(file.size / 1024).toFixed(1)} KB)</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {isGraded && (
+                      <>
+                        <p className="text-base text-blue-600 font-bold mt-2">
+                          Grade: {grade || "N/A"}
                         </p>
-                        <p className="text-green-600 text-sm">
-                          Submitted on: {submittedAt ? formatDate(submittedAt) : "N/A"}
-                        </p>
-                        {isGraded && (
-                          <>
-                            <p className="text-blue-600 text-sm mt-2 font-semibold">
-                              Grade: {grade || "N/A"}
-                            </p>
-                            {feedback && (
-                              <p className="text-blue-600 text-sm mt-1 max-h-32 overflow-y-auto">
-                                <span className="font-semibold">Feedback:</span> {feedback}
-                              </p>
-                            )}
-                          </>
-                        )}
-                        {rejected && (
-                          <p className="text-yellow-700 text-sm mt-2 font-semibold">
-                            Your submission was rejected. Please resubmit your assignment.
+                        {feedback && (
+                          <p className="text-base text-blue-600 mt-1 max-h-32 overflow-y-auto">
+                            <span className="font-bold">Feedback:</span> {feedback}
                           </p>
                         )}
+                      </>
+                    )}
+                    {rejected && (
+                      <p className="text-base text-yellow-700 font-bold mt-2">
+                        Your submission was rejected. Please resubmit your assignment.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {isSubmitted ? (
+                  rejected ? (
+                    <>
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragActive(true);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          setDragActive(false);
+                        }}
+                        onDrop={handleDrop}
+                        className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 shadow-sm hover:shadow-md ${
+                          dragActive ? "border-primary bg-blue-100" : "bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          id="file-upload"
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileChange}
+                          disabled={isDueDateOver}
+                        />
+                        <label
+                          htmlFor="file-upload"
+                          className="flex flex-col items-center justify-center cursor-pointer"
+                        >
+                          <Upload size={32} className="text-gray-500 mb-2" />
+                          <p className="text-base font-medium text-gray-700">
+                            Drag & drop a file or click to browse
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Supports: PDF, DOC, DOCX, ZIP (Max: 15MB)
+                          </p>
+                        </label>
                       </div>
-                    </div>
 
-                    <div className="mt-4">
-                      {rejected ? (
-                        <>
-                          <div
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setDragActive(true);
-                            }}
-                            onDragLeave={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setDragActive(false);
-                            }}
-                            onDrop={handleDrop}
-                            className={`border-2 border-dashed rounded-md p-6 text-center transition ${
-                              dragActive ? "border-blue-500 bg-blue-50" : "bg-white"
-                            }`}
-                          >
-                            <input
-                              id="file-upload"
-                              type="file"
-                              multiple
-                              className="hidden"
-                              onChange={handleFileChange}
-                              disabled={isDueDateOver}
-                            />
-                            <label
-                              htmlFor="file-upload"
-                              className="flex flex-col items-center justify-center cursor-pointer"
-                            >
-                              <Upload className="h-12 w-12 mb-2" />
-                              <p className="text-sm mb-1">
-                                Drag & drop files here or click to browse
-                              </p>
-                              <p className="text-xs">
-                                Supports: PDF, DOC, DOCX, ZIP (Max: 10MB)
-                              </p>
-                            </label>
-                          </div>
-
-                          {files.length > 0 && (
-                            <div className="mt-4">
-                              <h4 className="text-sm font-medium mb-2">Uploaded Files:</h4>
-                              <div className="space-y-2">
-                                {files.map((file, index) => (
-                                  <div key={index} className="flex items-center justify-between bg-light p-2 rounded">
-                                    <div className="flex items-center">
-                                      <div className="flex-shrink-0 h-8 w-8 bg-primary rounded flex items-center justify-center text-white text-xs">
-                                        {file.name.split(".").pop()?.toUpperCase()}
-                                      </div>
-                                      <div className="ml-3">
-                                        <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
-                                        <p className="text-xs">
-                                          {(file.size / 1024).toFixed(1)} KB
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                      onClick={() => removeFile(index)}
-                                    >
-                                      <X size={16} />
-                                    </Button>
-                                  </div>
-                                ))}
+                      {files.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="text-base font-medium text-gray-700 mb-2">Selected File:</h4>
+                          <div className="bg-gray-50 p-2 rounded-lg shadow-sm">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white text-xs">
+                                  {files[0].name.split(".").pop()?.toUpperCase()}
+                                </div>
+                                <div className="ml-3">
+                                  <p className="text-base font-medium text-green-600 truncate max-w-[200px]">
+                                    {files[0].name}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {(files[0].size / 1024).toFixed(1)} KB
+                                  </p>
+                                </div>
                               </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+                                onClick={() => removeFile()}
+                              >
+                                <X size={20} />
+                              </Button>
                             </div>
-                          )}
-
-                          <div className="mt-6">
-                            <Button
-                              onClick={handleSubmit}
-                              className="bg-primary hover:bg-primary-dark"
-                              disabled={files.length === 0 || isDueDateOver}
-                            >
-                              Resubmit Assignment
-                            </Button>
                           </div>
-                        </>
-                      ) : isDueDateOver ? (
-                        <span className="text-red-600 text-sm font-semibold">
-                          Due Date Over: Cannot unsubmit
-                        </span>
-                      ) : grade === null ? (
+                        </div>
+                      )}
+
+                      <div className="mt-6 space-y-2">
+                        <Button
+                          onClick={handleSubmit}
+                          className="w-full bg-primary hover:bg-primary-dark rounded-lg hover:scale-105 transition-all duration-200"
+                          disabled={files.length === 0 || isDueDateOver}
+                        >
+                          Resubmit Assignment
+                        </Button>
                         <Button
                           onClick={handleUnsubmit}
                           variant="outline"
-                          className="text-red-500 border-red-500 hover:bg-red-50"
+                          className="w-full text-red-600 border-red-600 hover:bg-red-50 rounded-lg hover:scale-105 transition-all duration-200"
+                          disabled={isDueDateOver}
                         >
                           Unsubmit
                         </Button>
-                      ) : (
-                        <span className="text-blue-600 text-sm font-semibold">
-                          Graded: No further actions available
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    </>
+                  ) : isDueDateOver ? (
+                    <p className="text-base text-red-600 font-bold">
+                      Due Date Over: No further actions available
+                    </p>
+                  ) : grade === null ? (
+                    <Button
+                      onClick={handleUnsubmit}
+                      variant="outline"
+                      className="w-full text-red-600 border-red-600 hover:bg-red-50 rounded-lg hover:scale-105 transition-all duration-200"
+                    >
+                      Unsubmit
+                    </Button>
+                  ) : (
+                    <p className="text-base text-blue-600 font-bold">
+                      Graded: No further actions available
+                    </p>
+                  )
                 ) : isDueDateOver ? (
-                  <div className="space-y-4">
-                    <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start">
-                      <X size={20} className="text-red-500 mr-3 mt-1" />
+                  <div className="space-y-6">
+                    <div className="bg-red-100 border border-red-300 rounded-lg p-6 shadow-sm flex items-start">
+                      <X size={24} className="text-red-600 mr-3 mt-1" />
                       <div>
-                        <h3 className="font-medium text-red-700">Due Date Over</h3>
-                        <p className="text-red-600 text-sm">
+                        <h3 className="text-xl font-bold text-red-800">Due Date Over</h3>
+                        <p className="text-base text-red-700">
                           The due date for this assignment has passed. Submissions are no longer accepted.
                         </p>
                       </div>
                     </div>
                     <Button
                       disabled
-                      className="bg-gray-400 cursor-not-allowed"
+                      className="w-full bg-gray-400 cursor-not-allowed rounded-lg"
                     >
                       Due Date Over
                     </Button>
@@ -523,23 +496,20 @@ const AssignmentSubmitPage = () => {
                     <div
                       onDragOver={(e) => {
                         e.preventDefault();
-                        e.stopPropagation();
                         setDragActive(true);
                       }}
                       onDragLeave={(e) => {
                         e.preventDefault();
-                        e.stopPropagation();
                         setDragActive(false);
                       }}
                       onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-md p-6 text-center transition ${
-                        dragActive ? "border-blue-500 bg-blue-50" : "bg-white"
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 shadow-sm hover:shadow-md ${
+                        dragActive ? "border-primary bg-blue-100" : "bg-gray-50"
                       }`}
                     >
                       <input
                         id="file-upload"
                         type="file"
-                        multiple
                         className="hidden"
                         onChange={handleFileChange}
                         disabled={isDueDateOver}
@@ -548,52 +518,56 @@ const AssignmentSubmitPage = () => {
                         htmlFor="file-upload"
                         className="flex flex-col items-center justify-center cursor-pointer"
                       >
-                        <Upload className="h-12 w-12 mb-2" />
-                        <p className="text-sm mb-1">
-                          Drag & drop files here or click to browse
+                        <Upload size={32} className="text-gray-500 mb-2" />
+                        <p className="text-base font-medium text-gray-700">
+                          Drag & drop a file or click to browse
                         </p>
-                        <p className="text-xs">
-                          Supports: PDF, DOC, DOCX, ZIP (Max: 10MB)
+                        <p className="text-sm text-gray-500 mt-1">
+                          Supports: PDF, DOC, DOCX, ZIP (Max: 15MB)
                         </p>
                       </label>
                     </div>
 
-                    {files.length > 0 && (
+                    {files.length > 0 ? (
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium mb-2">Uploaded Files:</h4>
-                        <div className="space-y-2">
-                          {files.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between bg-light p-2 rounded">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-8 w-8 bg-primary rounded flex items-center justify-center text-white text-xs">
-                                  {file.name.split(".").pop()?.toUpperCase()}
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
-                                  <p className="text-xs">
-                                    {(file.size / 1024).toFixed(1)} KB
-                                  </p>
-                                </div>
+                        <h4 className="text-base font-medium text-gray-700 mb-2">Selected File:</h4>
+                        <div className="bg-gray-50 p-2 rounded-lg shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="h-8 w-8 bg-primary rounded flex items-center justify-center text-white text-xs">
+                                {files[0].name.split(".").pop()?.toUpperCase()}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => removeFile(index)}
-                              >
-                                <X size={16} />
-                              </Button>
+                              <div className="ml-3">
+                                <p className="text-base font-medium text-green-600 truncate max-w-[200px]">
+                                  {files[0].name}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  {(files[0].size / 1024).toFixed(1)} KB
+                                </p>
+                              </div>
                             </div>
-                          ))}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+                              onClick={() => removeFile()}
+                            >
+                              <X size={20} />
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                    ) : (
+                      <p className="text-base text-gray-500 mt-4 text-center">
+                        No file selected. Upload a file to submit.
+                      </p>
                     )}
 
                     <div className="mt-6">
                       <Button
                         onClick={handleSubmit}
-                        className="bg-primary hover:bg-primary-dark"
+                        className="w-full bg-primary hover:bg-primary-dark rounded-lg hover:scale-105 transition-all duration-200"
                         disabled={files.length === 0 || isDueDateOver}
                       >
                         Submit Assignment
