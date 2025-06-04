@@ -195,13 +195,13 @@ const StudentAttendancePage = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BarChart4 size={20} className="mr-2" />
-                Course-wise Attendance
+                Course-wise Attendance 
               </CardTitle>
               <CardDescription>Your attendance breakdown by course</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <p>Loading course data...</p>
+                <p>Loading course data....</p>
               ) : error ? (
                 <p className="text-red-500">{error}</p>
               ) : courseAttendance.length === 0 ? (
