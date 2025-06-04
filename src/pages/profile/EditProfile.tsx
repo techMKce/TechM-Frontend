@@ -94,7 +94,6 @@ export default function EditProfile() {
       const mapped = mapBackendToFrontend(response.data);
       setFormData(mapped);
     } catch (error) {
-      console.error("Failed to fetch user profile:", error);
       toast.error("Failed to load profile data. Please try again later.");
       if (error.response?.status === 403) {
         navigate('/login');
@@ -229,7 +228,6 @@ export default function EditProfile() {
       setFormData({ ...formData, image: imageUrl });
       toast.success("Profile picture updated!");
     } catch (error) {
-      console.error("Error uploading image:", error);
       toast.error("Failed to update profile picture.");
     } finally {
       setIsUploading(false);
@@ -270,7 +268,7 @@ export default function EditProfile() {
         navigate('/profile');
       }
     } catch (error) {
-      console.error("Failed to update profile:", error);
+
       toast.error("Failed to update profile. Please try again.");
     } finally {
       setIsSubmitting(false);

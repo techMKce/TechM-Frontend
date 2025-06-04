@@ -14,6 +14,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+
 } from "../../components/ui/select";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Badge } from "../../components/ui/badge";
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import api from "../../service/api";
 
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
+
 
 
 interface Student {
@@ -76,6 +78,7 @@ const AssignStudentsPage = () => {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]);
+
   const [selectedFaculty, setSelectedFaculty] = useState<string>("");
   const [existingAssignments, setExistingAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState({
@@ -93,6 +96,7 @@ const AssignStudentsPage = () => {
           api.get("/profile/faculty/departments"),
           api.get("/course/details")
         ]);
+
 
         if (deptResponse.status !== 200 || courseResponse.status !== 200) {
           toast.error("Failed to load initial data");
@@ -151,6 +155,7 @@ const AssignStudentsPage = () => {
       } finally {
         setLoading(prev => ({ ...prev, faculty: false }));
       }
+
     };
 
     fetchFaculty();
@@ -160,12 +165,14 @@ const AssignStudentsPage = () => {
     if (!selectedCourse) return;
 
     const fetchEnrolledStudents = async () => {
+
       try {
         setLoading(prev => ({ ...prev, students: true }));
         const [enrollmentResponse, studentsResponse] = await Promise.all([
           api.get(`/course-enrollment/by-course/${selectedCourse.id}`),
           api.get("/profile/student")
         ]);
+
 
         if (enrollmentResponse.status !== 200 || studentsResponse.status !== 200) {
           toast.error("Failed to load student data");
@@ -240,8 +247,10 @@ const AssignStudentsPage = () => {
 
 
   const handleAssignStudents = async () => {
+
     if (!selectedCourse || selectedUsers.length === 0 || !selectedFaculty) {
       toast.error("Please select a course, at least one student, and a faculty member");
+
       return;
     }
 
@@ -252,8 +261,10 @@ const AssignStudentsPage = () => {
       selectedCourse.id
     );
 
+
     if (hasExistingAssignments) {
       toast.error("One or more selected students are already assigned to a faculty for this course");
+
       return;
     }
 
@@ -278,6 +289,7 @@ const AssignStudentsPage = () => {
         courseId: selectedCourse.id
       }));
 
+
       setExistingAssignments([...existingAssignments, ...newAssignments]);
       window.dispatchEvent(new CustomEvent("assignmentsUpdated"));
 
@@ -301,10 +313,12 @@ const AssignStudentsPage = () => {
     } finally {
       setLoading(prev => ({ ...prev, assignment: false }));
     }
+
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      
       <AdminNavbar currentPage="/admin/assign-students" />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
@@ -500,6 +514,7 @@ const AssignStudentsPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-gray-700">Course:</span>
@@ -516,15 +531,19 @@ const AssignStudentsPage = () => {
                   <Badge variant="secondary" className="text-xs">{selectedUsers.length}</Badge>
                 </div>
 
-                <div className="mt-4 pt-4 border-t flex justify-end">
-                  <Button
-                    onClick={handleAssignStudents}
-                    className="w-40"
-                    disabled={loading.assignment || !selectedFaculty || selectedUsers.length === 0}
-                  >
-                    {loading.assignment ? "Assigning..." : "Assign Students"}
-                  </Button>
-                </div>
+
+
+
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  onClick={()=>{setLoader(true);handleAssignStudents()}}
+                  className="w-full"
+                  size="lg"
+                >
+                  Assign Selected Students to Faculty
+                 {(loader)?<img src="/preloader1.png" className="w-5 h-5 animate-spin"/>:""}
+                </Button>
+
               </div>
             </CardContent>
           </Card>

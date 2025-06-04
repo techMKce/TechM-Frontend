@@ -84,19 +84,23 @@ const StudentDashboard = () => {
     loadStats();
   }, [currentUser.id]);
 
+
   const loadStats = async () => {
     try {
       setLoading(prev => ({ ...prev, available: true, enrolled: true, attendance: true }));
+
 
 
       // First fetch the enrolled course IDs for the student
       const enrolledResponse = await api.get(`/course-enrollment/by-student/${profile.profile.id}`);
       const enrolledCourseIds: string[] = enrolledResponse.data || [];
 
+
       // Then fetch all course details
       const allCoursesResponse = await api.get('/course/details');
       const allCourses: Course[] = allCoursesResponse.data || [];
       const activeCourses = allCourses.filter(course => course.isActive);
+
 
       // Now fetch details for each enrolled course
       const enrichedEnrollments: Enrollment[] = [];
@@ -142,9 +146,11 @@ const StudentDashboard = () => {
 
       setEnrolledCoursesList(enrichedEnrollments);
 
+
       // Fetch attendance data from the new endpoint
       const attendanceResponse = await api.get('/attendance/allattendancepercentage');
       const attendanceData: AttendanceData[] = attendanceResponse.data || [];
+
 
       // Find the attendance record for the current student
       const studentAttendance = attendanceData.find(record => record.stdId === profile.profile.id);
@@ -231,6 +237,7 @@ const StudentDashboard = () => {
       const availableCourses = activeCourses.filter(course =>
         !enrolledCourseIds.includes(course.course_id.toString())
       );
+
 
       setAvailableCoursesList(availableCourses);
       setStats(prev => ({ ...prev, availableCourses: availableCourses.length }));

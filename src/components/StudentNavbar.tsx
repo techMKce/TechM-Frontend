@@ -19,13 +19,17 @@ interface StudentNavbarProps {
 
 const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   const navigate = useNavigate();
+
   const { signOut, profile } = useAuth(); // Use profile from useAuth
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
+
     const fetchStudentData = async () => {
       if (!profile || !profile.profile?.id) return;
+
 
       try {
         // Use the same API endpoint as in index.tsx

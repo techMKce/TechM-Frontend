@@ -76,11 +76,13 @@ const FacultyDashboard = () => {
 
       setAllCoursesData(allCourses);
 
+
       // Filter courses for current faculty
       const facultyCourses = allCourses.filter(
         (course) => course.instructorName === profile?.profile?.name
       );
       setCourses(facultyCourses);
+
 
       // Get active courses
       const facultyActiveCourses = facultyCourses.filter(course => course.isActive);
@@ -159,7 +161,7 @@ const FacultyDashboard = () => {
 
   const handleSubmit = async () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 
@@ -195,6 +197,7 @@ const FacultyDashboard = () => {
     setIsEditDialogOpen(true);
   };
 
+
   const handleUpdate = async () => {
     if (!editingCourse || !formData.courseId || !formData.name || !formData.description) {
       toast.error("Please fill all fields");
@@ -217,8 +220,8 @@ const FacultyDashboard = () => {
         setIsEditDialogOpen(false);
       }
     } catch (error) {
-      console.error("Error updating course:", error);
       toast.error("Failed to update course");
+
     }
   };
 

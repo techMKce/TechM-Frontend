@@ -12,9 +12,11 @@ import { CalendarIcon, BookOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+
 import api from "../../service/api";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
+
 
 interface Course {
   id: string;
@@ -51,7 +53,6 @@ const SchedulePage = () => {
         const data = response.data;
 
         if (!Array.isArray(data)) {
-          console.error("Expected array but got:", data);
           setCourses([]);
           return;
         }
@@ -69,7 +70,6 @@ const SchedulePage = () => {
         const enabledCourses = mappedCourses.filter((course) => course.isEnabled);
         setCourses(enabledCourses);
       } catch (error) {
-        console.error("Error fetching courses:", error);
         setCourses([]);
       }
     };
@@ -91,6 +91,7 @@ const SchedulePage = () => {
 
   const handleGenerate = async () => {
     if (selectedCourses.length === 0) {
+
       toast.error("Please select at least one course");
       return;
     }
@@ -100,6 +101,7 @@ const SchedulePage = () => {
     }
     if (fromDate >= toDate) {
       toast.error("From date must be before to date");
+
       return;
     }
 
@@ -137,7 +139,9 @@ const SchedulePage = () => {
     formData.append("courses", JSON.stringify(courseArray));
     formData.append("duration", JSON.stringify(duration));
 
+
     toast.success(`Schedule data prepared for ${courseArray.length} course(s)`);
+
 
     try {
       const response = await api.post('/attendance/postexam', formData, {
@@ -146,13 +150,14 @@ const SchedulePage = () => {
         }
       });
 
-      console.log('Upload successful:', response.data);
+      toast.success('Upload successful:', response.data);
       setGeneratedSchedule(response.data);
       setShowSuccessMessage(true);
       toast.success("Schedule uploaded successfully");
     } catch (error) {
-      console.error('Upload error', error);
+
       toast.error("Failed to upload schedule");
+
     } finally {
       setIsGenerating(false);
     }

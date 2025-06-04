@@ -62,7 +62,6 @@ const StudentAttendancePage = () => {
           }
         }
       );
-      console.log("Fetched attendance data:", response);
       setAttendanceData(response.data);
       
       // Set student name from the first record if available
@@ -71,8 +70,6 @@ const StudentAttendancePage = () => {
       // Filter data for the selected semester
       const semNumber = parseInt(semester.split(" ")[1]);
       const semesterData = response.data.filter(item => item.sem === semNumber);
-
-      console.log("Filtered semester data:", semesterData);
       
       // Check if data exists for this semester
       if (semesterData.length === 0) {
@@ -93,12 +90,9 @@ const StudentAttendancePage = () => {
       } else {
         setFnSessionData({ conducted: 0, attended: 0, percentage: 0 });
       }
-      
-      console.log("FN Data:", fnData);
-      console.log("FN Session Data:", fnSessionData);
+
       // Process AN (afternoon) session data
       const anData = semesterData.find(item => item.session === "AN");
-      console.log("AN Data:", anData);
       if (anData) {
         setAnSessionData({
           conducted: anData.totaldays,
@@ -108,10 +102,7 @@ const StudentAttendancePage = () => {
       } else {
         setAnSessionData({ conducted: 0, attended: 0, percentage: 0 });
       }
-      console.log("AN Data:", anData);
-      console.log("AN Session Data:", anSessionData);
     } catch (err) {
-      console.error("Error fetching attendance data:", err);
       setError("Failed to fetch attendance data. Please try again later.");
       setFnSessionData({ conducted: 0, attended: 0, percentage: 0 });
       setAnSessionData({ conducted: 0, attended: 0, percentage: 0 });

@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+
 import { User, LogOut, Home, BookOpen, ListTodoIcon } from "lucide-react";
+
 
 import { useAuth } from "@/hooks/useAuth";
 import profileApi from "@/service/api"; // Import the same API instance used in index.tsx

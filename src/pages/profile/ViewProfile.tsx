@@ -82,11 +82,13 @@ export default function ViewProfile() {
       return;
     }
 
+
     const fetchProfile = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
+
         const endpoint = profile.profile.role === 'STUDENT'
           ? `/profile/student/${profile.profile.id}`
           : `/profile/faculty/${profile.profile.id}`;
@@ -103,8 +105,10 @@ export default function ViewProfile() {
           throw new Error("No profile data received");
         }
       } catch (err) {
+
         console.error("Profile fetch error:", err);
         handleFetchError(err);
+
       } finally {
         setIsLoading(false);
       }
@@ -130,7 +134,9 @@ export default function ViewProfile() {
     toast.error("Failed to load profile data");
   };
 
+
   function mapBackendToFrontend(data: any): ProfileData {
+
     return {
       // Basic Info
       image: data.image,

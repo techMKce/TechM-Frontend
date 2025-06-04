@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast} from "sonner";
 import { Trash2 } from "lucide-react";
 import api from "@/service/api";
 
@@ -25,7 +25,6 @@ const CoursesPage = () => {
     const fetchCourses = async () => {
       try {
         const response = await api.get("/course/details");
-        console.log(response);
         if (response.status !== 200) {
           throw new Error('Failed to fetch courses');
         }
@@ -39,8 +38,7 @@ const CoursesPage = () => {
           isEnabled: course.isActive
         }));
         setCourses(data);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
+      }catch (error) {
         toast.error('Failed to load courses');
       }
     };

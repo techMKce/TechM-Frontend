@@ -7,8 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AdminNavbar from "@/components/AdminNavbar";
 import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
+
 import { toast } from "sonner";
 import { Oval } from 'react-loader-spinner';
+
 import * as XLSX from 'xlsx';
 import api from "@/service/api";
 
@@ -48,6 +50,7 @@ const StudentsPage = () => {
     fetchStudents();
   }, []);
 
+
   const fetchStudents = async () => {
     try {
       setIsFetching(true);
@@ -64,6 +67,7 @@ const StudentsPage = () => {
   const handleSubmit = async () => {
     if (!formData.id || !formData.name || !formData.email || !formData.department || !formData.year || !formData.semester) {
       toast.error("Please fill all fields");
+
       return;
     }
 
@@ -72,6 +76,7 @@ const StudentsPage = () => {
       await api.post('/auth/signup', formData, {
         params: { for: "STUDENT" }
       });
+
 
       await fetchStudents();
       setFormData({ id: "", name: "", email: "", department: "", year: "", semester: "" });
@@ -83,6 +88,7 @@ const StudentsPage = () => {
     } finally {
       setIsAdding(false);
     }
+
   };
 
   const handleEdit = async () => {
@@ -98,7 +104,6 @@ const StudentsPage = () => {
       setFormData({ id: "", name: "", email: "", department: "", year: "", semester: "" });
       setIsEditDialogOpen(false);
     } catch (error) {
-      console.error("Error updating Student:", error);
       toast.error("Error updating Student");
     } finally {
       setIsEditing(false);
@@ -144,7 +149,7 @@ const StudentsPage = () => {
     const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
     if (!isCSV && !isExcel) {
-      toast.error("Please select a valid CSV or Excel (.xlsx) file");
+      toast.warning("Please select a valid CSV or Excel (.xlsx) file");
       return;
     }
 
@@ -187,6 +192,7 @@ const StudentsPage = () => {
       const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
+
         toast.error("Excel file is empty");
         setIsUploading(false);
         return;
@@ -255,7 +261,7 @@ const StudentsPage = () => {
           semester: studentData.semester
         });
       } catch (error) {
-        console.error("Failed to register student because trying to register the existing data");
+
         toast.error(`Upload failed because you are trying to upload the existing data`);
       }
     }

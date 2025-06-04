@@ -104,7 +104,6 @@ const StudentProgressReport = ({ courseId }: StudentProgressReportProps) => {
         setLoading(false);
       } catch (error) {
         setLoading(false);
-        console.error("Error fetching progress data:", error);
       }
     };
 

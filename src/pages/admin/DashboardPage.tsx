@@ -26,9 +26,6 @@ const DashboardPage = () => {
       const facultyResponse = await api.get("/profile/faculty/count");
       const courseResponse = await api.get("/course/count");
 
-      console.log("Student Count:", studentResponse.data);
-      console.log("Faculty Count:", facultyResponse.data);
-      console.log("Course Count:", courseResponse.data);
       setStats({
         totalStudents: studentResponse.data,
         totalFaculty: facultyResponse.data,

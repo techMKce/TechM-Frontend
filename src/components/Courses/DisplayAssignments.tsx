@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/service/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Trash, ClipboardCheck } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Assignment {
   assignmentId: string;
@@ -47,8 +48,6 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
       const response = await api.get<ApiResponse>('/assignments/course?', {
         params: { courseId },
       });
-      console.log('Full response:', response.data);
-      console.log('Assignments array:', response.data.assignments);
       setAssignments(response.data.assignments);
 
       // Check submission status for students
@@ -65,7 +64,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
             );
             status[assignment.assignmentId] = hasSubmitted;
           } catch (err) {
-            console.error(`Error checking submission for assignment ${assignment.assignmentId}:`, err);
+            toast.warning("No Assignment Found");
             status[assignment.assignmentId] = false;
           }
         }
@@ -74,7 +73,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
       return response.data.assignments;
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      toast.error('Failed to fetching assignments:');
       setAssignments([]);
       return [];
     } finally {
@@ -84,7 +83,6 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleSubmit = (assignmentId: string) => {
     if (!assignmentId) {
-      alert('Invalid assignment ID');
       return;
     }
     navigate(`/student/assignments/${assignmentId}/submit`);
@@ -92,7 +90,6 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleGrade = (assignmentId: string) => {
     if (!assignmentId) {
-      alert('Invalid assignment ID');
       return;
     }
     navigate(`/faculty/assignments/${assignmentId}/grade`);
@@ -100,7 +97,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleEditAssignment = (assignmentId: string) => {
     if (!assignmentId) {
-      alert('Invalid assignment ID');
+      toast.error('Invalid assignment ');
       return;
     }
     navigate(`/faculty/assignments/${assignmentId}/edit`);
@@ -108,7 +105,6 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleDeleteAssignment = async (id: string) => {
     if (!id) {
-      alert('Invalid assignment ID');
       return;
     }
 
@@ -121,11 +117,10 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
         params: { assignmentId: id },
       });
       setAssignments((prev) => prev.filter((assignment) => assignment.assignmentId !== id));
-      alert('Assignment deleted successfully');
+      toast.success('Assignment deleted successfully');
     } catch (error: any) {
-      console.error('Failed to delete assignment with ID:', id);
-      console.error(error.response?.data || error.message);
-      alert('Error deleting assignment: ' + (error.response?.data?.message || error.message));
+      toast.error(`Failed to delete assignment with ID:${id}`);
+      toast.error('Error deleting assignment ');
     } finally {
       setDeletingId(null);
     }

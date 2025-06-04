@@ -25,10 +25,8 @@ export default function Profile() {
         } else if (profile.profile.role === 'FACULTY') {
           res = await profileApi.get(`/profile/faculty/${id}`);
         }
-        console.log(`${profile.profile.role} profile response`, res?.data);
         setCurrentUser(res?.data);
       } catch (err) {
-        console.error("Fetch error:", err);
       }
     };
 
@@ -50,7 +48,6 @@ export default function Profile() {
       }
       setCurrentUser(res.data);
     } catch (error) {
-      console.error('Update error:', error);
     }
   };
 
