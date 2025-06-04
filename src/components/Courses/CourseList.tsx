@@ -50,7 +50,7 @@ const CourseList: React.FC = () => {
       try {
         const response = await api("/course/active");
         setCourses(response.data);
-        
+
         const uniqueCategories = [
           "All",
           ...Array.from(
@@ -76,23 +76,26 @@ const CourseList: React.FC = () => {
 
   // fetch student enrolled courses
   // First fetch all enrolled courses for the student
-useEffect(() => {
-  const fetchEnrolledCourses = async () => {
-    try {
-      const response = await api.get("course-enrollment/by-student/s123");
-      console.log("inside fetch ",response.data.filter((enrollment: any) => enrollment.course_id))
-      setEnrolledCourses(response.data);
-    } catch (error) {
-      console.error("Error fetching enrolled courses:", error);
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      try {
+        const response = await api.get("course-enrollment/by-student/s123");
+        console.log(
+          "inside fetch ",
+          response.data.filter((enrollment: any) => enrollment.course_id)
+        );
+        setEnrolledCourses(response.data);
+      } catch (error) {
+        console.error("Error fetching enrolled courses:", error);
+      }
+    };
+
+    if (profile.profile.role === "STUDENT") {
+      fetchEnrolledCourses();
     }
-  };
+  }, [selectedTab]);
 
-  if (profile.profile.role === "STUDENT") {
-    fetchEnrolledCourses();
-  }
-}, [selectedTab]);
-
-console.log("enrolled courses : ",enrolledCourses);
+  console.log("enrolled courses : ", enrolledCourses);
 
   const filteredCourses =
     selectedCategory === "All"
@@ -101,15 +104,24 @@ console.log("enrolled courses : ",enrolledCourses);
 
   const searchFilteredCoursesByAuthor = filteredCourses.filter(
     (course) =>
-      course.instructorName?.toLowerCase() === profile.profile.name?.toLowerCase() &&
+      course.instructorName?.toLowerCase() ===
+        profile.profile.name?.toLowerCase() &&
       course.courseTitle?.toLowerCase()?.includes(search?.toLowerCase() || "")
-      
   );
   const searchFilteredCoursesOtherThanAuthor = filteredCourses.filter(
     (course) =>
-      course.instructorName?.toLowerCase() != profile.profile.name?.toLowerCase() &&
-      course.courseTitle?.toLowerCase()?.includes(search?.toLowerCase() || "")
+      profile.profile.role === "FACULTY"
+        ? course.instructorName?.toLowerCase() !=
+            profile.profile.name?.toLowerCase() &&
+          course.courseTitle
+            ?.toLowerCase()
+            ?.includes(search?.toLowerCase() || "")
+        : !enrolledCourses.includes(String(course.course_id)) &&
+          course.courseTitle
+            ?.toLowerCase()
+            ?.includes(search?.toLowerCase() || "")
   );
+
   // Then filter courses based on enrollment
   const searchFilteredCoursesByStudent = filteredCourses.filter(
     (course) =>
@@ -250,97 +262,93 @@ console.log("enrolled courses : ",enrolledCourses);
         </div>
       ) : (
         <>
-          {coursesToShow
-            .slice(0, visibleCount)
-            .map((course) => (
-              <div
-                key={course.course_id}
-                className="rounded-xl overflow-hidden bg-white bg-opacity-95 shadow-lg flex flex-col border border-gray-100 transition-transform duration-200 cursor-pointer hover:-translate-y-1.5 hover:scale-105 hover:shadow-2xl relative"
-                onMouseEnter={() => handleMouseEnter(course.course_id)}
-                onMouseLeave={() => handleMouseLeave(course.course_id)}
-              >
-                <div className="h-40 overflow-hidden relative">
-                  <img
-                    src={course.imageUrl}
-                    alt={course.courseTitle}
-                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                  />
-                  <span className="absolute top-3 left-3 bg-black bg-opacity-85 text-white text-xs px-3 py-1 rounded-full font-medium shadow">
-                    {course.dept || "General"}
+          {coursesToShow.slice(0, visibleCount).map((course) => (
+            <div
+              key={course.course_id}
+              className="rounded-xl overflow-hidden bg-white bg-opacity-95 shadow-lg flex flex-col border border-gray-100 transition-transform duration-200 cursor-pointer hover:-translate-y-1.5 hover:scale-105 hover:shadow-2xl relative"
+              onMouseEnter={() => handleMouseEnter(course.course_id)}
+              onMouseLeave={() => handleMouseLeave(course.course_id)}
+            >
+              <div className="h-40 overflow-hidden relative">
+                <img
+                  src={course.imageUrl}
+                  alt={course.courseTitle}
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                />
+                <span className="absolute top-3 left-3 bg-black bg-opacity-85 text-white text-xs px-3 py-1 rounded-full font-medium shadow">
+                  {course.dept || "General"}
+                </span>
+              </div>
+              <div className="p-5 flex-1 flex flex-col">
+                <h3 className="mb-2 text-lg font-bold text-black">
+                  {course.courseTitle || "Untitled Course"}
+                </h3>
+                <p className="text-sm text-gray-600 flex-1">
+                  {course.courseDescription || "No description available"}
+                </p>
+                <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                  <span>
+                    By{" "}
+                    {course.instructorName?.toUpperCase() ||
+                      "Unknown Instructor"}
+                  </span>
+                  <span>
+                    {course.duration || "N/A"} hours | {course.credit || "0"}{" "}
+                    credits
                   </span>
                 </div>
-                <div className="p-5 flex-1 flex flex-col">
-                  <h3 className="mb-2 text-lg font-bold text-black">
+              </div>
+              {/* Expanded Description - Only shows for hovered card */}
+              {hoverStates[course.course_id] && (
+                <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col justify-center items-center p-6 z-20 transition-all duration-300">
+                  {profile.profile.role === "FACULTY" &&
+                    course.instructorName.toLowerCase() ===
+                      profile.profile.name.toLowerCase() && (
+                      <button
+                        className="absolute top-2 right-2 p-1 text-gray-500 hover:text-red-500 transition-colors  cursor-pointer"
+                        onClick={() => handleDeleteCourse(course.course_id)}
+                      >
+                        <TrashIcon className="w-5 h-5 active:bg-gray-500" />
+                      </button>
+                    )}
+                  <h3 className="text-lg font-bold mb-2 text-black">
                     {course.courseTitle || "Untitled Course"}
                   </h3>
-                  <p className="text-sm text-gray-600 flex-1">
-                    {course.courseDescription || "No description available"}
+                  <p className="text-sm text-gray-700 mb-2">
+                    {course.courseDescription ||
+                      "No detailed description available"}
                   </p>
-                  <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                    <span>
-                      By{" "}
-                      {course.instructorName?.toUpperCase() ||
-                        "Unknown Instructor"}
-                    </span>
-                    <span>
-                      {course.duration || "N/A"} hours |{" "}
-                      {course.credit || "0"} credits
-                    </span>
-                  </div>
-                </div>
-                {/* Expanded Description - Only shows for hovered card */}
-                {hoverStates[course.course_id] && (
-                  <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col justify-center items-center p-6 z-20 transition-all duration-300">
-                    {profile.profile.role === "FACULTY" &&
-                      course.instructorName.toLowerCase() ===
-                        profile.profile.name.toLowerCase() && (
-                        <button
-                          className="absolute top-2 right-2 p-1 text-gray-500 hover:text-red-500 transition-colors  cursor-pointer"
-                          onClick={() =>
-                            handleDeleteCourse(course.course_id)
-                          }
-                        >
-                          <TrashIcon className="w-5 h-5 active:bg-gray-500" />
-                        </button>
-                      )}
-                    <h3 className="text-lg font-bold mb-2 text-black">
-                      {course.courseTitle || "Untitled Course"}
-                    </h3>
-                    <p className="text-sm text-gray-700 mb-2">
-                      {course.courseDescription ||
-                        "No detailed description available"}
+                  <div className="text-sm mb-4 text-left w-full px-4">
+                    <p>
+                      <strong>Department:</strong> {course.dept || "N/A"}
                     </p>
-                    <div className="text-sm mb-4 text-left w-full px-4">
-                      <p>
-                        <strong>Department:</strong> {course.dept || "N/A"}
-                      </p>
-                      <p>
-                        <strong>Duration:</strong>{" "}
-                        {course.duration || "N/A"} hours
-                      </p>
-                      <p>
-                        <strong>Credits:</strong> {course.credit || "0"}
-                      </p>
-                      <p>
-                        <strong>Created:</strong>{" "}
-                        {course.createdAt
-                          ? new Date(course.createdAt).toLocaleDateString()
-                          : "N/A"}
-                      </p>
-                    </div>
-                    {
-                      <button
-                        className="px-6 py-2 bg-gradient-to-r from-black to-gray-700 text-white rounded-full font-semibold shadow hover:from-gray-900 hover:to-gray-700 
-                            transition cursor-pointer"
-                        onClick={() => handleViewCourse(course)}
-                      >
-                        View Course
-                      </button>
-                    }
+                    <p>
+                      <strong>Duration:</strong> {course.duration || "N/A"}{" "}
+                      hours
+                    </p>
+                    <p>
+                      <strong>Credits:</strong> {course.credit || "0"}
+                    </p>
+                    <p>
+                      <strong>Created:</strong>{" "}
+                      {course.createdAt
+                        ? new Date(course.createdAt).toLocaleDateString()
+                        : "N/A"}
+                    </p>
                   </div>
-                )}
-              </div>
-            ))}
+                  {
+                    <button
+                      className="px-6 py-2 bg-gradient-to-r from-black to-gray-700 text-white rounded-full font-semibold shadow hover:from-gray-900 hover:to-gray-700 
+                            transition cursor-pointer"
+                      onClick={() => handleViewCourse(course)}
+                    >
+                      View Course
+                    </button>
+                  }
+                </div>
+              )}
+            </div>
+          ))}
         </>
       )}
     </div>
@@ -442,7 +450,9 @@ console.log("enrolled courses : ",enrolledCourses);
           }`}
               onClick={() => setSelectedTab("my")}
             >
-              {profile.profile.role==="FACULTY" ? "My Courses" : "Enrolled Courses" }
+              {profile.profile.role === "FACULTY"
+                ? "My Courses"
+                : "Enrolled Courses"}
             </button>
             <button
               className={`px-0 py-2 text-lg font-bold text-left transition-all border-none bg-transparent
@@ -459,15 +469,13 @@ console.log("enrolled courses : ",enrolledCourses);
         </div>
 
         {/* Course Grids */}
-        {
-  selectedTab === "my"
-    ? renderCourseGrid(
-        profile.profile.role === 'FACULTY'
-          ? searchFilteredCoursesByAuthor
-          : searchFilteredCoursesByStudent
-      )
-    : renderCourseGrid(searchFilteredCoursesOtherThanAuthor)
-}
+        {selectedTab === "my"
+          ? renderCourseGrid(
+              profile.profile.role === "FACULTY"
+                ? searchFilteredCoursesByAuthor
+                : searchFilteredCoursesByStudent
+            )
+          : renderCourseGrid(searchFilteredCoursesOtherThanAuthor)}
 
         {/* Show More Button */}
         {selectedTab === "my" &&
