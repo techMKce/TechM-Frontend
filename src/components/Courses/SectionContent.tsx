@@ -137,6 +137,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
       
       toast.success(`${contentType} added successfully`);
     } catch (error) {
+
       toast.error(`Failed to add ${contentType}. Please try again.`);
     }
   };
@@ -169,6 +170,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
       setContents((prev) => prev.filter((c) => c.content_id !== contentId));
       toast.success(`${contentType} deleted successfully`);
     } catch (error: any) {
+
       toast.error(error.response?.data?.message || `Failed to delete ${contentType}`);
     }
   };
@@ -390,7 +392,9 @@ const SectionContent = ({ section }: SectionContentProps) => {
                       setPdfTitle(file.name.replace(/\.[^/.]+$/, ""));
                     }
                   } else {
+
                     toast.warning("Please upload a PDF file only");
+
                   }
                 }}
                 onClick={() => document.getElementById("pdf-upload")?.click()}
@@ -404,7 +408,9 @@ const SectionContent = ({ section }: SectionContentProps) => {
                     const file = e.target.files?.[0];
                     if (file) {
                       if (file.type !== "application/pdf") {
+
                         toast.warning("Please upload a PDF file only");
+
                         return;
                       }
                       setPdfFile(file);

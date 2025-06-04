@@ -46,8 +46,9 @@ function useStudentProgress(courseId: string, studentId: string) {
         const response = await api.get(
           `/submissions/courses/${courseId}/student-progress`
         );
+        // here course id set by default after integration change this
         const attendanceResponse = await api.get(
-          `/attendance/getstudentbyid?id=CS124`
+          `/attendance/getstudentbyid?id=038`
         );
 
         const userProgress = response.data.students.find(
@@ -58,8 +59,9 @@ function useStudentProgress(courseId: string, studentId: string) {
         const attendanceProgress = attendanceResponse.data.find(
           (record: AttendanceRecord) =>
             record.stdId === studentId && record.courseId === courseId
-            // record.stdId === "CS124" && record.courseId === "17"
+            // record.stdId === "038" && record.courseId === "15"
         );
+
 
         // set user course progress
         setProgresPercentage(
