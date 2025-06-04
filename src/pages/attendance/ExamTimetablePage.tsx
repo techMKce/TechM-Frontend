@@ -20,6 +20,7 @@ interface ExamInfo {
 }
 
 const ExamTimetablePage = () => {
+  const [loader,setLoader]=useState(false);
   const {profile}=useAuth();
   const [examData, setExamData] = useState<ExamInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +44,6 @@ const ExamTimetablePage = () => {
         setExamData(formattedData);
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching exam data:", error);
         toast.error("Failed to load exam timetable");
         setIsLoading(false);
       }
@@ -107,7 +107,7 @@ const ExamTimetablePage = () => {
 
   const generatePDF = async () => {
   if (examData.length === 0) {
-    toast.error("No exam data available to download");
+    toast.info("No exam data available to download");
     return;
   }
 
@@ -142,7 +142,6 @@ const ExamTimetablePage = () => {
         align: "center",
       });
     } catch (logoError) {
-      console.error("Logo load error:", logoError);
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("KARPAGAM INSTITUTIONS", doc.internal.pageSize.getWidth() / 2, 30, {
@@ -193,8 +192,8 @@ const ExamTimetablePage = () => {
     // === Save PDF ===
     doc.save("exam-timetable.pdf");
     toast.success("Exam timetable downloaded successfully");
+    setLoader(false);
   } catch (error) {
-    console.error("Error generating PDF:", error);
     toast.error("Failed to generate PDF");
   }
 };
@@ -220,13 +219,20 @@ const ExamTimetablePage = () => {
               <CardDescription>Download full exam schedule as PDF</CardDescription>
             </div>
             <Button
-              onClick={generatePDF}
+              onClick={()=>{setLoader(true);generatePDF()}}
               disabled={isLoading || examData.length === 0}
               className="bg-primary hover:bg-primary-dark flex items-center gap-2"
               size="sm"
             >
               <Download size={16} />
-              Download PDF
+            {loader?
+             <img
+      src="/preloader1.png"
+      alt="Loading"
+      className="w-4 h-4 animate-spin inline-block"
+    />
+            :"Download PDF"}
+
             </Button>
           </CardHeader>
           <CardContent>

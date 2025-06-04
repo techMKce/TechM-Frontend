@@ -45,7 +45,7 @@ const CoursesPage = () => {
 
   const handleSubmit = () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 
@@ -80,7 +80,7 @@ const CoursesPage = () => {
 
   const handleUpdate = () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 

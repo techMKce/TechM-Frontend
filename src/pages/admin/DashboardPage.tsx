@@ -26,9 +26,6 @@ const DashboardPage = () => {
       const facultyResponse = await api.get("/profile/faculty/count");
       const courseResponse = await api.get("/course/count");
 
-      console.log("Student Count:", studentResponse.data);
-      console.log("Faculty Count:", facultyResponse.data);
-      console.log("Course Count:", courseResponse.data);
       setStats({
         totalStudents: studentResponse.data,
         totalFaculty: facultyResponse.data,
@@ -95,62 +92,6 @@ const DashboardPage = () => {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common administrative tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  • Add new students and faculty
-                </p>
-                <p className="text-sm text-gray-600">
-                  • Manage course assignments
-                </p>
-                <p className="text-sm text-gray-600">• View detailed reports</p>
-                <p className="text-sm text-gray-600">
-                  • Upload CSV files for bulk operations
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>System Status</CardTitle>
-              <CardDescription>Current system overview</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Students Enrolled
-                  </span>
-                  <span className="text-sm font-medium">
-                    {stats.totalStudents}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Faculty Active</span>
-                  <span className="text-sm font-medium">
-                    {stats.totalFaculty}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Courses Available
-                  </span>
-                  <span className="text-sm font-medium">
-                    {stats.totalCourses}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

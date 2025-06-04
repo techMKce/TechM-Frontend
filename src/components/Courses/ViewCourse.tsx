@@ -4,6 +4,7 @@ import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import axios from "axios";
 import SectionContent from "./SectionContent";
+
 import {
   PencilSquareIcon,
   TrashIcon,
@@ -19,8 +20,8 @@ import api from "@/service/api";
 import StudentNavbar from "../StudentNavbar";
 import FacultyNavbar from "../FacultyNavbar";
 import { isAsyncFunction } from "node:util/types";
-import { toast } from "@/components/ui/sonner";
-import { useToast } from "@/hooks/use-toast";
+// import { toast } from "@/components/ui/sonner";
+import {toast} from 'sonner';
 import { Section } from "lucide-react";
 
 function ViewCourse() {
@@ -82,14 +83,6 @@ function ViewCourse() {
   const [isEnrolled, setIsEnrolled] = useState(
     role === "FACULTY" || role === "ADMIN"
   );
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (course) {
-      console.log("Updated course data:", course);
-      // Perform actions with the updated state
-    }
-  }, [course]);
 
   // Initial fetch for course details/section
   useEffect(() => {
@@ -104,22 +97,17 @@ function ViewCourse() {
           `/course/section/details?id=${course.course_id}`
         );
 
-        // Merge the course data carefully
-        console.log("View Course Invoked", course.course_id);
-
         const sections = Array.isArray(sectionResponse.data)
           ? sectionResponse.data
           : [sectionResponse.data];
 
         setCourseSection(sections); // Update state
       } catch (error) {
-        console.error("Error fetching section at section Details:", error);
       } finally {
         setLoading(false);
       }
     };
     fetchSection();
-    console.log("View Course Invoked", course);
 
     const enrollmentSatus = async () => {
       if (profile.profile.role === "STUDENT") {
@@ -187,24 +175,19 @@ function ViewCourse() {
         duration: parseInt(editData.duration),
         credit: parseInt(editData.credit),
       };
-
-      console.log("updatedCourse (req body) : ", updatedCourse);
       // Make PUT request to update the course
 
       await api.put("/course/update", updatedCourse);
 
       setIsEditing(false);
     } catch (error: any) {
-      console.error("Error updating course:", error);
-      alert("Failed to update course. Please try again.");
+      toast.error("Failed to update course. Please try again.");
     } finally {
       // This shows the state value AT THE TIME OF RENDER
-      console.log("Course from props:", course);
 
       // For the actual updated value, use a ref
 
       courseRef.current = course;
-      console.log("Actual current state:", courseRef.current);
     }
   };
   // handle add new section
@@ -235,7 +218,6 @@ function ViewCourse() {
       setNewSection({ sectionTitle: "", sectionDesc: "" });
       setShowAddSection(false);
     } catch (error) {
-      console.error("Error adding section:", error);
     }
   };
 
@@ -292,7 +274,6 @@ function ViewCourse() {
       });
       setError(null);
     } catch (err) {
-      console.error("Failed to update section:", err);
       setError(
         err.response?.data?.message || err.message || "Failed to update section"
       );
@@ -314,14 +295,12 @@ function ViewCourse() {
           prevSections.filter((s) => s.section_id !== sectionId)
         );
 
-        console.log("Section deleted successfully");
       } catch (error) {
-        console.error("Error while deleting section:", error);
 
         if (error) {
-          alert(error.response?.data?.message || "Failed to delete section");
+          toast.error("Failed to delete section");
         } else {
-          alert("An unexpected error occurred");
+          toast.error("An unexpected error occurred");
         }
       }
     }
@@ -335,16 +314,14 @@ function ViewCourse() {
     });
     if (response.status === 200) {
       setIsEnrolled(true);
-      toast({
-        title: "Enrolled Successfully",
+      toast.success(
+        "Enrolled Successfully",{
         description: `You have successfully enrolled in ${course.courseTitle}.`,
       });
     } else {
-      toast({
-        variant: "destructive",
-        title: "Enrollment Failed",
-        description:
-          response.data.message || "An error occurred during enrollment",
+      toast.error(
+        "Enrollment Failed",{
+        description:"An error occurred during enrollment",
       });
     }
     setLoading(false);

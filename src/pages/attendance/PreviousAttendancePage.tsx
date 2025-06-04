@@ -18,13 +18,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast,Toaster } from "@/components/ui/sonner";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import api from "@/service/api";
 import Profile from "../profile/index";
 import { useAuth } from "@/hooks/useAuth";
-import { profile } from "console";
 
 interface AttendanceRecord {
   id: number;
@@ -192,7 +191,6 @@ const PreviousAttendancePage = () => {
           sem: student.semester,
         })
       );
-      console.log("All Students Data:", allStudents);
 
       const assignedRollNums = facultyAssignmentsData.flatMap(
         (a) => a.assignedRollNums
@@ -203,8 +201,6 @@ const PreviousAttendancePage = () => {
 
       // setStudents(filteredStudents);
       setAllStudents(filteredStudents);
-
-      console.log("Filtered Students:", filteredStudents);
 
       // const uniqueBatches = [
       //   ...new Set(
@@ -234,95 +230,9 @@ const PreviousAttendancePage = () => {
       // setDepartments(uniqueDepartments);
       // setSemesters(uniqueSemesters);
     } catch (error) {
-      console.error("Error fetching faculty courses:", error);
       toast.error("Failed to load faculty courses");
     }
   };
-
-  // useEffect(() => {
-  //   // Fetch faculty courses when component mounts
-  //   const fetchFacultyCourses = async () => {
-  //     try {
-  //       const response = await api.get(
-  //         `faculty-student-assigning/admin/assign/${facultyId}`
-  //       );
-  //       const facultyAssignments: FacultyAssignment[] = response.data;
-
-  //       // Get unique course IDs
-  //       const courseIds = [
-  //         ...new Set(
-  //           facultyAssignments.map((assignment) => assignment.courseId)
-  //         ),
-  //       ];
-
-  //       // Fetch course details for each course ID
-  //       const coursePromises = courseIds.map(async (courseId) => {
-  //         const courseResponse = await api.get(
-  //           `course-enrollment/by-course/${courseId}`
-  //         );
-  //         return {
-  //           courseId: courseId,
-  //           courseName: courseResponse.data.courseName || courseId,
-  //         };
-  //       });
-
-  //       const fetchedCourses = await Promise.all(coursePromises);
-  //       setCourses(fetchedCourses);
-  //     } catch (error) {
-  //       console.error("Error fetching faculty courses:", error);
-  //       toast.error("Failed to load faculty courses");
-  //     }
-  //   };
-
-  //   fetchFacultyCourses();
-  // }, [facultyId]);
-
-  // const fetchStudentsForCourse = async (courseId: string) => {
-  //   try {
-  //     const response = await api.get(
-  //       `faculty-student-assigning/admin/course/${courseId}`
-  //     );
-  //     const assignments = response.data;
-
-  //     if (!assignments || assignments.length === 0) {
-  //       toast.error("No students found for this course");
-  //       return;
-  //     }
-
-  //     // Collect all roll numbers
-  //     const allRollNums = assignments.flatMap(
-  //       (assignment) => assignment.assignedRollNums
-  //     );
-
-  //     // Fetch student details for each roll number
-  //     const studentPromises = allRollNums.map(async (rollNum) => {
-  //       const studentResponse = await api.get(`profile/student/${rollNum}`);
-  //       return studentResponse.data;
-  //     });
-
-  //     const studentDetails: StudentDetails[] = await Promise.all(
-  //       studentPromises
-  //     );
-
-  //     // Update dropdown options based on student data
-  //     const uniqueBatches = [
-  //       ...new Set(studentDetails.map((student) => student.batch)),
-  //     ];
-  //     const uniqueDepartments = [
-  //       ...new Set(studentDetails.map((student) => student.deptName)),
-  //     ];
-  //     const uniqueSemesters = [
-  //       ...new Set(studentDetails.map((student) => student.sem)),
-  //     ];
-
-  //     setBatches(uniqueBatches);
-  //     setDepartments(uniqueDepartments);
-  //     setSemesters(uniqueSemesters);
-  //   } catch (error) {
-  //     console.error("Error fetching students:", error);
-  //     toast.error("Failed to load student list");
-  //   }
-  // };
 
     const fetchStudentsForCourse = async (courseId: string) => {
 
@@ -334,11 +244,7 @@ const PreviousAttendancePage = () => {
           setSemesters([]);
           return;
         }
-        console.log("Fetching students for course:", courseId);
         const course = courses.filter((course) => course.courseName === courseId);
-
-
-        console.log("Selected Course ID:", course);
   
         // Find the assignment for the selected course
         const assignment = facultyAssignments.find(a => a.courseId === course[0].courseId);
@@ -354,7 +260,6 @@ const PreviousAttendancePage = () => {
           assignment.assignedRollNums.includes(student.rollNum)
         );
 
-        console.log("Assigned Students:", assignedStudents);
   
         // Extract unique batches, departments, semesters from assigned students
         const uniqueBatches = [...new Set(assignedStudents.map(s => s.batch).filter(Boolean))];
@@ -367,7 +272,6 @@ const PreviousAttendancePage = () => {
   
 
       } catch (error) {
-        console.error("Error fetching students:", error);
         toast.error("Failed to load student list");
       }
     };
@@ -377,7 +281,6 @@ const PreviousAttendancePage = () => {
     setIsLoading(true);
     try {
       const response = await api.get(`/attendance/getfaculty?id=${facultyId}&date=${date}`);
-      console.log("Single Date Attendance Response:", response);
       
       // Make sure we have data before setting it
       if (response.data && Array.isArray(response.data)) {
@@ -393,7 +296,6 @@ const PreviousAttendancePage = () => {
           record.session && (record.session.toLowerCase() === "AN" || record.session.toLowerCase() === "an")
         );
         
-        console.log("Sessions available - FN:", hasFN, "AN:", hasAN);
         
         // Auto show the first available session
         if (hasFN) {
@@ -409,11 +311,9 @@ const PreviousAttendancePage = () => {
         }
       } else {
         setAttendanceRecords([]);
-        toast.error("No attendance data found for this date");
+        toast.info("No attendance data found for this date");
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
-      toast.error("Failed to load attendance records");
       setAttendanceRecords([]);
     } finally {
       setIsLoading(false);
@@ -427,17 +327,15 @@ const PreviousAttendancePage = () => {
       const response = await api.get(
         `/attendance/getfacultyy?id=${facultyId}&stdate=${fromDate}&endate=${toDate}`
       );
-      console.log("Date Range Attendance Response:", response);
       
       // Make sure we have data before setting it
       if (response.data && Array.isArray(response.data)) {
         setRangeAttendanceSummary(response.data);
       } else {
         setRangeAttendanceSummary([]);
-        toast.error("No attendance data found for this date range");
+        toast.info("No attendance data found for this date range");
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
       toast.error("Failed to load attendance records");
       setRangeAttendanceSummary([]);
     } finally {
@@ -547,14 +445,13 @@ const PreviousAttendancePage = () => {
 
       doc.save(`attendance-${records[0]?.dates || "unknown"}-${session}.pdf`);
     } catch (error) {
-      console.error("Error generating PDF:", error);
       toast.error("Failed to generate attendance PDF");
     }
   };
 
   const downloadOverallAttendancePDF = async () => {
     if (!rangeAttendanceSummary.length) {
-      toast.error("No attendance data available to download");
+      toast.info("No attendance data available to download");
       return;
     }
     try {
@@ -612,7 +509,6 @@ const PreviousAttendancePage = () => {
         `overall-attendance-${groupFilters.fromDate}-to-${groupFilters.toDate}.pdf`
       );
     } catch (error) {
-      console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF");
     }
   };
@@ -662,7 +558,6 @@ const PreviousAttendancePage = () => {
     <>
       <Navbar />
       {/* <Navbar userType="faculty" userName={facultyName} /> */}
-
       <div className="page-container max-w-4xl mx-auto">
         <div className="mb-6 flex flex-col items-center">
           <Button
@@ -1381,8 +1276,6 @@ const groupAttendanceByStudent = (records: AttendanceRecord[]) => {
 
 // Transform range attendance data for better display
 const processRangeAttendanceData = (data: RangeAttendanceSummary[]) => {
-  // For debugging
-  console.log("Raw range attendance data:", data);
   
   if (!Array.isArray(data) || data.length === 0) {
     return [];
@@ -1456,6 +1349,5 @@ const processRangeAttendanceData = (data: RangeAttendanceSummary[]) => {
   
   // Convert map to array and log the result
   const result = Array.from(studentsMap.values());
-  console.log("Processed attendance data:", result);
   return result;
 };

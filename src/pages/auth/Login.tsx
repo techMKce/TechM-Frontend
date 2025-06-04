@@ -31,7 +31,6 @@ const Login = () => {
       await signIn({ email, password });
       navigate("/");
     } catch (error) {
-      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

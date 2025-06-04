@@ -7,6 +7,7 @@ import api from "@/service/api";
 import FacultyNavbar from "../FacultyNavbar";
 import StudentNavbar from "../StudentNavbar";
 import axios from "axios";
+import { toast } from "sonner";
 export type Course = {
   course_id: number;
   courseTitle: string;
@@ -80,13 +81,9 @@ const CourseList: React.FC = () => {
     const fetchEnrolledCourses = async () => {
       try {
         const response = await api.get("course-enrollment/by-student/s123");
-        console.log(
-          "inside fetch ",
-          response.data.filter((enrollment: any) => enrollment.course_id)
-        );
         setEnrolledCourses(response.data);
       } catch (error) {
-        console.error("Error fetching enrolled courses:", error);
+        toast.error("Error fetching enrolled courses:", error);
       }
     };
 
@@ -95,7 +92,6 @@ const CourseList: React.FC = () => {
     }
   }, [selectedTab]);
 
-  console.log("enrolled courses : ", enrolledCourses);
 
   const filteredCourses =
     selectedCategory === "All"
@@ -212,7 +208,7 @@ const CourseList: React.FC = () => {
         ]);
       }
 
-      alert("Course added successfully!");
+      toast.success("Course added successfully!");
     } catch (err: any) {
       setError(
         err.response?.data?.message || err.message || "Failed to add course"
@@ -230,7 +226,7 @@ const CourseList: React.FC = () => {
         await api.delete(`/course/delete?course_id=${course_id}`);
         setCourses((prev) => prev.filter((c) => c.course_id !== course_id));
       } catch (error) {
-        console.log("Error while deleting course by : ", error);
+            toast.error("Failed to Delete the Course");
       }
     }
   };
