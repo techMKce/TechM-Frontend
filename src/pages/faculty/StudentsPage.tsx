@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { Users, GraduationCap } from "lucide-react";
 import api from "../../service/api";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 interface Student {
   id: string;
   rollNumber: string;
@@ -60,9 +61,10 @@ const StudentsPage = () => {
     let courseAndFacultyId=[]
     try{
       courseAndFacultyId=await api.get(`/faculty-student-assigning/admin/faculty/${profile.profile.id}`).then((response) => response.data);
-      console.log("Fetched faculty-student assignments:", courseAndFacultyId);
     } catch (error) {
-      console.error("Error fetching faculty-student assignments:", error);
+      toast.error("Failed to Fetch Student Assignments",{
+        description: "Please try again later & check internet Connection",
+      })
     }
     const courses = JSON.parse(localStorage.getItem('courses') || '[]');
     //fetcching enrollments
@@ -70,11 +72,8 @@ const StudentsPage = () => {
       enrollments=courseAndFacultyId.map( async (item: any) => {
         let response=await api.get(`/course-enrollment/by-course/${item.courseId}`).then((response) => response.data);
         enrollments=response;
-        console.log("Fetched enrollments for course:", enrollments);
       })
-      console.log("Fetched enrollments:", enrollments);
     } catch (error) {
-      console.error("Error fetching enrollments:", error);
     }
 
     const assignments = JSON.parse(localStorage.getItem('assignments') || '[]');

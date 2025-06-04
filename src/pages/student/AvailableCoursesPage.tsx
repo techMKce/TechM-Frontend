@@ -58,7 +58,7 @@ const AvailableCoursesPage = () => {
     );
 
     if (alreadyEnrolled) {
-      toast.error("You are already enrolled in this course");
+      toast.warning("You are already enrolled in this course");
       return;
     }
 

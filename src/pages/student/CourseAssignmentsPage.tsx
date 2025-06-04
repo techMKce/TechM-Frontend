@@ -46,7 +46,6 @@ const CourseAssignmentsPage = () => {
 
         setAssignments(uniqueAssignments);
       } catch (err) {
-        console.error(err);
         setError("Failed to load assignments.");
       } finally {
         setLoading(false);

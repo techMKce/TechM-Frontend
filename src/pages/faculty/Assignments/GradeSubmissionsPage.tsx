@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Clock, User, Search, Download } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-// import axios from "axios";
 import api from "@/service/api";
 interface StudentSubmission {
   id: number;
@@ -68,6 +67,7 @@ const GradeSubmissionsPage = () => {
           ? gradingRes.data.gradings
           : [];
 
+
         const mergedSubmissions = submissionsData.map((sub: any) => ({
           id: sub.id,
           studentName: sub.studentName,
@@ -80,7 +80,6 @@ const GradeSubmissionsPage = () => {
 
         setSubmissions(mergedSubmissions);
       } catch (err) {
-        console.error("Fetch error:", err);
         toast.error("Failed to fetch assignment, submissions, or gradings.");
       } finally {
         setLoading(false);
@@ -138,7 +137,6 @@ const GradeSubmissionsPage = () => {
       window.URL.revokeObjectURL(url); // Clean up
       toast.success("CSV report downloaded successfully.");
     } catch (err: any) {
-      console.error("Download error:", err);
       // Attempt to parse error response for more specific message
       if (err.response?.data) {
         try {

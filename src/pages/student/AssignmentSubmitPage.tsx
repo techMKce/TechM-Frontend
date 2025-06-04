@@ -35,8 +35,8 @@ interface SubmittedFile {
 const AssignmentSubmitPage = () => {
   const { profile } = useAuth();
   const { assignmentId } = useParams<{ assignmentId: string }>();
-  const [studentName] = useState("John Doe");
-  const [studentRollNumber] = useState("CS101");
+  const [studentName] = useState(profile.profile.name);
+  const [studentRollNumber] = useState(profile.profile.id);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [submittedFiles, setSubmittedFiles] = useState<SubmittedFile[]>([]);
@@ -104,12 +104,14 @@ const AssignmentSubmitPage = () => {
         const response = await api.get("/assignments/id", {
           params: { assignmentId },
         });
+
         setAssignment(response.data.assignment);
         setError(null);
         const dueDate = new Date(response.data.assignment.dueDate);
         const currentDate = new Date();
         setIsDueDateOver(currentDate > dueDate);
       } catch (err: any) {
+
         setError(
           err?.response?.data?.message || "Failed to fetch assignment details."
         );
@@ -119,10 +121,12 @@ const AssignmentSubmitPage = () => {
           description: "Error fetching assignment",
         });
         console.error("Fetch assignment error:", err);
+
       } finally {
         setLoading(false);
       }
     };
+
 
     if (assignmentId) {
       fetchAssignment();
@@ -141,11 +145,13 @@ const AssignmentSubmitPage = () => {
     }
 
     if (files.length === 0) {
+
       toast({
         variant: "destructive",
         title: "Error",
         description: "Please upload a file",
       });
+
       return;
     }
 
@@ -189,13 +195,14 @@ const AssignmentSubmitPage = () => {
       setRejected(false); // Reset rejected state
       await checkSubmissionStatusAndGrading(); // Refresh submission status
     } catch (err: any) {
+
       toast({
         variant: "destructive",
         title: "Error",
         description:
           err?.response?.data?.message || "Failed to submit assignment",
       });
-      console.error("Submit error:", err);
+
     }
   };
 
@@ -232,6 +239,7 @@ const AssignmentSubmitPage = () => {
         title: "Error",
         description: err?.response?.data?.message || "Failed to load preview",
       });
+
     }
   };
 
@@ -362,6 +370,7 @@ const AssignmentSubmitPage = () => {
         description:
           err?.response?.data?.message || "Failed to download document",
       });
+
     }
   };
 

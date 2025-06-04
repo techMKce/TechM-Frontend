@@ -4,6 +4,7 @@ import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import axios from "axios";
 import SectionContent from "./SectionContent";
+
 import {
   PencilSquareIcon,
   TrashIcon,
@@ -19,8 +20,9 @@ import api from "@/service/api";
 import StudentNavbar from "../StudentNavbar";
 import FacultyNavbar from "../FacultyNavbar";
 import { isAsyncFunction } from "node:util/types";
-import { toast } from '@/components/ui/sonner';
-import { useToast } from "@/hooks/use-toast";
+// import { toast } from "@/components/ui/sonner";
+import {toast} from 'sonner';
+import { Section } from "lucide-react";
 
 function ViewCourse() {
   const { profile } = useAuth();
@@ -29,7 +31,9 @@ function ViewCourse() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course>(state?.course);
-
+  const [currentCourseId, setCurrentCourseId] = useState(
+    state?.course.course_id
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     course_id: "",
@@ -75,35 +79,35 @@ function ViewCourse() {
   const [showReport, setShowReport] = useState(false);
   const [error, setError] = useState(null);
   const isInitialRender = useRef(false);
+  const courseRef = useRef(course);
   const [isEnrolled, setIsEnrolled] = useState(
     role === "FACULTY" || role === "ADMIN"
   );
-  const { toast } = useToast();
 
-
-
-  // Initial fetch for course details
+  // Initial fetch for course details/section
   useEffect(() => {
-    if (course == null) {
+    if (!course?.course_id) {
       return;
     }
     const fetchSection = async () => {
       try {
+        setLoading(true);
+
         const sectionResponse = await api.get(
           `/course/section/details?id=${course.course_id}`
         );
-        console.log("View Course Invoked", course.course_id);
+
         const sections = Array.isArray(sectionResponse.data)
           ? sectionResponse.data
           : [sectionResponse.data];
 
         setCourseSection(sections); // Update state
       } catch (error) {
-        console.error("Error fetching section at section Details:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchSection();
-    console.log("View Course Invoked", course);
 
     const enrollmentSatus = async () => {
       if (profile.profile.role === "STUDENT") {
@@ -115,10 +119,10 @@ function ViewCourse() {
     };
     enrollmentSatus();
     // eslint-disable-next-line
-  }, [course]);
+  }, [course?.course_id, newSection]);
 
   // course editing
-  const handleEditCourse = async () => {
+  const handleEditCourse = () => {
     setEditData({
       course_id: course.course_id,
       courseTitle: course.courseTitle || "",
@@ -160,36 +164,30 @@ function ViewCourse() {
     [key: string]: any;
   }
 
-  const handleSaveCourse = async (
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<void> => {
+  const handleSaveCourse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    // Track latest value
     try {
       // Prepare the data for API request
-      const updatedCourse: EditData & { duration: number; credit: number } = {
+      const updatedCourse = {
+        ...course,
         ...editData,
         duration: parseInt(editData.duration),
         credit: parseInt(editData.credit),
       };
-
       // Make PUT request to update the course
-      const response = await api.put("/course/update", updatedCourse);
 
-      // Update local state only after successful API response
-      setCourse({
-        ...course,
-        ...updatedCourse,
-        updatedAt: new Date().toISOString(),
-      });
+      await api.put("/course/update", updatedCourse);
 
       setIsEditing(false);
-
-      // Optional: Show success message
-      console.log("Course updated successfully:", response.data);
     } catch (error: any) {
-      console.error("Error updating course:", error);
-      alert("Failed to update course. Please try again.");
+      toast.error("Failed to update course. Please try again.");
+    } finally {
+      // This shows the state value AT THE TIME OF RENDER
+
+      // For the actual updated value, use a ref
+
+      courseRef.current = course;
     }
   };
   // handle add new section
@@ -220,7 +218,6 @@ function ViewCourse() {
       setNewSection({ sectionTitle: "", sectionDesc: "" });
       setShowAddSection(false);
     } catch (error) {
-      console.error("Error adding section:", error);
     }
   };
 
@@ -253,6 +250,18 @@ function ViewCourse() {
       };
 
       const response = await api.put("/course/section/update", payload);
+      setCourseSection((prevSections) =>
+        prevSections.map((section) =>
+          section.section_id === sectionEditData.section_id
+            ? {
+                ...section,
+                sectionTitle: payload.sectionTitle,
+                sectionDesc: payload.sectionDesc,
+                updatedAt: payload.updatedAt,
+              }
+            : section
+        )
+      );
 
       setEditingSectionId(null);
       setSectionEditData({
@@ -265,7 +274,6 @@ function ViewCourse() {
       });
       setError(null);
     } catch (err) {
-      console.error("Failed to update section:", err);
       setError(
         err.response?.data?.message || err.message || "Failed to update section"
       );
@@ -287,14 +295,12 @@ function ViewCourse() {
           prevSections.filter((s) => s.section_id !== sectionId)
         );
 
-        console.log("Section deleted successfully");
       } catch (error) {
-        console.error("Error while deleting section:", error);
 
         if (error) {
-          alert(error.response?.data?.message || "Failed to delete section");
+          toast.error("Failed to delete section");
         } else {
-          alert("An unexpected error occurred");
+          toast.error("An unexpected error occurred");
         }
       }
     }
@@ -302,25 +308,24 @@ function ViewCourse() {
 
   const handleEnroll = async () => {
     setLoading(true);
-    const response  = await api.post('/course-enrollment', {
+    const response = await api.post("/course-enrollment", {
       courseId: course.course_id,
       rollNum: profile.profile.id,
     });
-    if( response.status === 200) {
+    if (response.status === 200) {
       setIsEnrolled(true);
-      toast({
-        title: "Enrolled Successfully",
+      toast.success(
+        "Enrolled Successfully",{
         description: `You have successfully enrolled in ${course.courseTitle}.`,
       });
-    }else {
-      toast({
-        variant: "destructive",
-        title: "Enrollment Failed",
-        description: response.data.message || "An error occurred during enrollment",
+    } else {
+      toast.error(
+        "Enrollment Failed",{
+        description:"An error occurred during enrollment",
       });
     }
     setLoading(false);
-  }
+  };
 
   // if (course == null) return <div className="text-center py-10">Loading course...</div>;
 
@@ -502,61 +507,100 @@ function ViewCourse() {
                     {loading ? "Enrolling..." : "Enroll Now"}
                   </button>
                 ) : (
-                  <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-xl inline-block font-semibold shadow">
-                    {role === "FACULTY" || role === "ADMIN"
-                      ? "You have editing access"
-                      : "You're enrolled in this course"}
-                  </div>
+                  (role === "FACULTY" || role === "ADMIN") &&
+                  profile.profile.name === course.instructorName && (
+                    <div className="bg-green-400 text-gray-900 px-4 py-2 rounded-xl inline-block font-semibold shadow">
+                      You have edit access
+                    </div>
+                  )
                 )}
               </div>
             </div>
 
             {/* Toggle between Sections and Assignments and View report button */}
             <div className="flex mb-4 border-b border-gray-200">
-              <button
-                onClick={() => {
-                  setShowSection(true);
-                  setShowAssignments(false);
-                  setShowReport(false);
-                }}
-                className={`px-4 py-2 font-medium ${
-                  showSection
-                    ? "text-gray-800 border-b-2 border-gray-800"
-                    : "text-gray-500"
-                }`}
-              >
-                Sections
-              </button>
-              <button
-                onClick={() => {
-                  setShowSection(false);
-                  setShowAssignments(true);
-                  setShowReport(false);
-                }}
-                className={`px-4 py-2 font-medium ${
-                  showAssignments
-                    ? "text-gray-800 border-b-2 border-gray-800"
-                    : "text-gray-500"
-                }`}
-              >
-                Assignments
-              </button>
               {role === "FACULTY" && (
                 <button
                   onClick={() => {
-                    setShowSection(false);
+                    setShowSection(true);
                     setShowAssignments(false);
-                    setShowReport(true);
+                    setShowReport(false);
                   }}
                   className={`px-4 py-2 font-medium ${
-                    showReport
+                    showSection
                       ? "text-gray-800 border-b-2 border-gray-800"
                       : "text-gray-500"
                   }`}
                 >
-                  View Report
+                  Sections
                 </button>
               )}
+              {isEnrolled && role === "STUDENT" && (
+                <button
+                  onClick={() => {
+                    setShowSection(true);
+                    setShowAssignments(false);
+                    setShowReport(false);
+                  }}
+                  className={`px-4 py-2 font-medium ${
+                    showSection
+                      ? "text-gray-800 border-b-2 border-gray-800"
+                      : "text-gray-500"
+                  }`}
+                >
+                  Sections
+                </button>
+              )}
+              {role === "FACULTY" &&
+                profile.profile.name === course.instructorName && (
+                  <button
+                    onClick={() => {
+                      setShowSection(false);
+                      setShowAssignments(true);
+                      setShowReport(false);
+                    }}
+                    className={`px-4 py-2 font-medium ${
+                      showAssignments
+                        ? "text-gray-800 border-b-2 border-gray-800"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    Assignments
+                  </button>
+                )}
+              {isEnrolled && role === "STUDENT" && (
+                <button
+                  onClick={() => {
+                    setShowSection(false);
+                    setShowAssignments(true);
+                    setShowReport(false);
+                  }}
+                  className={`px-4 py-2 font-medium ${
+                    showAssignments
+                      ? "text-gray-800 border-b-2 border-gray-800"
+                      : "text-gray-500"
+                  }`}
+                >
+                  Assignments
+                </button>
+              )}
+              {role === "FACULTY" &&
+                profile.profile.name === course.instructorName && (
+                  <button
+                    onClick={() => {
+                      setShowSection(false);
+                      setShowAssignments(false);
+                      setShowReport(true);
+                    }}
+                    className={`px-4 py-2 font-medium ${
+                      showReport
+                        ? "text-gray-800 border-b-2 border-gray-800"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    View Report
+                  </button>
+                )}
             </div>
             {/* handle add section */}
             {showSection && (
@@ -699,9 +743,9 @@ function ViewCourse() {
                                     rows={4}
                                   />
                                 ) : (
-                                  <p className="mb-4 text-gray-800">
+                                  <pre className="font-sans mb-4 text-gray-800">
                                     {section.sectionDesc}
-                                  </p>
+                                  </pre>
                                 )}
                                 <SectionContent
                                   key={section.section_id}
@@ -726,6 +770,7 @@ function ViewCourse() {
             {showAssignments && (
               <DisplayAssignments
                 courseId={course.course_id}
+                
                 showAssignments={showAssignments}
               />
             )}
@@ -747,47 +792,51 @@ function ViewCourse() {
                     </h2>
                     <StudentProgressDisplay
                       courseId={course.course_id}
-                      studentId={course.section_id}
+                      studentId={profile.profile.id}
                     />
                   </div>
                 )}
 
                 {/* Quick Actions / Handle add section and handle edit course details */}
-                {(role === "FACULTY" || role === "ADMIN") && (
-                  <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                    <h2 className="text-xl font-bold mb-4 text-gray-800">
-                      Quick Actions
-                    </h2>
-                    <div className="space-y-3">
-                      <button
-                        onClick={() => setShowAddSection((prev) => !prev)}
-                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
-                      >
-                        <PlusIcon className="w-5 h-5" />
-                        {showAddSection
-                          ? "Hide Add Section"
-                          : "Add New Section"}
-                      </button>
-                      <button
-                        onClick={handleEditCourse}
-                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
-                      >
-                        <PencilSquareIcon className="w-5 h-5" />
-                        Edit Course Details
-                      </button>
-                      {/* create assignment button link to assignment team page */}
-                      <Link
-                        to="/faculty/assignments/create"
-                        state={{ course_id: course.course_id, courseTitle: course.courseTitle }}
-                      >
-                        <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
+                {(role === "FACULTY" || role === "ADMIN") &&
+                  profile.profile.name === course.instructorName && (
+                    <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                      <h2 className="text-xl font-bold mb-4 text-gray-800">
+                        Quick Actions
+                      </h2>
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => setShowAddSection((prev) => !prev)}
+                          className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+                        >
                           <PlusIcon className="w-5 h-5" />
-                          Create New Assignment
+                          {showAddSection
+                            ? "Hide Add Section"
+                            : "Add New Section"}
                         </button>
-                      </Link>
+                        <button
+                          onClick={handleEditCourse}
+                          className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+                        >
+                          <PencilSquareIcon className="w-5 h-5" />
+                          Edit Course Details
+                        </button>
+                        {/* create assignment button link to assignment team page */}
+                        <Link
+                          to="/faculty/assignments/create"
+                          state={{
+                            course_id: course.course_id,
+                            courseTitle: course.courseTitle,
+                          }}
+                        >
+                          <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
+                            <PlusIcon className="w-5 h-5" />
+                            Create New Assignment
+                          </button>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           )}
