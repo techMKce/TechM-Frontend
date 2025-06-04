@@ -283,8 +283,17 @@ const CourseList: React.FC = () => {
                 <h3 className="mb-2 text-lg font-bold text-black">
                   {course.courseTitle || "Untitled Course"}
                 </h3>
-                <p className="text-sm text-gray-600 flex-1">
-                  {course.courseDescription || "No description available"}
+                <p
+                  className="text-sm text-gray-700 mb-2 line-clamp-2"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {course.courseDescription ||
+                    "No detailed description available"}
                 </p>
                 <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
                   <span>
@@ -314,7 +323,15 @@ const CourseList: React.FC = () => {
                   <h3 className="text-lg font-bold mb-2 text-black">
                     {course.courseTitle || "Untitled Course"}
                   </h3>
-                  <p className="text-sm text-gray-700 mb-2">
+                  <p
+                    className="text-sm text-gray-700 mb-2 line-clamp-2"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
                     {course.courseDescription ||
                       "No detailed description available"}
                   </p>
