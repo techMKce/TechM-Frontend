@@ -9,23 +9,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  User,
-  LogOut,
-  Home,
-  BookOpen,
-  ListTodoIcon,
-} from "lucide-react";
+import { User, LogOut, Home, BookOpen, ListTodoIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
+import profileApi from "@/service/api"; // Import the same API instance used in index.tsx
 
 interface FacultyNavbarProps {
   currentPage?: string;
 }
 
 const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
-  const { signOut, user } = useAuth(); // Assuming `user` contains email or id
   const navigate = useNavigate();
+  const { signOut, profile } = useAuth(); // Use profile from useAuth
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,39 +30,35 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
   ];
 
   useEffect(() => {
-    const fetchAllFaculty = async () => {
+    const fetchFacultyData = async () => {
+      if (!profile || !profile.profile?.id) return;
+
       try {
-        const response = await axios.get("/api/faculty/all"); // Replace with your real endpoint
-        const allFaculty = response.data;
-
-        // Filter using email or ID — replace with actual logic
-        const matchedFaculty = allFaculty.find(
-          (f: any) => f.email === user?.email // or f.id === user?.id
-        );
-
-        setCurrentUser(matchedFaculty);
+        // Use the same API endpoint pattern as in index.tsx
+        const response = await profileApi.get(`/profile/faculty/${profile.profile.id}`);
+        setCurrentUser(response.data);
       } catch (error) {
-        console.error("Error fetching faculty list:", error);
+        console.error("Failed to fetch faculty data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAllFaculty();
-  }, [user]);
+    fetchFacultyData();
+  }, [profile]); // Watch for changes in profile
 
   const handleLogout = () => {
     signOut();
     navigate("/login");
   };
 
-  const initials = currentUser?.name
-    ? currentUser.name
-      .split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .toUpperCase()
-    : "F";
+  const userName = currentUser?.name || "Faculty";
+  const userEmail = currentUser?.email || "faculty@example.com";
+  const initials = userName
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase();
 
   if (loading) {
     return (
@@ -111,7 +101,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
                   variant="ghost"
                   className="relative h-8 w-8 rounded-full p-0"
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-8 w-8 bg-gray-400">
                     {currentUser?.image ? (
                       <AvatarImage src={currentUser.image} alt="Profile" />
                     ) : (
@@ -126,9 +116,9 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{currentUser?.name}</p>
+                    <p className="font-medium">{userName}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {currentUser?.email}
+                      {userEmail}
                     </p>
                   </div>
                 </div>

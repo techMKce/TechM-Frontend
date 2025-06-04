@@ -18,6 +18,7 @@ interface Student {
   email: string;
   department: string;
   year: string;
+  semester: string;
 }
 
 const StudentsPage = () => {
@@ -37,7 +38,8 @@ const StudentsPage = () => {
     name: "",
     email: "",
     department: "",
-    year: ""
+    year: "",
+    semester: ""
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,7 +62,7 @@ const StudentsPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.id || !formData.name || !formData.email || !formData.department || !formData.year) {
+    if (!formData.id || !formData.name || !formData.email || !formData.department || !formData.year || !formData.semester) {
       toast.error("Please fill all fields");
       return;
     }
@@ -72,7 +74,7 @@ const StudentsPage = () => {
       });
 
       await fetchStudents();
-      setFormData({ id: "", name: "", email: "", department: "", year: "" });
+      setFormData({ id: "", name: "", email: "", department: "", year: "", semester: "" });
       setIsAddDialogOpen(false);
       toast.success("Student added successfully");
     } catch (error) {
@@ -93,7 +95,7 @@ const StudentsPage = () => {
 
       await fetchStudents();
       setSelectedStudent(null);
-      setFormData({ id: "", name: "", email: "", department: "", year: "" });
+      setFormData({ id: "", name: "", email: "", department: "", year: "", semester: "" });
       setIsEditDialogOpen(false);
     } catch (error) {
       console.error("Error updating Student:", error);
@@ -129,6 +131,7 @@ const StudentsPage = () => {
       email: student.email,
       department: student.department,
       year: student.year,
+      semester: student.semester
     });
     setIsEditDialogOpen(true);
   };
@@ -199,7 +202,7 @@ const StudentsPage = () => {
   };
 
   const processFileData = async (headers: string[], data: any[][]) => {
-    const requiredHeaders = ['id', 'name', 'email', 'department', 'year'];
+    const requiredHeaders = ['id', 'name', 'email', 'department', 'year', 'semester'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
     if (missingHeaders.length > 0) {
@@ -225,7 +228,7 @@ const StudentsPage = () => {
         studentData[header] = String(row[index] || '').trim();
       });
 
-      if (!studentData.id || !studentData.name || !studentData.email || !studentData.department || !studentData.year) {
+      if (!studentData.id || !studentData.name || !studentData.email || !studentData.department || !studentData.year || !studentData.semester) {
         toast.error(`Row ${i + 2} has missing required data`);
         setIsUploading(false);
         return;
@@ -237,7 +240,8 @@ const StudentsPage = () => {
           name: studentData.name,
           email: studentData.email,
           department: studentData.department,
-          year: studentData.year
+          year: studentData.year,
+          semester: studentData.semester
         }, {
           params: { for: "STUDENT" }
         });
@@ -247,7 +251,8 @@ const StudentsPage = () => {
           name: studentData.name,
           email: studentData.email,
           department: studentData.department,
-          year: studentData.year
+          year: studentData.year,
+          semester: studentData.semester
         });
       } catch (error) {
         console.error("Failed to register student because trying to register the existing data");
@@ -339,11 +344,20 @@ const StudentsPage = () => {
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="year" className="text-right">Year</Label>
+                    <Label htmlFor="year" className="text-right">Batch</Label>
                     <Input
                       id="year"
                       value={formData.year}
                       onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="semester" className="text-right">Semester</Label>
+                    <Input
+                      id="semester"
+                      value={formData.semester}
+                      onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
                       className="col-span-3"
                     />
                   </div>
@@ -404,7 +418,8 @@ const StudentsPage = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Department</TableHead>
-                    <TableHead>Year</TableHead>
+                    <TableHead>Batch</TableHead>
+                    <TableHead>Semester</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -412,7 +427,7 @@ const StudentsPage = () => {
                 <TableBody>
                   {students.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={8} className="text-center py-8">
                         No students found
                       </TableCell>
                     </TableRow>
@@ -425,6 +440,7 @@ const StudentsPage = () => {
                         <TableCell>{student.email}</TableCell>
                         <TableCell>{student.department}</TableCell>
                         <TableCell>{student.year}</TableCell>
+                        <TableCell>{student.semester}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="ghost" size="sm" onClick={() => handleView(student)}>
@@ -486,7 +502,8 @@ const StudentsPage = () => {
                   <div><strong>Name:</strong> {selectedStudent.name}</div>
                   <div><strong>Email:</strong> {selectedStudent.email}</div>
                   <div><strong>Department:</strong> {selectedStudent.department}</div>
-                  <div><strong>Year:</strong> {selectedStudent.year}</div>
+                  <div><strong>Batch:</strong> {selectedStudent.year}</div>
+                  <div><strong>Semester:</strong> {selectedStudent.semester}</div>
                 </div>
               )}
             </DialogContent>
@@ -538,11 +555,20 @@ const StudentsPage = () => {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-year" className="text-right">Year</Label>
+                  <Label htmlFor="edit-year" className="text-right">Batch</Label>
                   <Input
                     id="edit-year"
                     value={formData.year}
                     onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-semester" className="text-right">Semester</Label>
+                  <Input
+                    id="edit-semester"
+                    value={formData.semester}
+                    onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
                     className="col-span-3"
                   />
                 </div>

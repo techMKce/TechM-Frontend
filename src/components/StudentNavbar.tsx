@@ -11,7 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, LogOut, Home, BookOpen, ListTodoIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import axios from "axios";
+import profileApi from "@/service/api"
 
 interface StudentNavbarProps {
   currentPage?: string;
@@ -19,22 +19,18 @@ interface StudentNavbarProps {
 
 const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   const navigate = useNavigate();
-  const { signOut, user } = useAuth(); // user contains logged-in user's info (email or id)
+  const { signOut, profile } = useAuth(); // Use profile from useAuth
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStudentData = async () => {
+      if (!profile || !profile.profile?.id) return;
+
       try {
-        const response = await axios.get("/auth/students/all"); // Update this to your real API
-        const allStudents = response.data;
-
-        // Match using email or ID
-        const matched = allStudents.find(
-          (student: any) => student.email === user?.email // Or use ID if preferred
-        );
-
-        setCurrentUser(matched);
+        // Use the same API endpoint as in index.tsx
+        const response = await profileApi.get(`/profile/student/${profile.profile.id}`);
+        setCurrentUser(response.data);
       } catch (error) {
         console.error("Failed to fetch student data:", error);
       } finally {
@@ -43,7 +39,7 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
     };
 
     fetchStudentData();
-  }, [user]);
+  }, [profile]); // Watch for changes in profile
 
   const handleLogout = () => {
     signOut();

@@ -26,7 +26,6 @@ interface Course {
   courseCode: string | null;
   courseTitle: string;
   courseDescription: string;
-  instructorName: string;
   dept: string;
   createdAt: string;
   updatedAt: string;
@@ -42,6 +41,19 @@ interface Enrollment {
   courseDetails?: Course;
 }
 
+interface AttendanceData {
+  session: string | null;
+  stdId: string;
+  sem: number;
+  batch: string;
+  stdName: string;
+  deptName: string;
+  deptId: string;
+  totaldays: number;
+  presentcount: number;
+  percentage: number;
+}
+
 const StudentDashboard = () => {
   const { profile } = useAuth();
   const [stats, setStats] = useState({
@@ -52,13 +64,17 @@ const StudentDashboard = () => {
 
   const [availableCoursesList, setAvailableCoursesList] = useState<Course[]>([]);
   const [enrolledCoursesList, setEnrolledCoursesList] = useState<Enrollment[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState({
     available: false,
-    enrolled: false
+    enrolled: false,
+    courseDetails: false,
+    attendance: false
   });
 
   const [showAvailableCoursesModal, setShowAvailableCoursesModal] = useState(false);
   const [showEnrolledCoursesModal, setShowEnrolledCoursesModal] = useState(false);
+  const [showCourseDetailsModal, setShowCourseDetailsModal] = useState(false);
 
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
@@ -68,27 +84,35 @@ const StudentDashboard = () => {
 
   const loadStats = async () => {
     try {
-      setLoading(prev => ({ ...prev, available: true, enrolled: true }));
+      setLoading(prev => ({ ...prev, available: true, enrolled: true, attendance: true }));
 
-      // Fetch all courses
+      // First fetch the enrolled course IDs for the student
+      const enrolledResponse = await api.get(`/course-enrollment/by-student/${profile.profile.id}`);
+      const enrolledCourseIds: string[] = enrolledResponse.data || [];
+
+      // Then fetch all course details
       const allCoursesResponse = await api.get('/course/details');
       const allCourses: Course[] = allCoursesResponse.data || [];
       const activeCourses = allCourses.filter(course => course.isActive);
 
-      // Fetch enrolled courses
-      const enrolledResponse = await api.get(`/course-enrollment/by-student/${profile.profile.id}`);
-      const enrolledCoursesData: Enrollment[] = enrolledResponse.data || [];
+      // Now fetch details for each enrolled course
+      const enrichedEnrollments: Enrollment[] = [];
 
-      // Combine enrollment data with course details
-      const enrichedEnrollments = enrolledCoursesData.map(enrollment => {
-        const courseDetails = allCourses.find(c => c.course_id.toString() === enrollment.courseId);
-        return {
-          ...enrollment,
-          courseDetails: courseDetails || {
-            course_id: parseInt(enrollment.courseId),
-            courseTitle: `Course ${enrollment.courseId}`,
+      for (const courseId of enrolledCourseIds) {
+        try {
+          const courseDetailsResponse = await api.get(`/course/details/${courseId}`);
+          enrichedEnrollments.push({
+            courseId,
+            rollNums: [], // This might need to be populated if you have this data
+            courseDetails: courseDetailsResponse.data
+          });
+        } catch (error) {
+          console.error(`Error fetching details for course ${courseId}:`, error);
+          // Fallback to basic course info if details fetch fails
+          const fallbackCourse = allCourses.find(c => c.course_id.toString() === courseId) || {
+            course_id: parseInt(courseId),
+            courseTitle: `Course ${courseId}`,
             courseDescription: '',
-            instructorName: 'Unknown',
             dept: '',
             createdAt: '',
             updatedAt: '',
@@ -97,37 +121,42 @@ const StudentDashboard = () => {
             credit: 0,
             imageUrl: '',
             courseCode: null
-          }
-        };
-      });
+          };
+          enrichedEnrollments.push({
+            courseId,
+            rollNums: [],
+            courseDetails: fallbackCourse
+          });
+        }
+      }
 
       // Update stats
-      setStats({
+      setStats(prev => ({
+        ...prev,
         enrolledCourses: enrichedEnrollments.length,
-        availableCourses: activeCourses.length - enrichedEnrollments.length,
-        attendancePercentage: 0 // Will be updated below
-      });
+        availableCourses: activeCourses.length - enrichedEnrollments.length
+      }));
 
       setEnrolledCoursesList(enrichedEnrollments);
 
-      // Fetch attendance data
-      const attendanceResponse = await api.get('/attendance/getstudent', {
-        params: { id: profile.profile.id }
-      });
+      // Fetch attendance data from the new endpoint
+      const attendanceResponse = await api.get('/attendance/allattendancepercentage');
+      const attendanceData: AttendanceData[] = attendanceResponse.data || [];
 
-      const attendanceRecords = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : [];
-      const studentAttendance = attendanceRecords.filter(record => record.studentId === currentUser.id);
+      // Find the attendance record for the current student
+      const studentAttendance = attendanceData.find(record => record.stdId === profile.profile.id);
 
-      if (studentAttendance.length > 0) {
-        const attendedSessions = studentAttendance.filter(record => record.present).length;
-        const attendancePercentage = Math.round((attendedSessions / studentAttendance.length) * 100);
-        setStats(prev => ({ ...prev, attendancePercentage }));
+      if (studentAttendance) {
+        setStats(prev => ({
+          ...prev,
+          attendancePercentage: Math.round(studentAttendance.percentage)
+        }));
       }
 
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
-      setLoading({ available: false, enrolled: false });
+      setLoading({ available: false, enrolled: false, courseDetails: false, attendance: false });
     }
   };
 
@@ -135,21 +164,32 @@ const StudentDashboard = () => {
     try {
       setLoading(prev => ({ ...prev, enrolled: true }));
 
+      // First fetch the enrolled course IDs for the student
       const enrolledResponse = await api.get(`/course-enrollment/by-student/${profile.profile.id}`);
-      const enrolledCoursesData: Enrollment[] = enrolledResponse.data || [];
+      const enrolledCourseIds: string[] = enrolledResponse.data || [];
 
+      // Then fetch all course details
       const allCoursesResponse = await api.get('/course/details');
       const allCourses: Course[] = allCoursesResponse.data || [];
 
-      const enrichedEnrollments = enrolledCoursesData.map(enrollment => {
-        const courseDetails = allCourses.find(c => c.course_id.toString() === enrollment.courseId);
-        return {
-          ...enrollment,
-          courseDetails: courseDetails || {
-            course_id: parseInt(enrollment.courseId),
-            courseTitle: `Course ${enrollment.courseId}`,
+      // Now fetch details for each enrolled course
+      const enrichedEnrollments: Enrollment[] = [];
+
+      for (const courseId of enrolledCourseIds) {
+        try {
+          const courseDetailsResponse = await api.get(`/course/details/${courseId}`);
+          enrichedEnrollments.push({
+            courseId,
+            rollNums: [], // This might need to be populated if you have this data
+            courseDetails: courseDetailsResponse.data
+          });
+        } catch (error) {
+          console.error(`Error fetching details for course ${courseId}:`, error);
+          // Fallback to basic course info if details fetch fails
+          const fallbackCourse = allCourses.find(c => c.course_id.toString() === courseId) || {
+            course_id: parseInt(courseId),
+            courseTitle: `Course ${courseId}`,
             courseDescription: '',
-            instructorName: 'Unknown',
             dept: '',
             createdAt: '',
             updatedAt: '',
@@ -158,9 +198,14 @@ const StudentDashboard = () => {
             credit: 0,
             imageUrl: '',
             courseCode: null
-          }
-        };
-      });
+          };
+          enrichedEnrollments.push({
+            courseId,
+            rollNums: [],
+            courseDetails: fallbackCourse
+          });
+        }
+      }
 
       setEnrolledCoursesList(enrichedEnrollments);
       setStats(prev => ({ ...prev, enrolledCourses: enrichedEnrollments.length }));
@@ -193,6 +238,19 @@ const StudentDashboard = () => {
     }
   };
 
+  const fetchCourseDetails = async (courseId: string) => {
+    try {
+      setLoading(prev => ({ ...prev, courseDetails: true }));
+      const response = await api.get(`/course/details/${courseId}`);
+      setSelectedCourse(response.data);
+      setShowCourseDetailsModal(true);
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+    } finally {
+      setLoading(prev => ({ ...prev, courseDetails: false }));
+    }
+  };
+
   const handleEnrolledCoursesClick = async () => {
     await fetchEnrolledCourses();
     setShowEnrolledCoursesModal(true);
@@ -201,6 +259,10 @@ const StudentDashboard = () => {
   const handleAvailableCoursesClick = async () => {
     await fetchAvailableCourses();
     setShowAvailableCoursesModal(true);
+  };
+
+  const handleCourseClick = (courseId: string) => {
+    fetchCourseDetails(courseId);
   };
 
   return (
@@ -235,7 +297,6 @@ const StudentDashboard = () => {
               )}
             </CardContent>
           </Card>
-
 
           {/* Available Courses Card */}
           <Card
@@ -272,6 +333,9 @@ const StudentDashboard = () => {
               <CardDescription className="text-xs text-muted-foreground">
                 Your overall attendance rate
               </CardDescription>
+              {loading.attendance && (
+                <p className="text-xs text-gray-500 mt-1">Loading...</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -287,26 +351,35 @@ const StudentDashboard = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {enrolledCoursesList.length > 0 ? (
+            {loading.enrolled ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Loading enrolled courses...</p>
+              </div>
+            ) : enrolledCoursesList.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Course ID</TableHead>
                     <TableHead>Title</TableHead>
-
+                    <TableHead>Department</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {enrolledCoursesList.map((enrollment) => (
-                    <TableRow key={enrollment.courseId}>
+                    <TableRow
+                      key={enrollment.courseId}
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleCourseClick(enrollment.courseId)}
+                    >
                       <TableCell>{enrollment.courseId}</TableCell>
                       <TableCell>{enrollment.courseDetails?.courseTitle}</TableCell>
-
-                      {/* <TableCell>
+                      <TableCell>{enrollment.courseDetails?.dept}</TableCell>
+                      <TableCell>
                         <Badge variant={enrollment.courseDetails?.isActive ? "default" : "secondary"}>
                           {enrollment.courseDetails?.isActive ? "Active" : "Inactive"}
                         </Badge>
-                      </TableCell> */}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -344,10 +417,7 @@ const StudentDashboard = () => {
                   <TableRow>
                     <TableHead>Course ID</TableHead>
                     <TableHead>Title</TableHead>
-
-
                     <TableHead>Department</TableHead>
-
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -356,9 +426,7 @@ const StudentDashboard = () => {
                     <TableRow key={course.course_id}>
                       <TableCell className="font-medium">{course.course_id}</TableCell>
                       <TableCell>{course.courseTitle}</TableCell>
-
                       <TableCell>{course.dept}</TableCell>
-
                       <TableCell>
                         <Badge variant={course.isActive ? "default" : "secondary"}>
                           {course.isActive ? "Active" : "Inactive"}
@@ -378,6 +446,66 @@ const StudentDashboard = () => {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Course Details Modal */}
+      <Dialog open={showCourseDetailsModal} onOpenChange={setShowCourseDetailsModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Course Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about the course
+            </DialogDescription>
+          </DialogHeader>
+          {loading.courseDetails ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Loading course details...</p>
+            </div>
+          ) : selectedCourse ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Course ID</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedCourse.course_id}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Course Code</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedCourse.courseCode || 'N/A'}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Title</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedCourse.courseTitle}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Department</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedCourse.dept}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                  <Badge variant={selectedCourse.isActive ? "default" : "secondary"} className="mt-1">
+                    {selectedCourse.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Duration</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedCourse.duration} weeks</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Credits</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedCourse.credit}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                <p className="mt-1 text-sm text-gray-900">{selectedCourse.courseDescription}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No course details available</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

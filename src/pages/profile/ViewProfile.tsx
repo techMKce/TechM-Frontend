@@ -10,18 +10,6 @@ import { useAuth } from "@/hooks/useAuth";
 import profileApi from "@/service/api";
 import { toast } from 'sonner';
 
-interface WorkExperience {
-  institutionName?: string;
-  organizationName?: string;
-  designation?: string;
-  startYear?: string;
-  endYear?: string;
-  description?: string;
-  workDescription?: string;
-  achievements?: string;
-  researchDetails?: string;
-}
-
 interface ProfileData {
   // Basic Info
   image?: string;
@@ -73,8 +61,12 @@ interface ProfileData {
   hscPercentage?: string;
   hscboardOfEducation?: string;
 
-  // Work Experience
-  workExperiences?: WorkExperience[];
+
+  // Work Experience (now individual fields instead of array)
+  endYear?: string;
+  description?: string;
+  achievements?: string;
+  researchDetails?: string;
 }
 
 export default function ViewProfile() {
@@ -139,32 +131,6 @@ export default function ViewProfile() {
   };
 
   function mapBackendToFrontend(data: any): ProfileData {
-    // Handle work experiences - check both array and single object formats
-    let workExperiences: WorkExperience[] = [];
-
-    if (Array.isArray(data.workExperiences)) {
-      workExperiences = data.workExperiences.map((exp: any) => ({
-        institutionName: exp.institutionName || exp.organizationName,
-        designation: exp.designation,
-        startYear: exp.startYear,
-        endYear: exp.endYear,
-        description: exp.description || exp.workDescription,
-        achievements: exp.achievements,
-        researchDetails: exp.researchDetails
-      }));
-    } else if (data.institutionName || data.organizationName) {
-      // Handle legacy single work experience format
-      workExperiences = [{
-        institutionName: data.institutionName || data.organizationName,
-        designation: data.designation,
-        startYear: data.startYear,
-        endYear: data.endYear,
-        description: data.description || data.workDescription,
-        achievements: data.achievements,
-        researchDetails: data.researchDetails
-      }];
-    }
-
     return {
       // Basic Info
       image: data.image,
@@ -216,8 +182,11 @@ export default function ViewProfile() {
       hscPercentage: data.hscPercentage || data.percentage12,
       hscboardOfEducation: data.hscboardOfEducation || data.board12,
 
-      // Work Experience
-      workExperiences
+      // Work Experience (individual fields)
+      endYear: data.endYear,
+      description: data.description || data.description,
+      achievements: data.achievements,
+      researchDetails: data.researchDetails
     };
   }
 
@@ -391,62 +360,69 @@ export default function ViewProfile() {
   );
 
   const renderWorkExperience = () => {
-    const experiences = currentUser?.workExperiences || [];
+    const hasWorkExperience =
+      currentUser?.institutionName ||
+      currentUser?.designation;
+
+    if (!hasWorkExperience) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Work Experience</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-500">No work experience added yet.</p>
+          </CardContent>
+        </Card>
+      );
+    }
 
     return (
       <Card>
         <CardHeader>
           <CardTitle>Work Experience</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-8">
-          {experiences.length === 0 ? (
-            <p className="text-gray-500">No work experience added yet.</p>
-          ) : (
-            experiences.map((exp, index) => (
-              <div key={index} className="border-b pb-6 last:border-b-0 last:pb-0">
-                <h3 className="text-lg font-semibold mb-4">Experience {index + 1}</h3>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Organization</h4>
+              <p className="text-lg">
+                {currentUser?.institutionName || "Not specified"}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Designation</h4>
+              <p className="text-lg">{currentUser?.designation || "Not specified"}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Duration</h4>
+              <p className="text-lg">
+                {currentUser?.startYear && currentUser?.endYear
+                  ? `${currentUser.startYear} - ${currentUser.endYear}`
+                  : "Not specified"}
+              </p>
+            </div>
+          </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Organization</h4>
-                    <p className="text-lg">{exp.institutionName || exp.organizationName || "Not specified"}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Designation</h4>
-                    <p className="text-lg">{exp.designation || "Not specified"}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Duration</h4>
-                    <p className="text-lg">
-                      {exp.startYear && exp.endYear
-                        ? `${exp.startYear} - ${exp.endYear}`
-                        : "Not specified"}
-                    </p>
-                  </div>
-                </div>
+          {currentUser?.description && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
+              <p className="text-lg whitespace-pre-line">{currentUser.description}</p>
+            </div>
+          )}
 
-                {exp.description && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
-                    <p className="text-lg whitespace-pre-line">{exp.description}</p>
-                  </div>
-                )}
+          {currentUser?.achievements && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Achievements</h4>
+              <p className="text-lg whitespace-pre-line">{currentUser.achievements}</p>
+            </div>
+          )}
 
-                {exp.achievements && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Achievements</h4>
-                    <p className="text-lg whitespace-pre-line">{exp.achievements}</p>
-                  </div>
-                )}
-
-                {exp.researchDetails && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Research Details</h4>
-                    <p className="text-lg whitespace-pre-line">{exp.researchDetails}</p>
-                  </div>
-                )}
-              </div>
-            ))
+          {currentUser?.researchDetails && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-1">Research Details</h4>
+              <p className="text-lg whitespace-pre-line">{currentUser.researchDetails}</p>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -22,9 +22,8 @@ const CoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
-
     const fetchCourses = async () => {
-      try{
+      try {
         const response = await api.get("/course/details");
         console.log(response);
         if (response.status !== 200) {
@@ -40,7 +39,7 @@ const CoursesPage = () => {
           isEnabled: course.isActive
         }));
         setCourses(data);
-      }catch (error) {
+      } catch (error) {
         console.error('Error fetching courses:', error);
         toast.error('Failed to load courses');
       }
@@ -49,9 +48,7 @@ const CoursesPage = () => {
   }, []);
 
   const handleToggle = async (courseId: string) => {
-
     const response = await api.put(`/course/toggle/${courseId}`);
-
 
     if (response.status !== 200) {
       toast.error('Failed to update course status');
@@ -96,6 +93,7 @@ const CoursesPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>S.No</TableHead>
                   <TableHead>Course ID</TableHead>
                   <TableHead>Course Name</TableHead>
                   <TableHead>Status</TableHead>
@@ -103,8 +101,9 @@ const CoursesPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {courses.map((course) => (
+                {courses.map((course, index) => (
                   <TableRow key={course.id}>
+                    <TableCell>{index + 1}</TableCell>
                     <TableCell>{course.courseId}</TableCell>
                     <TableCell>{course.name}</TableCell>
                     <TableCell>
