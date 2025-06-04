@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
-import { Calendar, FileText } from "lucide-react";
+import { Calendar, FileText, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/service/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,10 +40,8 @@ interface Course {
   courseName: string;
 }
 
-
-
 interface FacultyAssignment {
-    facultyId: string;
+  facultyId: string;
   courseId: string;
   assignedRollNums: string[];
 }
@@ -62,8 +60,7 @@ const sessions = ["FN", "AN"];
 
 const FacultyAttendancePage = () => {
   const { profile } = useAuth();
-  const facultyName = profile.profile.name.split(" "); // Assuming name is in "First Last" format
-  const facultyId = profile.profile.id; // This should come from auth context or props
+  const [activeTab, setActiveTab] = useState("mark");
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
@@ -72,7 +69,7 @@ const FacultyAttendancePage = () => {
   const [departments, setDepartments] = useState<string[]>([]);
   const [semesters, setSemesters] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [ allStudents, setAllStudents ] = useState<StudentDetails[]>([]);
+  const [allStudents, setAllStudents] = useState<StudentDetails[]>([]);
   const [facultyAssignments, setFacultyAssignments] = useState<FacultyAssignment[]>([]);
 
   const [formData, setFormData] = useState({
@@ -80,18 +77,19 @@ const FacultyAttendancePage = () => {
     course: "",
     department: "",
     semester: "",
-    session: "FN",
+    session: "",
     date: new Date().toISOString().split("T")[0],
   });
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch faculty courses when component mounts
-
+    if (activeTab === "report") {
+      navigate("/faculty/attendance/view");
+      return;
+    }
     fetchFacultyCourses();
-    // fetchStudentsForCourse(formData.course);
-  }, [facultyId]);
+  }, [activeTab]);
 
   const fetchFacultyCourses = async () => {
     try {
@@ -99,8 +97,8 @@ const FacultyAttendancePage = () => {
         `/faculty-student-assigning/admin/faculty/${profile.profile.id}`
       );
 
-      // const courseIds = new Set(response.data.map((assignment: FacultyAssignment) => assignment.courseId));
       const facultyAssignments: FacultyAssignment[] = response.data;
+
 
       const courseIds = [
         ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
@@ -129,11 +127,28 @@ const FacultyAttendancePage = () => {
 
       const facultyAssignmentsData: FacultyAssignment[] = studentResponse.data;
       setFacultyAssignments(facultyAssignmentsData);
-      
-      
-      const studResponse = await api.get("/profile/student");
 
-      const allStudents: StudentDetails[] = studResponse.data.map((student: StudentDetails) => ({
+      
+      const courseIds = [...new Set(facultyAssignments.map(a => a.courseId))];
+      
+      // Fetch course details for each course
+      const courseDetails = await Promise.all(
+        courseIds.map(async (courseId) => {
+          const res = await api.get(`course/detailsbyId`, {
+            params: { id: courseId }
+          });
+          return {
+            courseId,
+            courseName: res.data[0]?.courseTitle || courseId
+          };
+        })
+      );
+      
+      setCourses(courseDetails);
+
+      // Fetch all students
+      const studentsRes = await api.get("/profile/student");
+      const allStudentsData: StudentDetails[] = studentsRes.data.map((student: any) => ({
         stdId: student.rollNum,
         stdName: student.name,
         rollNum: student.rollNum,
@@ -141,151 +156,117 @@ const FacultyAttendancePage = () => {
         deptName: student.program,
         batch: student.year,
         sem: student.semester,
-        }));
 
-      const assignedRollNums = facultyAssignmentsData.flatMap(a => a.assignedRollNums);
-      const filteredStudents = allStudents.filter(student =>
-        assignedRollNums.includes(student.rollNum)
-      );
+      }));
 
-      // setStudents(filteredStudents);
-      setAllStudents(filteredStudents);
-
-      // const uniqueBatches = [
-      //   ...new Set(
-      //     allStudents
-      //       .flat()
-      //       .map((student) => student.batch)
-      //       .filter((batch) => batch != null && batch !== undefined)
-      //   ),
-      // ];
-      // const uniqueDepartments = [
-      //   ...new Set(
-      //     allStudents
-      //       .flat()
-      //       .map((student) => student.deptName)
-      //       .filter((dept) => dept != null && dept !== undefined)
-      //   ),
-      // ];
-      // const uniqueSemesters = [
-      //   ...new Set(
-      //     allStudents
-      //       .flat()
-      //       .map((student) => student.sem)
-      //       .filter((sem) => sem != null && sem !== undefined)
-      //   ),
-      // ];
-      // setBatches(uniqueBatches);
-      // setDepartments(uniqueDepartments);
-      // setSemesters(uniqueSemesters);
+      setAllStudents(allStudentsData);
     } catch (error) {
-     toast.error("Failed to load faculty courses", {
-        description: "Please check your internet connection.",
-        className: "bg-red-100 text-red-800 border border-red-400 shadow-md",
-        icon: "🚫",
-      });
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load faculty data");
+
     }
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const resetFilters = () => {
+    setFormData({
+      batch: "",
+      course: "",
+      department: "",
+      semester: "",
+      session: "FN",
+      date: new Date().toISOString().split("T")[0],
+    });
+    setStudents([]);
+    setIsFormSubmitted(false);
+    setAbsenteeCount(0);
+    toast.info("All filters have been reset");
   };
 
-  const fetchStudentsForCourse = async (courseId: string) => {
+
+  const validateForm = () => {
+    if (!formData.course) {
+      toast.error("Please select a course");
+      return false;
+    }
+    if (!formData.batch) {
+      toast.error("Please select a batch");
+      return false;
+    }
+    if (!formData.department) {
+      toast.error("Please select a department");
+      return false;
+    }
+    if (!formData.semester) {
+      toast.error("Please select a semester");
+      return false;
+    }
+    if (!formData.date) {
+      toast.error("Please select a date");
+      return false;
+    }
+    return true;
+  };
+
+  const fetchStudentsForCourse = async () => {
+    if (!validateForm()) return;
+
     try {
-      if (!courseId) {
-        setStudents([]);
-        setBatches([]);
-        setDepartments([]);
-        setSemesters([]);
-        return;
-      }
-      // Find the assignment for the selected course
-      const assignment = facultyAssignments.find(a => a.courseId === courseId);
+      const assignment = facultyAssignments.find(a => a.courseId === formData.course);
       if (!assignment) {
-        setStudents([]);
-        setBatches([]);
-        setDepartments([]);
-        setSemesters([]);
+        toast.error("No students assigned for this course");
         return;
       }
 
-      // Filter students assigned to this course
       const assignedStudents = allStudents.filter(student =>
-        assignment.assignedRollNums.includes(student.rollNum)
+        assignment.assignedRollNums.includes(student.rollNum) &&
+        student.batch === formData.batch &&
+        student.deptName === formData.department &&
+        student.sem === formData.semester
       );
 
-      // Extract unique batches, departments, semesters from assigned students
-      const uniqueBatches = [...new Set(assignedStudents.map(s => s.batch).filter(Boolean))];
-      const uniqueDepartments = [...new Set(assignedStudents.map(s => s.deptName).filter(Boolean))];
-      const uniqueSemesters = [...new Set(assignedStudents.map(s => s.sem).filter(Boolean))];
+      if (assignedStudents.length === 0) {
+        toast.error("No students match the selected filters");
+        return;
+      }
 
-      setBatches(uniqueBatches);
-      setDepartments(uniqueDepartments);
-      setSemesters(uniqueSemesters);
-
-      // Further filter students based on selected batch, department, semester
-      const filtered = assignedStudents.filter(student =>
-        (!formData.batch || student.batch === formData.batch) &&
-        (!formData.department || student.deptName === formData.department) &&
-        (!formData.semester || student.sem === formData.semester)
-      );
-
-      // Add isPresent default value
-      const studentsWithAttendance = filtered.map(s => ({
-        ...s,
+      const studentsWithAttendance = assignedStudents.map(student => ({
+        ...student,
         isPresent: true
       }));
 
       setStudents(studentsWithAttendance);
+      
+      // Extract unique values for filters
+      const uniqueBatches = [...new Set(allStudents.map(s => s.batch).filter(Boolean))];
+      const uniqueDepts = [...new Set(allStudents.map(s => s.deptName).filter(Boolean))];
+      const uniqueSems = [...new Set(allStudents.map(s => s.sem).filter(Boolean))];
+      
+      setBatches(uniqueBatches);
+      setDepartments(uniqueDepts);
+      setSemesters(uniqueSems);
+
+      toast.success("Student list generated successfully");
     } catch (error) {
       toast.error("Failed to load student list");
     }
   };
 
-  const handleGenerateList = () => {
-    if (!formData.course) {
-      toast.warning("Please select a course");
-      return;
-    }
-    // fetchFacultyCourses();
-    fetchStudentsForCourse(formData.course);
-  };
-
-  const handleToggleAttendance = (stdId: string) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.stdId === stdId
-          ? { ...student, isPresent: !student.isPresent }
-          : student
-      )
-    );
-  };
-
   const handleSubmitAttendance = async () => {
+    if (!validateForm()) return;
     if (students.length === 0) {
       toast.info("No students to mark attendance for");
       return;
     }
 
-    const filteredStudents = students.filter(
-    (student) =>
-      (!formData.batch || student.batch === formData.batch) &&
-      (!formData.department || student.deptName === formData.department) &&
-      (!formData.semester || student.sem === formData.semester)
-  );
-
     try {
       setLoading(true);
-      const attendanceRecords = filteredStudents.map((student) => ({
+      const attendanceRecords = students.map((student) => ({
         stdId: student.stdId,
         stdName: student.stdName,
         facultyId: profile.profile.id,
         facultyName: profile.profile.name,
         courseId: formData.course,
-        courseName:
-          courses.find((c) => c.courseId === formData.course)?.courseName ||
-          formData.course,
+        courseName: courses.find(c => c.courseId === formData.course)?.courseName || formData.course,
         status: student.isPresent ? 1 : 0,
         session: formData.session,
         batch: student.batch,
@@ -295,67 +276,90 @@ const FacultyAttendancePage = () => {
         dates: formData.date,
       }));
 
-      await api.post("/attendance/attupdate", attendanceRecords);
 
-      const absentees = students.filter((student) => !student.isPresent).length;
+      await api.post("/attendance/attendanceupdate", attendanceRecords);
+
+
+      const absentees = students.filter(s => !s.isPresent).length;
       setAbsenteeCount(absentees);
       setIsFormSubmitted(true);
-
       toast.success("Attendance marked successfully");
     } catch (error) {
       toast.error("Failed to submit attendance");
-    } finally{
+    } finally {
       setLoading(false);
     }
   };
 
-  const filteredStudents = students.filter(
-    (student) =>
-      (!formData.batch || student.batch === formData.batch) &&
-      (!formData.department || student.deptName === formData.department) &&
-      (!formData.semester || student.sem === formData.semester)
-  );
-
-
   return (
     <>
       <Navbar />
-      {/* <Navbar userType="faculty" userName={facultyName} /> */}
-      <div className="page-container max-w-4xl mx-auto mt-3">
+      <div className="page-container max-w-4xl mx-auto">
+
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold">Attendance Marking</h1>
-          <p className=" mt-2">
-            Mark student attendance for a specific session
-          </p>
+          <h1 className="text-3xl font-bold">Attendance Management</h1>
+          <p className="mt-2">Manage student attendance and view reports</p>
         </div>
 
-        <Card className="mb-6">
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            <button
+              type="button"
+              onClick={() => setActiveTab("mark")}
+              className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
+                activeTab === "mark"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Mark Attendance
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("report")}
+              className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
+                activeTab === "report"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Attendance Report
+            </button>
+          </div>
+        </div>
+
+        <Card>
           <CardHeader>
-            <CardTitle>Select Class Details</CardTitle>
-            <CardDescription>
-              Fill in the details to generate the student list
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Mark Attendance</CardTitle>
+                <CardDescription>
+                  Fill in all filters to mark attendance for students
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetFilters}
+                className="gap-1"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reset Filters
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* 1. Course */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Course - Required */}
               <div className="space-y-2">
                 <Label htmlFor="course">
                   Course <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.course}
-                  onValueChange={(value) => {
-                    handleSelectChange("course", value);
-                    // Reset other fields when course changes
-                    setFormData((prev) => ({
-                      ...prev,
-                      batch: "",
-                      department: "",
-                      semester: "",
-                    }));
-                    fetchStudentsForCourse(value);
-                  } }
+                  onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, course: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a course" />
@@ -370,19 +374,22 @@ const FacultyAttendancePage = () => {
                 </Select>
               </div>
 
-              {/* 2. Batch */}
+              {/* Batch - Required */}
               <div className="space-y-2">
-                <Label htmlFor="batch">Batch</Label>
+                <Label htmlFor="batch">
+                  Batch <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.batch}
-                  onValueChange={(value) => handleSelectChange("batch", value)}
-                  disabled={!formData.course}
+                  onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, batch: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a batch" />
                   </SelectTrigger>
                   <SelectContent>
-                    {batches.filter(Boolean).map((batch) => (
+                    {batches.map((batch) => (
                       <SelectItem key={batch} value={batch}>
                         {batch}
                       </SelectItem>
@@ -391,15 +398,16 @@ const FacultyAttendancePage = () => {
                 </Select>
               </div>
 
-              {/* 3. Department */}
+              {/* Department - Required */}
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department">
+                  Department <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.department}
-                  onValueChange={(value) =>
-                    handleSelectChange("department", value)
+                  onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, department: value }))
                   }
-                  disabled={!formData.course}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a department" />
@@ -414,15 +422,16 @@ const FacultyAttendancePage = () => {
                 </Select>
               </div>
 
-              {/* 4. Semester */}
+              {/* Semester - Required */}
               <div className="space-y-2">
-                <Label htmlFor="semester">Semester</Label>
+                <Label htmlFor="semester">
+                  Semester <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.semester}
-                  onValueChange={(value) =>
-                    handleSelectChange("semester", value)
+                  onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, semester: value }))
                   }
-                  disabled={!formData.course}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select semester" />
@@ -437,15 +446,15 @@ const FacultyAttendancePage = () => {
                 </Select>
               </div>
 
-              {/* 5. Session */}
+              {/* Session - Required */}
               <div className="space-y-2">
                 <Label htmlFor="session">
                   Session <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.session}
-                  onValueChange={(value) =>
-                    handleSelectChange("session", value)
+                  onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, session: value }))
                   }
                 >
                   <SelectTrigger>
@@ -458,7 +467,7 @@ const FacultyAttendancePage = () => {
                 </Select>
               </div>
 
-              {/* 6. Date */}
+              {/* Date - Required */}
               <div className="space-y-2">
                 <Label htmlFor="date">
                   Date <span className="text-red-500">*</span>
@@ -471,132 +480,103 @@ const FacultyAttendancePage = () => {
                     className="pl-10"
                     value={formData.date}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, date: e.target.value }))
+                      setFormData(prev => ({ ...prev, date: e.target.value }))
                     }
                     required
                   />
                 </div>
               </div>
-
-              {/* 7. Button */}
-              {/* <div className="flex items-end">
-                <Button
-                  onClick={handleGenerateList}
-                  className="mb-1 bg-primary hover:bg-primary-dark w-full"
-                  disabled={!formData.course}
-                >
-                  Generate Student List
-                </Button>
-              </div> */}
-
-              {/* View previous attendance */}
-                <div className="flex justify-end items-end col-span-full">
-                <Button
-                  className="mb-1 bg-primary hover:bg-primary-dark"
-                  onClick={() => navigate("/faculty/attendance/view")}
-                >
-                  View Previous Attendance
-                </Button>
-                </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {students.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Mark Attendance</CardTitle>
-              <CardDescription>
-                {formData.department && `${formData.department} - `}
-                {formData.batch && `${formData.batch} - `}
-                {formData.semester && `Semester ${formData.semester} `}(
-                {formData.session === "FN" ? "Forenoon" : "Afternoon"} Session)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full mb-4">
-                  <thead>
-                    <tr className="text-left border-b">
-                      <th className="px-4 py-3 text-sm font-medium text-primary">
-                        Roll Number
-                      </th>
-                      <th className="px-4 py-3 text-sm font-medium text-primary">
-                        Name
-                      </th>
-                      <th className="px-4 py-3 text-sm font-medium text-primary text-center">
-                        Attendance
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {filteredStudents.map((student) => (
-                      <tr key={student.stdId}>
-                        <td className="px-4 py-3 ">{student.rollNum}</td>
-                        <td className="px-4 py-3 font-medium">
-                          {student.stdName}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="flex justify-center items-center">
-                            <Label
-                              htmlFor={`attendance-${student.stdId}`}
-                              className="mr-2 text-sm"
-                            >
-                              {student.isPresent ? "Present" : "Absent"}
-                            </Label>
+            <div className="flex justify-end gap-2 mb-4">
+              <Button
+                onClick={fetchStudentsForCourse}
+                disabled={!formData.course}
+              >
+                Generate Student List
+              </Button>
+            </div>
+            </CardContent>
+            </Card>
+            <br />
+            {students.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mark Attendance</CardTitle>
+                  <CardDescription>
+                    {formData.department && `Department of ${formData.department} - `}
+                    {formData.batch && `Batch ${formData.batch} - `}
+                    {formData.semester && `Semester ${formData.semester}  - `}(
+                    {formData.session === "FN" ? "Forenoon" : "Afternoon"} Session)
+                  </CardDescription>
+                </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto mb-4">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left border-b">
+                        <th className="px-4 py-2">Roll Number</th>
+                        <th className="px-4 py-2">Name</th>
+                        <th className="px-4 py-2 text-center">Attendance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {students.map((student) => (
+                        <tr key={student.stdId}>
+                          <td className="px-4 py-2">{student.rollNum}</td>
+                          <td className="px-4 py-2">{student.stdName}</td>
+                          <td className="px-4 py-2 text-center">
                             <Switch
-                              id={`attendance-${student.stdId}`}
                               checked={student.isPresent}
-                              onCheckedChange={() =>
-                                handleToggleAttendance(student.stdId)
+                              onCheckedChange={() => 
+                                setStudents(prev =>
+                                  prev.map(s =>
+                                    s.stdId === student.stdId
+                                      ? { ...s, isPresent: !s.isPresent }
+                                      : s
+                                  )
+                                )
                               }
                             />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-              <div className="flex justify-between items-center mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/faculty/attendance/view")}
-                >
-                  View Previous Attendance
-                </Button>
-                <Button
-                  onClick={handleSubmitAttendance}
-                  className="bg-primary hover:bg-primary-dark"
-                  disabled={loading}
-                >
-                  {loading ? "Submitting..." : "Submit Attendance"}
-                </Button>
-              </div>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleSubmitAttendance}
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {loading ? "Submitting..." : "Submit Attendance"}
+                  </Button>
+                </div>
 
-              {isFormSubmitted && (
-                <div className="mt-6 p-4 bg-accent-light/10 rounded-md">
-                  <div className="flex items-start">
-                    <FileText className="mt-1 h-5 w-5 text-accent" />
-                    <div className="ml-2">
-                      <h4 className="font-medium">Attendance Summary</h4>
-                      <p className="text-secondary text-sm mt-1">
-                        Total Students: {filteredStudents.length}
-                      </p>
-                      <p className="text-secondary text-sm">
-                        Present: {filteredStudents.length - absenteeCount}
-                      </p>
-                      <p className="text-secondary text-sm">
-                        Absent: {absenteeCount}
-                      </p>
-                    </div>
+            {isFormSubmitted && (
+              <div className="mt-6 p-4 bg-blue-50 rounded-md">
+                <div className="flex items-start">
+                  <FileText className="mt-1 h-5 w-5 text-blue-600" />
+                  <div className="ml-2">
+                    <h4 className="font-medium">Attendance Summary</h4>
+                    <p className="text-sm mt-1">
+                      Total Students: {students.length}
+                    </p>
+                    <p className="text-sm">
+                      Present: {students.length - absenteeCount}
+                    </p>
+                    <p className="text-sm">
+                      Absent: {absenteeCount}
+                    </p>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
       </div>
     </>
   );
