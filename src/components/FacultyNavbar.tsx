@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,61 +9,56 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  User,
-  LogOut,
-  Home,
-  Users,
-  BookOpen,
-  UserCheck,
-  ListTodoIcon,
-  Book,
-} from "lucide-react";
+
+
+import { User, LogOut, Home, BookOpen, ListTodoIcon, Book } from "lucide-react";
+
+
 import { useAuth } from "@/hooks/useAuth";
+import profileApi from "@/service/api"; // Import the same API instance used in index.tsx
 
 interface FacultyNavbarProps {
   currentPage?: string;
 }
 
 const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
-  const { signOut,isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(() =>
-    JSON.parse(localStorage.getItem("currentUser") || "{}")
-  );
+  const { signOut, profile } = useAuth(); // Use profile from useAuth
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Listen for profile updates
+
   useEffect(() => {
-    const handleStorageChange = () => {
-      const updatedUser = JSON.parse(
-        localStorage.getItem("currentUser") || "{}"
-      );
-      setCurrentUser(updatedUser);
-    };
+    const fetchFacultyData = async () => {
+      if (!profile || !profile.profile?.id) return;
 
-    window.addEventListener("storage", handleStorageChange);
-
-    // Also listen for manual updates within the same tab
-    const interval = setInterval(() => {
-      const updatedUser = JSON.parse(
-        localStorage.getItem("currentUser") || "{}"
-      );
-      if (JSON.stringify(updatedUser) !== JSON.stringify(currentUser)) {
-        setCurrentUser(updatedUser);
+      try {
+        // Use the same API endpoint pattern as in index.tsx
+        const response = await profileApi.get(`/profile/faculty/${profile.profile.id}`);
+        setCurrentUser(response.data);
+      } catch (error) {
+        console.error("Failed to fetch faculty data:", error);
+      } finally {
+        setLoading(false);
       }
-    }, 500);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
     };
-  }, [currentUser]);
+
+    fetchFacultyData();
+  }, [profile]); // Watch for changes in profile
 
   const handleLogout = () => {
     signOut();
-    // navigate("/");
+    navigate("/login");
   };
 
+
+  const userName = currentUser?.name || "Faculty";
+  const userEmail = currentUser?.email || "faculty@example.com";
+  const initials = userName
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase();
   const menuItems = [
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
@@ -71,17 +66,15 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
     {label: "Exams", path: "/faculty/exams", icon: Book }
   ];
 
-  const initials = currentUser.name
-    ? currentUser.name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase()
-    : "F";
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/login" />;
-  // }
+
+  if (loading) {
+    return (
+      <nav className="bg-white shadow-lg border-b h-16 flex items-center px-6">
+        <p className="text-sm text-muted-foreground">Loading profile...</p>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-white shadow-lg border-b">
@@ -99,7 +92,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
                     key={item.path}
                     variant={currentPage === item.path ? "default" : "ghost"}
                     onClick={() => navigate(item.path)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm"
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
@@ -108,19 +101,17 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
               })}
             </div>
           </div>
+
           <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative h-8 w-8 rounded-full"
+                  className="relative h-8 w-8 rounded-full p-0"
                 >
-                  <Avatar className="h-8 w-8">
-                    {currentUser.profileImage ? (
-                      <AvatarImage
-                        src={currentUser.profileImage}
-                        alt="Profile"
-                      />
+                  <Avatar className="h-8 w-8 bg-gray-400">
+                    {currentUser?.image ? (
+                      <AvatarImage src={currentUser.image} alt="Profile" />
                     ) : (
                       <AvatarFallback className="bg-green-500 text-white">
                         {initials}
@@ -129,24 +120,25 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
+
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{currentUser.name}</p>
+                    <p className="font-medium">{userName}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {currentUser.email}
+                      {userEmail}
                     </p>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="mr-2 h-4 w-4" />
-                  <span>My Profile</span>
+                  My Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

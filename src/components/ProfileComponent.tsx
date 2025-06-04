@@ -21,8 +21,8 @@ const ProfileComponent = ({ userType, currentUser, onUpdate }: ProfileComponentP
         <CardHeader className="text-center bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex justify-center mb-4">
             <Avatar className="w-20 h-20">
-              {currentUser.profileImage ? (
-                <AvatarImage src={currentUser.profileImage} alt="Profile" className="w-20 h-20" />
+              {currentUser.image ? (
+                <AvatarImage src={currentUser.image} alt="Profile" className="w-20 h-20" />
               ) : (
                 <AvatarFallback className="bg-blue-500 text-white w-20 h-20 text-2xl">
                   {initials}
@@ -47,10 +47,7 @@ const ProfileComponent = ({ userType, currentUser, onUpdate }: ProfileComponentP
                 <p className="text-lg">{currentUser.email}</p>
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Department</h3>
-                <p className="text-lg">{currentUser.program}</p>
-              </div>
+
             </div>
 
             <div className="space-y-4">
@@ -64,26 +61,40 @@ const ProfileComponent = ({ userType, currentUser, onUpdate }: ProfileComponentP
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Year</h3>
                     <p className="text-lg">{currentUser.year}</p>
+
+
                   </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Department</h3>
+                    <p className="text-lg">{currentUser.program}</p>
+                  </div>
+
+
                 </>
               ) : (
                 <>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Faculty ID</h3>
-                    <p className="text-lg">{currentUser.facultyId}</p>
+                    <p className="text-lg">{currentUser.staffId}</p>
                   </div>
 
                   <div>
+                    <h3 className="text-sm font-medium text-gray-500">Department</h3>
+                    <p className="text-lg">{currentUser.department}</p>
+                  </div>
+
+                  {/* <div>
                     <h3 className="text-sm font-medium text-gray-500">Mobile Number</h3>
                     <p className="text-lg">{currentUser.mobile}</p>
-                  </div>
+                  </div> */}
                 </>
               )}
             </div>
           </div>
 
           <div className="flex justify-center gap-4">
-            <Button 
+            <Button
               variant="outline"
               className="flex items-center gap-2"
               onClick={() => navigate('/profile/view')}
@@ -91,7 +102,7 @@ const ProfileComponent = ({ userType, currentUser, onUpdate }: ProfileComponentP
               <Eye className="h-4 w-4" />
               View Details
             </Button>
-            <Button 
+            <Button
               className="flex items-center gap-2"
               onClick={() => navigate('/profile/edit')}
             >
