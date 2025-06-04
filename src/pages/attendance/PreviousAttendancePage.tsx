@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+
 import { Download, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import api from "@/service/api";
@@ -156,7 +158,6 @@ const PreviousAttendancePage = () => {
       const fetchedCourses: Course[] = await Promise.all(coursePromises);
       setCourses(fetchedCourses);
 
-      // Fetch all students
       const studentsRes = await api.get("/profile/student");
       const allStudentsData: StudentDetails[] = studentsRes.data.map((student: any) => ({
         stdId: student.rollNum,
@@ -169,11 +170,12 @@ const PreviousAttendancePage = () => {
       }));
 
       setAllStudents(allStudentsData);
+
     } catch (error) {
-      console.error("Error fetching faculty courses:", error);
       toast.error("Failed to load faculty courses");
     }
   };
+
 
   const resetFilters = () => {
     if (attendanceMode === "single") {
@@ -239,6 +241,7 @@ const PreviousAttendancePage = () => {
     }
   };
 
+
   const fetchSingleDateAttendance = async () => {
     if (!singleFilters.course || !singleFilters.singleDate) return;
     
@@ -250,16 +253,15 @@ const PreviousAttendancePage = () => {
       const response = await api.get(
         `/api/v1/attendance/getfacultybydate?facultyid=${facultyId}&courseid=${course.courseId}&date=${singleFilters.singleDate}`
       );
+
       
       if (response.data && Array.isArray(response.data)) {
         setAttendanceRecords(response.data);
       } else {
         setAttendanceRecords([]);
-        toast.error("No attendance data found for this date");
+        toast.info("No attendance data found for this date");
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
-      toast.error("Failed to load attendance records");
       setAttendanceRecords([]);
     } finally {
       setIsLoading(false);
@@ -314,11 +316,12 @@ const PreviousAttendancePage = () => {
         setConsolidatedRangeAttendance(consolidated);
       } else {
         setRangeAttendanceSummary([]);
+
         setConsolidatedRangeAttendance([]);
         toast.error("No attendance data found for this date range");
+
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
       toast.error("Failed to load attendance records");
       setRangeAttendanceSummary([]);
       setConsolidatedRangeAttendance([]);
@@ -331,6 +334,7 @@ const PreviousAttendancePage = () => {
     if (attendanceMode === "single" && singleFilters.singleDate && singleFilters.course) {
       fetchSingleDateAttendance();
     }
+
   }, [singleFilters.singleDate, singleFilters.course, singleFilters.department, singleFilters.batch, singleFilters.semester]);
 
   useEffect(() => {
@@ -639,6 +643,7 @@ const PreviousAttendancePage = () => {
   return (
     <>
       <Navbar />
+
       <div className="page-container max-w-4xl mx-auto">
         <div className="mb-6 flex flex-col items-center">
           <Button
@@ -1044,4 +1049,6 @@ const PreviousAttendancePage = () => {
   );
 };
 
+
 export default PreviousAttendancePage;
+

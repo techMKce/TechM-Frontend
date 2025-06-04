@@ -28,7 +28,6 @@ const authService = {
   logout: async (): Promise<void> => {
     const respose = await api.post("/auth/logout");
     if (respose.status === 200) {
-      console.log("Logout successful");
       localStorage.removeItem("auth_token");
       localStorage.removeItem("refresh_token");
     }

@@ -1,4 +1,3 @@
-
 import FacultyNavbar from "@/components/FacultyNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, BookOpen, UserCheck, Edit } from "lucide-react";
@@ -11,16 +10,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+
 import api from "../../service/api";
 import {useAuth} from '../../hooks/useAuth';
+
 interface Course {
-  id: string;
-  courseId: string;
-  name: string;
-  description: string;
-  facultyId: string;
-  facultyName: string;
-  isEnabled: boolean;
+  course_id: number;
+  courseCode: string | null;
+  courseTitle: string;
+  courseDescription: string;
+  instructorName: string;
+  dept: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  duration: number;
+  credit: number;
+  imageUrl: string;
 }
 
 interface Student {
@@ -31,21 +37,12 @@ interface Student {
   department: string;
 }
 
-interface Assignment {
-  id: string;
-  studentId: string;
-  facultyId: string;
-  courseId: string;
-}
-
 const FacultyDashboard = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [assignedStudents, setAssignedStudents] = useState<Student[]>([]);
-  const {profile} = useAuth();
-  const [totalStudentsCount ,setTotalStudentCount]= useState(0);
+  const { profile } = useAuth();
   const [stats, setStats] = useState({
     totalCourses: 0,
     activeCourses: 0,
@@ -56,144 +53,190 @@ const FacultyDashboard = () => {
     name: "",
     description: ""
   });
-
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const [isCoursesModalOpen, setIsCoursesModalOpen] = useState(false);
+  const [isActiveCoursesModalOpen, setIsActiveCoursesModalOpen] = useState(false);
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+  const [allCoursesData, setAllCoursesData] = useState<Course[]>([]);
+  const [activeCoursesData, setActiveCoursesData] = useState<Course[]>([]);
+  const [studentsData, setStudentsData] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadCourses();
-  }, [currentUser.id]);
-
-  useEffect(() => {
-    // Listen for assignment changes
-    const handleStorageChange = () => {
-      loadCourses();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('assignmentsUpdated', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('assignmentsUpdated', handleStorageChange);
-    };
-  }, []);
+    fetchStudentCount();
+  }, [profile?.profile?.id]);
 
   const loadCourses = async () => {
-  let allCourses = [];
-  let studentCount = 0;
-  try {
-    const response = await api.get('/course/details');
-    allCourses = [...response.data].length > 0 ? response.data : [];
-    console.log("Fetched all courses:", allCourses);
-  } catch (error) {
-    console.error("Error fetching all courses:", error);
-    allCourses = [];
-  }
-  console.log('Current faculty profile:', profile.profile.name);
-  const facultyCourses = allCourses.filter((course) => course.instructorName === profile.profile.name);
-  setCourses(facultyCourses);
+    try {
+      setIsLoading(true);
 
-  // Fetch student count from API
-  try {
-    const response = await api.get(`/faculty-student-assigning/admin/faculty/${profile.profile.id}/count`);
-    studentCount = response.data;
-    setTotalStudentCount(studentCount);
-  } catch (error) {
-    console.error("Error fetching assignments:", error);
-    studentCount = 0;
-    setTotalStudentCount(0);
-  }
+      // Fetch all courses (both active and inactive)
+      const coursesResponse = await api.get('/course/details');
+      const allCourses: Course[] = coursesResponse.data || [];
 
-  // ... (rest of your code for assigned students)
-
-  // Calculate stats
-  const activeCourses = facultyCourses.filter((course) => course.isActive);
-  setStats({
-    totalCourses: facultyCourses.length,
-    activeCourses: activeCourses.length,
-    totalStudents: studentCount // <-- Use the API response directly
-  });
-};
+      setAllCoursesData(allCourses);
 
 
-  const handleSubmit = () => {
+      // Filter courses for current faculty
+      const facultyCourses = allCourses.filter(
+        (course) => course.instructorName === profile?.profile?.name
+      );
+      setCourses(facultyCourses);
+
+
+      // Get active courses
+      const facultyActiveCourses = facultyCourses.filter(course => course.isActive);
+      setActiveCoursesData(facultyActiveCourses);
+
+      setStats(prev => ({
+        ...prev,
+        totalCourses: facultyCourses.length,
+        activeCourses: facultyActiveCourses.length
+      }));
+    } catch (error) {
+      console.error("Error loading courses:", error);
+      toast.error("Failed to load courses data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchStudentCount = async () => {
+    try {
+      if (!profile?.profile?.id) return;
+
+      const response = await api.get(
+        `/faculty-student-assigning/admin/assign/${profile.profile.id}/count`
+      );
+      const studentCount = response.data?.count || 0;
+
+      setStats(prev => ({
+        ...prev,
+        totalStudents: studentCount
+      }));
+    } catch (error) {
+      console.error("Error fetching student count:", error);
+      toast.error("Failed to load student count");
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      if (!profile?.profile?.id) return;
+
+      const response = await api.get(
+        `/faculty-student-assigning/admin/assign/${profile.profile.id}/count`
+      );
+      const students = response.data || [];
+      setStudentsData(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      toast.error("Failed to load students data");
+    }
+  };
+
+  const handleStudentsClick = async () => {
+    await fetchStudents();
+    setIsStudentsModalOpen(true);
+  };
+
+  const fetchActiveCourses = async () => {
+    try {
+      const response = await api.get('/course/details');
+      const allCourses: Course[] = response.data || [];
+      const activeCourses = allCourses.filter(
+        course => course.isActive && course.instructorName === profile?.profile?.name
+      );
+      setActiveCoursesData(activeCourses);
+    } catch (error) {
+      console.error("Error fetching active courses:", error);
+      toast.error("Failed to load active courses");
+    }
+  };
+
+  const handleActiveCoursesClick = async () => {
+    await fetchActiveCourses();
+    setIsActiveCoursesModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 
-    const newCourse: Course = {
-      id: Date.now().toString(),
-      ...formData,
-      facultyId: currentUser.id,
-      facultyName: currentUser.name,
-      isEnabled: true
-    };
+    try {
+      const newCourse = {
+        course_id: formData.courseId,
+        courseTitle: formData.name,
+        courseDescription: formData.description,
+        instructorName: profile?.profile?.name,
+        isActive: true
+      };
 
-    const existingCourses = JSON.parse(localStorage.getItem('courses') || '[]');
-    const updatedCourses = [...existingCourses, newCourse];
-    localStorage.setItem('courses', JSON.stringify(updatedCourses));
-    window.dispatchEvent(new CustomEvent('coursesUpdated'));
-
-    loadCourses();
-    setFormData({ courseId: "", name: "", description: "" });
-    setIsAddDialogOpen(false);
-    toast.success("Course added successfully");
+      const response = await api.post('/course/create', newCourse);
+      if (response.data) {
+        toast.success("Course created successfully");
+        loadCourses();
+        setFormData({ courseId: "", name: "", description: "" });
+        setIsAddDialogOpen(false);
+      }
+    } catch (error) {
+      console.error("Error creating course:", error);
+      toast.error("Failed to create course");
+    }
   };
 
   const handleEdit = (course: Course) => {
     setEditingCourse(course);
     setFormData({
-      courseId: course.courseId,
-      name: course.name,
-      description: course.description
+      courseId: course.course_id.toString(),
+      name: course.courseTitle,
+      description: course.courseDescription
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdate = () => {
-    if (!formData.courseId || !formData.name || !formData.description) {
+
+  const handleUpdate = async () => {
+    if (!editingCourse || !formData.courseId || !formData.name || !formData.description) {
       toast.error("Please fill all fields");
       return;
     }
 
-    const existingCourses = JSON.parse(localStorage.getItem('courses') || '[]');
-    const updatedCourses = existingCourses.map((course: Course) =>
-      course.id === editingCourse?.id
-        ? { ...course, ...formData }
-        : course
-    );
-    
-    localStorage.setItem('courses', JSON.stringify(updatedCourses));
-    window.dispatchEvent(new CustomEvent('coursesUpdated'));
-
-    loadCourses();
-    setFormData({ courseId: "", name: "", description: "" });
-    setEditingCourse(null);
-    setIsEditDialogOpen(false);
-    toast.success("Course updated successfully");
-  };
-
-  const getStudentAssignedCourses = (studentId: string) => {
     try {
-      const assignments = JSON.parse(localStorage.getItem('assignments') || '[]');
-      const allCourses = JSON.parse(localStorage.getItem('courses') || '[]');
-      
-      const studentAssignments = assignments.filter((assignment: Assignment) => 
-        assignment.studentId === studentId && assignment.facultyId === currentUser.id
-      );
-      
-      const courseNames = studentAssignments.map((assignment: Assignment) => {
-        const course = allCourses.find((c: Course) => c.id === assignment.courseId);
-        return course ? course.name : 'Unknown Course';
-      });
-      
-      return courseNames.length > 0 ? courseNames : ['No courses assigned'];
+      const updatedCourse = {
+        ...editingCourse,
+        course_id: parseInt(formData.courseId),
+        courseTitle: formData.name,
+        courseDescription: formData.description
+      };
+
+      const response = await api.put(`/course/update/${editingCourse.course_id}`, updatedCourse);
+      if (response.data) {
+        toast.success("Course updated successfully");
+        loadCourses();
+        setEditingCourse(null);
+        setIsEditDialogOpen(false);
+      }
     } catch (error) {
-      console.error('Error getting student assigned courses:', error);
-      return ['Error loading courses'];
+      toast.error("Failed to update course");
+
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <FacultyNavbar currentPage="/faculty/dashboard" />
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -203,12 +246,9 @@ const FacultyDashboard = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Faculty Dashboard</h1>
-              <p className="text-gray-600">Welcome to your faculty portal</p>
+              <p className="text-gray-600">Welcome, {profile?.profile?.name}</p>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>Add Course</Button>
-              </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Course</DialogTitle>
@@ -249,7 +289,6 @@ const FacultyDashboard = () => {
               </DialogContent>
             </Dialog>
 
-            {/* Edit Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogContent>
                 <DialogHeader>
@@ -294,51 +333,194 @@ const FacultyDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-              <div className="p-2 rounded-full bg-blue-500">
-                <BookOpen className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalCourses}</div>
-              <CardDescription className="text-xs text-muted-foreground">
-                All courses you've created
-              </CardDescription>
-            </CardContent>
-          </Card>
+          <div onClick={() => setIsCoursesModalOpen(true)} className="cursor-pointer">
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
+                <div className="p-2 rounded-full bg-blue-500">
+                  <BookOpen className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalCourses}</div>
+                <CardDescription className="text-xs text-muted-foreground">
+                  All courses you've created
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
-              <div className="p-2 rounded-full bg-green-500">
-                <UserCheck className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeCourses}</div>
-              <CardDescription className="text-xs text-muted-foreground">
-                Courses currently active
-              </CardDescription>
-            </CardContent>
-          </Card>
+          <div onClick={handleActiveCoursesClick} className="cursor-pointer">
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
+                <div className="p-2 rounded-full bg-green-500">
+                  <UserCheck className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.activeCourses}</div>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Courses currently active
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-              <div className="p-2 rounded-full bg-purple-500">
-                <Users className="h-4 w-4 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalStudents}</div>
-              <CardDescription className="text-xs text-muted-foreground">
-                Students enrolled in your courses
-              </CardDescription>
-            </CardContent>
-          </Card>
+          <div onClick={handleStudentsClick} className="cursor-pointer">
+            <Card className="hover:shadow-lg transition-shadow duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                <div className="p-2 rounded-full bg-purple-500">
+                  <Users className="h-4 w-4 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalStudents}</div>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Students assigned to you
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        <Dialog open={isCoursesModalOpen} onOpenChange={setIsCoursesModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>All Courses</DialogTitle>
+              <DialogDescription>
+                List of all your courses ({allCoursesData.length})
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {allCoursesData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Course ID</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allCoursesData.map((course) => (
+                      <TableRow key={course.course_id}>
+                        <TableCell className="font-medium">{course.course_id}</TableCell>
+                        <TableCell>{course.courseTitle}</TableCell>
+                        <TableCell className="truncate max-w-xs">{course.courseDescription}</TableCell>
+                        <TableCell>
+                          <Badge variant={course.isActive ? "default" : "secondary"}>
+                            {course.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">No courses found</h3>
+                  <p className="text-sm text-gray-500">
+                    You haven't created any courses yet
+                  </p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isActiveCoursesModalOpen} onOpenChange={setIsActiveCoursesModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Active Courses</DialogTitle>
+              <DialogDescription>
+                List of your currently active courses ({activeCoursesData.length})
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {activeCoursesData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Course ID</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeCoursesData.map((course) => (
+                      <TableRow key={course.course_id}>
+                        <TableCell className="font-medium">{course.course_id}</TableCell>
+                        <TableCell>{course.courseTitle}</TableCell>
+                        <TableCell>{course.dept}</TableCell>
+                        <TableCell>
+                          <Badge variant={course.isActive ? "default" : "secondary"}>
+                            {course.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <UserCheck className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">No active courses</h3>
+                  <p className="text-sm text-gray-500">
+                    You don't have any active courses at the moment
+                  </p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isStudentsModalOpen} onOpenChange={setIsStudentsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Assigned Students</DialogTitle>
+              <DialogDescription>
+                List of students assigned to you ({stats.totalStudents})
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {studentsData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Roll Number</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Department</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {studentsData.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell className="font-medium">{student.rollNumber}</TableCell>
+                        <TableCell>{student.name}</TableCell>
+                        <TableCell>{student.email}</TableCell>
+                        <TableCell>{student.department}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">No students assigned</h3>
+                  <p className="text-sm text-gray-500">
+                    You don't have any students assigned at the moment
+                  </p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Card className="mt-6">
           <CardHeader>
@@ -346,89 +528,44 @@ const FacultyDashboard = () => {
             <CardDescription>List of courses you have created</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map((course:any) => (
-                <Card key={course.id} className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{course.courseTitle}</CardTitle>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded text-sm ${course.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {course.isActive ? 'Active' : 'Disabled'}
-                        </span>
-                        {/* <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(course)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button> */}
+            {courses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {courses.map((course) => (
+                  <Card key={course.course_id} className="hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{course.courseTitle}</CardTitle>
+                        <Badge variant={course.isActive ? "default" : "secondary"}>
+                          {course.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-                    </div>
-                    <CardDescription>Course ID: {course.course_id}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-600">{course.courseDescription}</p>
-                  </CardContent>
-                </Card>
-              ))}
-              {courses.length === 0 && (
-                <div className="col-span-full text-center text-gray-500 py-8">
-                  No courses created yet. Click "Add Course" to get started.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Assigned Students</CardTitle>
-            <CardDescription>Students assigned to you by the admin</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {assignedStudents.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Roll Number</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Assigned Courses</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {assignedStudents.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.rollNumber}</TableCell>
-                      <TableCell>{student.name}</TableCell>
-                      <TableCell>{student.email}</TableCell>
-                      <TableCell>{student.department}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {getStudentAssignedCourses(student.id).map((courseName, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {courseName}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      <CardDescription>Course ID: {course.course_id}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {course.courseDescription || 'No description available'}
+                      </p>
+                      <div className="flex justify-end">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(course)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
               <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium mb-2">No assigned students</h3>
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">No courses found</h3>
                 <p className="text-sm text-gray-500">
-                  Students will appear here when they are assigned to you by the admin
+                  You haven't created any courses yet. Click "Add Course" to get started.
                 </p>
               </div>
             )}
           </CardContent>
-        </Card> */}
+        </Card>
       </div>
     </div>
   );

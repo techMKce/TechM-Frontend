@@ -59,7 +59,7 @@ const StudentAttendancePage = () => {
         percentage: Math.round(studentOverall.percentage)
       });
     } else {
-      setOverallAttendance(null);
+
     }
 
     // Fetch course-wise attendance

@@ -10,15 +10,12 @@ import { toast } from "sonner";
 import { User, GraduationCap, Briefcase, ArrowLeft, Camera } from "lucide-react";
 import StudentNavbar from "@/components/StudentNavbar";
 import FacultyNavbar from "@/components/FacultyNavbar";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/hooks/useAuth";
-// import axios from "axios";
 import profileApi from "@/service/api";
 
 export default function EditProfile() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  // const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState('basic');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,13 +23,10 @@ export default function EditProfile() {
   const isStudent = profile?.profile.role === 'STUDENT';
   const NavbarComponent = isStudent ? StudentNavbar : FacultyNavbar;
 
-
   const genderOptions = ["male", "female", "others"] as const;
   type Gender = typeof genderOptions[number];
   const firstGraduateOptions = ["yes", "no"] as const;
   const sslcBoardOptions = ["cbse", "state", "icse"] as const;
-
-
 
   const [formData, setFormData] = useState({
     image: "",
@@ -73,28 +67,10 @@ export default function EditProfile() {
     staffId: "",
     experience: "",
     designation: "",
-    // endYear: "",
-    // description: "",
-    // achievements: "",
-    // researchDetails: ""
-    workExperiences: [] as Array<{
-      organizationName?: string;
-      designation?: string;
-      startYear?: string;
-      endYear?: string;
-      description?: string;
-      achievements?: string;
-      researchDetails?: string;
-    }>,
-
-
-
-
-
-
-
-
-
+    endYear: "",
+    description: "",
+    achievements: "",
+    researchDetails: "",
   });
 
   useEffect(() => {
@@ -103,11 +79,10 @@ export default function EditProfile() {
       return;
     }
 
-    const id = profile.profile.id;
     fetchUserProfile();
   }, [profile, navigate]);
 
-  const id = profile.profile.id;
+  const id = profile?.profile.id;
 
   const fetchUserProfile = async () => {
     try {
@@ -119,7 +94,6 @@ export default function EditProfile() {
       const mapped = mapBackendToFrontend(response.data);
       setFormData(mapped);
     } catch (error) {
-      console.error("Failed to fetch user profile:", error);
       toast.error("Failed to load profile data. Please try again later.");
       if (error.response?.status === 403) {
         navigate('/login');
@@ -127,63 +101,7 @@ export default function EditProfile() {
     }
   };
 
-
-  if (!formData || !formData.email) {
-    return <div>Loading...</div>;
-  }
-
-
-
-
-
-
-
-  // function mapBackendToFrontend(data) {
-  //   return {
-  //     name: data.name || "",
-  //     email: data.email || "",
-  //     department: data.department || "",
-  //     gender: data.gender || "",
-  //     dob: data.dob || "",
-  //     phoneNum: data.phoneNum || "",
-  //     bloodGroup: data.bloodGroup || "",
-  //     nationality: data.nationality || "",
-  //     address: data.address || "",
-  //     adharNum: data.adharNum || "",
-  //     fatherName: data.fatherName || "",
-  //     motherName: data.motherName || "",
-  //     firstGraduate: data.firstGraduate || "",
-  //     institution: data.institutionName || "",
-  //     degree: data.degree || "",
-  //     program: data.program || "",
-  //     startYear: data.startYear || data.year || "",
-  //     expectedGraduation: data.gradutaionYear || "",
-  //     cgpa: data.cgpa || "",
-  //     githubProfile: data.githubProfile || "",
-  //     linkedInProfile: data.linkedInProfile || "",
-  //     sslcSchoolName: data.sslcSchoolName || "",
-  //     sslcStartYear: data.sslcStartYear || "",
-  //     sslcEndYear: data.sslcEndYear || "",
-  //     sslcPercentage: data.sslcPercentage || "",
-  //     sslcboardOfEducation: data.sslcboardOfEducation || "",
-  //     hscSchoolName: data.hscSchoolName || "",
-  //     hscStartYear: data.hscStartYear || "",
-  //     hscEndYear: data.hscEndYear || "",
-  //     hscPercentage: data.hscPercentage || "",
-  //     hscboardOfEducation: data.hscboardOfEducation || "",
-  //     rollNumber: data.rollNum || "",
-  //     staffId: data.staffId || "",
-  //     experience: data.experience || "",
-  //     designation: data.designation || "",
-  //     endYear: data.endYear || "",
-  //     description: data.description || "",
-  //     achievements: data.achievements || "",
-  //     researchDetails: data.researchDetails || ""
-  //   };
-  // }
-
   function mapBackendToFrontend(data: any) {
-    // Always return all fields expected by formData, with defaults if missing
     return {
       image: data.image || "",
       name: data.name || "",
@@ -191,45 +109,46 @@ export default function EditProfile() {
       department: data.department || "",
       gender: data.gender || "",
       dob: data.dob || "",
-      phoneNum: data.phoneNum || "",
+      phoneNum: data.phoneNum || data.mobile || "",
       bloodGroup: data.bloodGroup || "",
       nationality: data.nationality || "",
       address: data.address || "",
-      adharNum: data.adharNum || "",
+      adharNum: data.adharNum || data.aadharNumber || "",
       fatherName: data.fatherName || "",
       motherName: data.motherName || "",
       firstGraduate: data.firstGraduate || "",
-      institutionName: data.institutionName || "",
+      institutionName: data.institutionName || data.institution || "",
       degree: data.degree || "",
       program: data.program || "",
-      year: data.year || data.startYear || "",
+      year: data.year || "",
       semester: data.semester || "",
       startYear: data.startYear || "",
       expectedGraduation: data.gradutaionYear || data.expectedGraduation || "",
       cgpa: data.cgpa || "",
       githubProfile: data.githubProfile || "",
       linkedInProfile: data.linkedInProfile || "",
-      sslcSchoolName: data.sslcSchoolName || "",
-      sslcStartYear: data.sslcStartYear || "",
-      sslcEndYear: data.sslcEndYear || "",
-      sslcPercentage: data.sslcPercentage || "",
-      sslcboardOfEducation: data.sslcboardOfEducation || "",
-      hscSchoolName: data.hscSchoolName || "",
-      hscStartYear: data.hscStartYear || "",
-      hscEndYear: data.hscEndYear || "",
-      hscPercentage: data.hscPercentage || "",
-      hscboardOfEducation: data.hscboardOfEducation || "",
+      sslcSchoolName: data.sslcSchoolName || data.school10 || "",
+      sslcStartYear: data.sslcStartYear || data.startYear10 || "",
+      sslcEndYear: data.sslcEndYear || data.endYear10 || "",
+      sslcPercentage: data.sslcPercentage || data.percentage10 || "",
+      sslcboardOfEducation: data.sslcboardOfEducation || data.board10 || "",
+      hscSchoolName: data.hscSchoolName || data.school12 || "",
+      hscStartYear: data.hscStartYear || data.startYear12 || "",
+      hscEndYear: data.hscEndYear || data.endYear12 || "",
+      hscPercentage: data.hscPercentage || data.percentage12 || "",
+      hscboardOfEducation: data.hscboardOfEducation || data.board12 || "",
       rollNumber: data.rollNum || data.rollNumber || "",
       staffId: data.staffId || "",
       experience: data.experience || "",
       designation: data.designation || "",
-      workExperiences: data.workExperiences || [],
+      endYear: data.endYear || "",
+      description: data.description || "",
+      achievements: data.achievements || "",
+      researchDetails: data.researchDetails || ""
     };
   }
 
-  // Map frontend formData back to backend format for update
-  function mapFrontendToBackend(data) {
-    // Common fields for both student and faculty
+  function mapFrontendToBackend(data: any) {
     const commonFields = {
       image: data.image || null,
       name: data.name || "",
@@ -244,7 +163,7 @@ export default function EditProfile() {
       adharNum: data.adharNum || "",
     };
 
-    if (profile?.profile.role === 'STUDENT') {
+    if (isStudent) {
       return {
         ...commonFields,
         fatherName: data.fatherName || "",
@@ -278,20 +197,17 @@ export default function EditProfile() {
         staffId: data.staffId || "",
         experience: data.experience || "",
         designation: data.designation || "",
-        workExperiences: data.workExperiences?.map(exp => ({
-          organizationName: exp.organizationName || "",
-          designation: exp.designation || "",
-          startYear: exp.startYear || "",
-          endYear: exp.endYear || "",
-          description: exp.description || "",
-          achievements: exp.achievements || "",
-          researchDetails: exp.researchDetails || ""
-        })) || [],
+        institutionName: data.institutionName || "",
+        startYear: data.startYear || "",
+        endYear: data.endYear || "",
+        description: data.description || "",
+        achievements: data.achievements || "",
+        researchDetails: data.researchDetails || ""
       };
     }
   }
 
-  function cleanFormData(data) {
+  function cleanFormData(data: any) {
     const cleaned = { ...data };
     Object.keys(cleaned).forEach((key) => {
       if (cleaned[key] === "") {
@@ -301,9 +217,7 @@ export default function EditProfile() {
     return cleaned;
   }
 
-
-
-  const handleImageChange = async (e: any) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -314,7 +228,6 @@ export default function EditProfile() {
       setFormData({ ...formData, image: imageUrl });
       toast.success("Profile picture updated!");
     } catch (error) {
-      console.error("Error uploading image:", error);
       toast.error("Failed to update profile picture.");
     } finally {
       setIsUploading(false);
@@ -325,7 +238,7 @@ export default function EditProfile() {
     fileInputRef.current?.click();
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -355,8 +268,8 @@ export default function EditProfile() {
         navigate('/profile');
       }
     } catch (error) {
-      // Error handling remains the same
-      console.log(error);
+
+      toast.error("Failed to update profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -366,7 +279,6 @@ export default function EditProfile() {
     return <div>Loading...</div>;
   }
 
-  // const initials = currentUser.name ? currentUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U';
   const initials = formData.name ? formData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U';
   const sidebarItems = isStudent
     ? [
@@ -380,7 +292,7 @@ export default function EditProfile() {
 
   const getInputProps = (fieldName: string) => {
     const nonEditableStudentFields = ['name', 'rollNumber', 'email'];
-    const nonEditableFacultyFields = ['name', 'facultyId', 'email', 'department'];
+    const nonEditableFacultyFields = ['name', 'staffId', 'email', 'department'];
 
     const nonEditableFields = isStudent ? nonEditableStudentFields : nonEditableFacultyFields;
     const isEditable = !nonEditableFields.includes(fieldName);
@@ -404,10 +316,9 @@ export default function EditProfile() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Profile Image Upload */}
         <div className="flex justify-center mb-6">
           <div className="relative">
-            <Avatar className="w-24 h-24 cursor-pointer" onClick={handleAvatarClick}>
+            <Avatar className="w-24 h-24 cursor-pointer bg-gray-500" onClick={handleAvatarClick}>
               {formData.image ? (
                 <AvatarImage src={formData.image} alt="Profile" className="w-24 h-24" />
               ) : (
@@ -442,7 +353,8 @@ export default function EditProfile() {
             <Input
               id="name"
               value={formData.name || ""}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={handleChange}
+              name="name"
               {...getInputProps('name')}
             />
           </div>
@@ -453,7 +365,8 @@ export default function EditProfile() {
               <Input
                 id="rollNumber"
                 value={formData.rollNumber || ""}
-                onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })}
+                onChange={handleChange}
+                name="rollNumber"
                 {...getInputProps('rollNumber')}
               />
             </div>
@@ -463,7 +376,8 @@ export default function EditProfile() {
               <Input
                 id="staffId"
                 value={formData.staffId || ""}
-                onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
+                onChange={handleChange}
+                name="staffId"
                 {...getInputProps('staffId')}
               />
             </div>
@@ -475,7 +389,8 @@ export default function EditProfile() {
               id="email"
               type="email"
               value={formData.email || ""}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={handleChange}
+              name="email"
               {...getInputProps('email')}
             />
           </div>
@@ -487,8 +402,8 @@ export default function EditProfile() {
                 <Input
                   id="fatherName"
                   value={formData.fatherName || ""}
-                  onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
-                  {...getInputProps('fatherName')}
+                  onChange={handleChange}
+                  name="fatherName"
                 />
               </div>
 
@@ -497,28 +412,19 @@ export default function EditProfile() {
                 <Input
                   id="motherName"
                   value={formData.motherName || ""}
-                  onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
-                  {...getInputProps('motherName')}
+                  onChange={handleChange}
+                  name="motherName"
                 />
               </div>
 
-              {/* <div className="space-y-2">
-                <Label htmlFor="firstGraduate">First Graduate</Label>
-                <Input
-                  id="firstGraduate"
-                  value={formData.firstGraduate || ""}
-                  onChange={(e) => setFormData({ ...formData, firstGraduate: e.target.value })}
-                  {...getInputProps('firstGraduate')}
-                />
-              </div> */}
               <div className="space-y-2">
                 <Label htmlFor="firstGraduate">First Graduate</Label>
                 <select
                   id="firstGraduate"
                   value={formData.firstGraduate || ""}
-                  onChange={(e) => setFormData({ ...formData, firstGraduate: e.target.value })}
+                  onChange={handleChange}
+                  name="firstGraduate"
                   className="border p-2 rounded w-full"
-                  {...getInputProps('firstGraduate')}
                 >
                   <option value="">Select option</option>
                   {firstGraduateOptions.map((option) => (
@@ -528,8 +434,6 @@ export default function EditProfile() {
                   ))}
                 </select>
               </div>
-
-
             </>
           )}
 
@@ -540,7 +444,8 @@ export default function EditProfile() {
                 <Input
                   id="department"
                   value={formData.department || ""}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  onChange={handleChange}
+                  name="department"
                   {...getInputProps('department')}
                 />
               </div>
@@ -550,30 +455,21 @@ export default function EditProfile() {
                 <Input
                   id="experience"
                   value={formData.experience || ""}
-                  onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                  {...getInputProps('experience')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="designation">Designation</Label>
-                <Input
-                  id="designation"
-                  value={formData.designation || ""}
-                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                  {...getInputProps('designation')}
+                  onChange={handleChange}
+                  name="experience"
+                  placeholder="e.g. 5 years"
                 />
               </div>
             </>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="mobile">Mobile Number</Label>
+            <Label htmlFor="phoneNum">Mobile Number</Label>
             <Input
-              id="mobile"
+              id="phoneNum"
               value={formData.phoneNum || ""}
-              onChange={(e) => setFormData({ ...formData, phoneNum: e.target.value })}
-              {...getInputProps('phoneNum')}
+              onChange={handleChange}
+              name="phoneNum"
             />
           </div>
 
@@ -583,8 +479,8 @@ export default function EditProfile() {
               id="dob"
               type="date"
               value={formData.dob || ""}
-              onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-              {...getInputProps('dob')}
+              onChange={handleChange}
+              name="dob"
             />
           </div>
 
@@ -593,9 +489,9 @@ export default function EditProfile() {
             <select
               id="gender"
               value={formData.gender || ""}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-              className="border p-2 rounded w-full" // Add styling if needed
-              {...getInputProps('gender')}
+              onChange={handleChange}
+              name="gender"
+              className="border p-2 rounded w-full"
             >
               <option value="">Select gender</option>
               <option value="male">Male</option>
@@ -604,14 +500,13 @@ export default function EditProfile() {
             </select>
           </div>
 
-
           <div className="space-y-2">
             <Label htmlFor="bloodGroup">Blood Group</Label>
             <Input
               id="bloodGroup"
               value={formData.bloodGroup || ""}
-              onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-              {...getInputProps('bloodGroup')}
+              onChange={handleChange}
+              name="bloodGroup"
             />
           </div>
 
@@ -620,8 +515,8 @@ export default function EditProfile() {
             <Input
               id="adharNum"
               value={formData.adharNum || ""}
-              onChange={(e) => setFormData({ ...formData, adharNum: e.target.value })}
-              {...getInputProps('adharNum')}
+              onChange={handleChange}
+              name="adharNum"
             />
           </div>
 
@@ -630,8 +525,8 @@ export default function EditProfile() {
             <Input
               id="nationality"
               value={formData.nationality || ""}
-              onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-              {...getInputProps('nationality')}
+              onChange={handleChange}
+              name="nationality"
             />
           </div>
         </div>
@@ -641,7 +536,8 @@ export default function EditProfile() {
           <Textarea
             id="address"
             value={formData.address || ""}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            onChange={handleChange}
+            name="address"
           />
         </div>
       </CardContent>
@@ -657,17 +553,16 @@ export default function EditProfile() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
-        {/* College Details */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">College Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="institution">Institution *</Label>
+              <Label htmlFor="institutionName">Institution *</Label>
               <Input
-                id="institution"
+                id="institutionName"
                 value={formData.institutionName || ""}
-                onChange={(e) => setFormData({ ...formData, institutionName: e.target.value })}
-                {...getInputProps('institution')}
+                onChange={handleChange}
+                name="institutionName"
               />
             </div>
 
@@ -676,8 +571,8 @@ export default function EditProfile() {
               <Input
                 id="degree"
                 value={formData.degree || ""}
-                onChange={(e) => setFormData({ ...formData, degree: e.target.value })}
-                {...getInputProps('degree')}
+                onChange={handleChange}
+                name="degree"
               />
             </div>
 
@@ -686,8 +581,8 @@ export default function EditProfile() {
               <Input
                 id="program"
                 value={formData.program || ""}
-                onChange={(e) => setFormData({ ...formData, program: e.target.value })}
-                {...getInputProps('program')}
+                onChange={handleChange}
+                name="program"
               />
             </div>
 
@@ -696,8 +591,8 @@ export default function EditProfile() {
               <Input
                 id="startYear"
                 value={formData.startYear || ""}
-                onChange={(e) => setFormData({ ...formData, startYear: e.target.value })}
-                {...getInputProps('startYear')}
+                onChange={handleChange}
+                name="startYear"
               />
             </div>
 
@@ -706,8 +601,8 @@ export default function EditProfile() {
               <Input
                 id="expectedGraduation"
                 value={formData.expectedGraduation || ""}
-                onChange={(e) => setFormData({ ...formData, expectedGraduation: e.target.value })}
-                {...getInputProps('expectedGraduation')}
+                onChange={handleChange}
+                name="expectedGraduation"
               />
             </div>
 
@@ -716,8 +611,8 @@ export default function EditProfile() {
               <Input
                 id="cgpa"
                 value={formData.cgpa || ""}
-                onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
-                {...getInputProps('cgpa')}
+                onChange={handleChange}
+                name="cgpa"
               />
             </div>
 
@@ -726,24 +621,23 @@ export default function EditProfile() {
               <Input
                 id="githubProfile"
                 value={formData.githubProfile || ""}
-                onChange={(e) => setFormData({ ...formData, githubProfile: e.target.value })}
-                {...getInputProps('githubProfile')}
+                onChange={handleChange}
+                name="githubProfile"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="linkedinProfile">LinkedIn Profile</Label>
+              <Label htmlFor="linkedInProfile">LinkedIn Profile</Label>
               <Input
                 id="linkedInProfile"
                 value={formData.linkedInProfile || ""}
-                onChange={(e) => setFormData({ ...formData, linkedInProfile: e.target.value })}
-                {...getInputProps('linkedInProfile')}
+                onChange={handleChange}
+                name="linkedInProfile"
               />
             </div>
           </div>
         </div>
 
-        {/* 10th Details */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">10th Standard</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -752,8 +646,8 @@ export default function EditProfile() {
               <Input
                 id="sslcSchoolName"
                 value={formData.sslcSchoolName || ""}
-                onChange={(e) => setFormData({ ...formData, sslcSchoolName: e.target.value })}
-                {...getInputProps('sslcSchoolName')}
+                onChange={handleChange}
+                name="sslcSchoolName"
               />
             </div>
 
@@ -762,8 +656,8 @@ export default function EditProfile() {
               <Input
                 id="sslcStartYear"
                 value={formData.sslcStartYear || ""}
-                onChange={(e) => setFormData({ ...formData, sslcStartYear: e.target.value })}
-                {...getInputProps('sslcStartYear')}
+                onChange={handleChange}
+                name="sslcStartYear"
               />
             </div>
 
@@ -772,8 +666,8 @@ export default function EditProfile() {
               <Input
                 id="sslcEndYear"
                 value={formData.sslcEndYear || ""}
-                onChange={(e) => setFormData({ ...formData, sslcEndYear: e.target.value })}
-                {...getInputProps('sslcEndYear')}
+                onChange={handleChange}
+                name="sslcEndYear"
               />
             </div>
 
@@ -782,72 +676,8 @@ export default function EditProfile() {
               <Input
                 id="sslcPercentage"
                 value={formData.sslcPercentage || ""}
-                onChange={(e) => setFormData({ ...formData, sslcPercentage: e.target.value })}
-                {...getInputProps('sslcPercentage')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hscboardOfEducation">Board of Education</Label>
-              <select
-                id="hscboardOfEducation"
-                value={formData.hscboardOfEducation || ""}
-                onChange={(e) => setFormData({ ...formData, hscboardOfEducation: e.target.value })}
-                className="border p-2 rounded w-full"
-                {...getInputProps('hscboardOfEducation')}
-              >
-                <option value="">Select board</option>
-                {sslcBoardOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* 12th Details */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">12th Standard / Diploma</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hscSchoolName">School Name</Label>
-              <Input
-                id="hscSchoolName"
-                value={formData.hscSchoolName || ""}
-                onChange={(e) => setFormData({ ...formData, hscSchoolName: e.target.value })}
-                {...getInputProps('hscSchoolName')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hscStartYear">Start Year</Label>
-              <Input
-                id="hscStartYear"
-                value={formData.hscStartYear || ""}
-                onChange={(e) => setFormData({ ...formData, hscStartYear: e.target.value })}
-                {...getInputProps('hscStartYear')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hscEndYear">End Year</Label>
-              <Input
-                id="hscEndYear"
-                value={formData.hscEndYear || ""}
-                onChange={(e) => setFormData({ ...formData, hscEndYear: e.target.value })}
-                {...getInputProps('hscEndYear')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hscPercentage">Percentage</Label>
-              <Input
-                id="hscPercentage"
-                value={formData.hscPercentage || ""}
-                onChange={(e) => setFormData({ ...formData, hscPercentage: e.target.value })}
-                {...getInputProps('hscPercentage')}
+                onChange={handleChange}
+                name="sslcPercentage"
               />
             </div>
 
@@ -856,9 +686,9 @@ export default function EditProfile() {
               <select
                 id="sslcboardOfEducation"
                 value={formData.sslcboardOfEducation || ""}
-                onChange={(e) => setFormData({ ...formData, sslcboardOfEducation: e.target.value })}
+                onChange={handleChange}
+                name="sslcboardOfEducation"
                 className="border p-2 rounded w-full"
-                {...getInputProps('sslcboardOfEducation')}
               >
                 <option value="">Select board</option>
                 {sslcBoardOptions.map((option) => (
@@ -868,143 +698,165 @@ export default function EditProfile() {
                 ))}
               </select>
             </div>
+          </div>
+        </div>
 
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">12th Standard / Diploma</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hscSchoolName">School Name</Label>
+              <Input
+                id="hscSchoolName"
+                value={formData.hscSchoolName || ""}
+                onChange={handleChange}
+                name="hscSchoolName"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hscStartYear">Start Year</Label>
+              <Input
+                id="hscStartYear"
+                value={formData.hscStartYear || ""}
+                onChange={handleChange}
+                name="hscStartYear"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hscEndYear">End Year</Label>
+              <Input
+                id="hscEndYear"
+                value={formData.hscEndYear || ""}
+                onChange={handleChange}
+                name="hscEndYear"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hscPercentage">Percentage</Label>
+              <Input
+                id="hscPercentage"
+                value={formData.hscPercentage || ""}
+                onChange={handleChange}
+                name="hscPercentage"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hscboardOfEducation">Board of Education</Label>
+              <select
+                id="hscboardOfEducation"
+                value={formData.hscboardOfEducation || ""}
+                onChange={handleChange}
+                name="hscboardOfEducation"
+                className="border p-2 rounded w-full"
+              >
+                <option value="">Select board</option>
+                {sslcBoardOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </CardContent>
     </Card>
   );
 
-  const renderWorkExperience = () => {
-    // Initialize workExperiences as an array, defaulting to empty array if undefined
-    const workExperiences = formData.workExperiences || [];
+  const renderWorkExperience = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Briefcase className="h-5 w-5" />
+          Work Experience
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="institutionName">Organization</Label>
+            <Input
+              id="institutionName"
+              value={formData.institutionName || ""}
+              onChange={handleChange}
+              name="institutionName"
+              placeholder="Company/University name"
+            />
+          </div>
 
-    const addExperience = () => {
-      const newExperiences = [...workExperiences, {}];
-      setFormData({ ...formData, workExperiences: newExperiences });
-    };
+          <div className="space-y-2">
+            <Label htmlFor="designation">Designation</Label>
+            <Input
+              id="designation"
+              value={formData.designation || ""}
+              onChange={handleChange}
+              name="designation"
+              placeholder="Your position/role"
+            />
+          </div>
 
-    const deleteExperience = (index: number) => {
-      const newExperiences = workExperiences.filter((_, i) => i !== index);
-      setFormData({ ...formData, workExperiences: newExperiences });
-    };
+          <div className="space-y-2">
+            <Label htmlFor="startYear">Start Year</Label>
+            <Input
+              id="startYear"
+              type="date"
+              value={formData.startYear || ""}
+              onChange={handleChange}
+              name="startYear"
+            />
+          </div>
 
-    const updateExperience = (index: number, field: string, value: string) => {
-      const newExperiences = [...workExperiences];
-      newExperiences[index] = { ...newExperiences[index], [field]: value };
-      setFormData({ ...formData, workExperiences: newExperiences });
-    };
+          <div className="space-y-2">
+            <Label htmlFor="endYear">End Year</Label>
+            <Input
+              id="endYear"
+              type="date"
+              value={formData.endYear || ""}
+              onChange={handleChange}
+              name="endYear"
+            />
+          </div>
+        </div>
 
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5" />
-              Work Experience
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addExperience}
-              className="flex items-center gap-2"
-            >
-              <span className="text-lg">+</span>
-              Add Experience
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          {workExperiences.map((experience: any, index: number) => (
-            <div key={index} className="border rounded-lg p-4 space-y-6 relative">
-              {workExperiences.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteExperience(index)}
-                  className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50"
-                >
-                  <span className="text-lg">×</span>
-                </Button>
-              )}
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description || ""}
+            onChange={handleChange}
+            name="description"
+            placeholder="Describe your responsibilities and achievements"
+          />
+        </div>
 
-              <h3 className="text-lg font-semibold">Experience {index + 1}</h3>
+        <div className="space-y-2">
+          <Label htmlFor="achievements">Achievements</Label>
+          <Textarea
+            id="achievements"
+            value={formData.achievements || ""}
+            onChange={handleChange}
+            name="achievements"
+            placeholder="Notable accomplishments in this role"
+          />
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`organizationName-${index}`}>Organization Name</Label>
-                  <Input
-                    id={`organizationName-${index}`}
-                    value={experience.organizationName || ""}
-                    onChange={(e) => updateExperience(index, 'organizationName', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`designation-${index}`}>Designation</Label>
-                  <Input
-                    id={`designation-${index}`}
-                    value={experience.designation || ""}
-                    onChange={(e) => updateExperience(index, 'designation', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`startYear-${index}`}>Start Year</Label>
-                  <Input
-                    id={`startYear-${index}`}
-                    type="date"
-                    value={experience.startYear || ""}
-                    onChange={(e) => updateExperience(index, 'startYear', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`endYear-${index}`}>End Year</Label>
-                  <Input
-                    id={`endYear-${index}`}
-                    type="date"
-                    value={experience.endYear || ""}
-                    onChange={(e) => updateExperience(index, 'endYear', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`description-${index}`}>Description</Label>
-                <Textarea
-                  id={`description-${index}`}
-                  value={experience.description || ""}
-                  onChange={(e) => updateExperience(index, 'description', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`achievements-${index}`}>Achievements</Label>
-                <Textarea
-                  id={`achievements-${index}`}
-                  value={experience.achievements || ""}
-                  onChange={(e) => updateExperience(index, 'achievements', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`researchDetails-${index}`}>Research Details</Label>
-                <Textarea
-                  id={`researchDetails-${index}`}
-                  value={experience.researchDetails || ""}
-                  onChange={(e) => updateExperience(index, 'researchDetails', e.target.value)}
-                />
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    );
-  };
-
+        <div className="space-y-2">
+          <Label htmlFor="researchDetails">Research Details</Label>
+          <Textarea
+            id="researchDetails"
+            value={formData.researchDetails || ""}
+            onChange={handleChange}
+            name="researchDetails"
+            placeholder="Details of any research work or publications"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   const renderContent = () => {
     switch (activeSection) {

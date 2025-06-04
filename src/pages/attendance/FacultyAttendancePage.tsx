@@ -100,8 +100,6 @@ const FacultyAttendancePage = () => {
       const facultyAssignments: FacultyAssignment[] = response.data;
 
 
-      // Get unique course IDs
-      console.log("Sample Attendance Page ",facultyAssignments);
       const courseIds = [
         ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
       ];
@@ -158,12 +156,14 @@ const FacultyAttendancePage = () => {
         deptName: student.program,
         batch: student.year,
         sem: student.semester,
+
       }));
 
       setAllStudents(allStudentsData);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load faculty data");
+
     }
   };
 
@@ -181,6 +181,7 @@ const FacultyAttendancePage = () => {
     setAbsenteeCount(0);
     toast.info("All filters have been reset");
   };
+
 
   const validateForm = () => {
     if (!formData.course) {
@@ -246,7 +247,6 @@ const FacultyAttendancePage = () => {
 
       toast.success("Student list generated successfully");
     } catch (error) {
-      console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
     }
   };
@@ -254,7 +254,7 @@ const FacultyAttendancePage = () => {
   const handleSubmitAttendance = async () => {
     if (!validateForm()) return;
     if (students.length === 0) {
-      toast.error("No students to mark attendance for");
+      toast.info("No students to mark attendance for");
       return;
     }
 
@@ -276,14 +276,15 @@ const FacultyAttendancePage = () => {
         dates: formData.date,
       }));
 
+
       await api.post("/attendance/attendanceupdate", attendanceRecords);
+
 
       const absentees = students.filter(s => !s.isPresent).length;
       setAbsenteeCount(absentees);
       setIsFormSubmitted(true);
       toast.success("Attendance marked successfully");
     } catch (error) {
-      console.error("Error submitting attendance:", error);
       toast.error("Failed to submit attendance");
     } finally {
       setLoading(false);
@@ -294,6 +295,7 @@ const FacultyAttendancePage = () => {
     <>
       <Navbar />
       <div className="page-container max-w-4xl mx-auto">
+
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Attendance Management</h1>
           <p className="mt-2">Manage student attendance and view reports</p>

@@ -46,8 +46,9 @@ function useStudentProgress(courseId: string, studentId: string) {
         const response = await api.get(
           `/submissions/courses/${courseId}/student-progress`
         );
+        // here course id set by default after integration change this
         const attendanceResponse = await api.get(
-          `/attendance/getstudentbyid?id=CS124`
+          `/attendance/getstudentbyid?id=038`
         );
 
         const userProgress = response.data.students.find(
@@ -58,10 +59,9 @@ function useStudentProgress(courseId: string, studentId: string) {
         const attendanceProgress = attendanceResponse.data.find(
           (record: AttendanceRecord) =>
             record.stdId === studentId && record.courseId === courseId
-            // record.stdId === "CS124" && record.courseId === "17"
+            // record.stdId === "038" && record.courseId === "15"
         );
 
-        //  console.log("attendance percentage: ", attendanceResponse.data);
 
         // set user course progress
         setProgresPercentage(
@@ -75,7 +75,6 @@ function useStudentProgress(courseId: string, studentId: string) {
         setLoading(false);
       } catch (error) {
         setLoading(false);
-        console.error("Error fetching progress data:", error);
       } finally {
         setLoading(false);
       }
@@ -92,7 +91,6 @@ export const StudentProgressDisplay = ({
 }: StudentProgressDisplayProps) => {
   const { progresPercentage, loading, error, attendancePercentage } =
     useStudentProgress(courseId, studentId);
-  // console.log("user percentage: ", progresPercentage);
 
   if (loading) {
     return <div className="text-center py-4">Loading progress...</div>;

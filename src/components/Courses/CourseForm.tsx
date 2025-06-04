@@ -1,5 +1,6 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { toast } from "sonner";
 
 type CourseFormData = {
   course_id: string;
@@ -51,6 +52,8 @@ const CourseForm = ({
     imageUrl: "",
   });
 
+  // add field->> courseCode 
+
   useEffect(() => {
     if (isEditMode && initialData) {
       setFormData({
@@ -91,12 +94,12 @@ const CourseForm = ({
     const credit = Number(formData.credit);
 
     if (isNaN(duration) || duration <= 0) {
-      alert("Please enter a valid duration (must be positive number)");
+      toast.warning("Please enter a valid duration (must be positive number)");
       return;
     }
 
     if (isNaN(credit) || credit <= 0) {
-      alert("Please enter valid credits (must be positive number)");
+      toast.warning("Please enter valid credits (must be positive number)");
       return;
     }
 
