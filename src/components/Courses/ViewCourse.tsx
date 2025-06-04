@@ -766,9 +766,9 @@ function ViewCourse() {
                                     rows={4}
                                   />
                                 ) : (
-                                  <p className="mb-4 text-gray-800">
+                                  <pre className="font-sans mb-4 text-gray-800">
                                     {section.sectionDesc}
-                                  </p>
+                                  </pre>
                                 )}
                                 <SectionContent
                                   key={section.section_id}
@@ -793,6 +793,7 @@ function ViewCourse() {
             {showAssignments && (
               <DisplayAssignments
                 courseId={course.course_id}
+                
                 showAssignments={showAssignments}
               />
             )}
