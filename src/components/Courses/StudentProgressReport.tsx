@@ -110,10 +110,10 @@ const StudentProgressReport = ({ courseId }: StudentProgressReportProps) => {
 
     fetchProgressData();
   }, []);
-// rendered table
+  // rendered table
   const renderAssignmentGrades = (student: Student) => {
     return (
-      <div key={student.studentRollNumber}>
+      <div key={student.studentRollNumber} className="flex-1 overflow-y-auto">
         <table className="min-w-full divide-y ">
           <thead className="bg-gray-50">
             <tr>
@@ -182,8 +182,7 @@ const StudentProgressReport = ({ courseId }: StudentProgressReportProps) => {
     );
   };
 
-
- // return table if it available
+  // return table if it available
   return (
     <div className="overflow-x-auto">
       {loading ? (
@@ -191,23 +190,27 @@ const StudentProgressReport = ({ courseId }: StudentProgressReportProps) => {
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-800"></div>
         </div>
       ) : (
-        <div>
+        <div className="flex flex-col h-full">
           <div className="flex justify-between mb-3">
             <h2 className="text-2xl font-bold">Student Progress Report</h2>
             {students.length > 0 && (
-              <button
-                onClick={() => downloadCSV(students)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  {isExporting ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Download className="w-5 h-5" />
-                  )}
-                  {isExporting ? "Exporting..." : "Download Report"}
-                </span>
-              </button>
+              <div className="sticky bottom-0 py-2 bg-gradient-to-t from-white to-transparent">
+                <div className="flex justify-end px-4">
+                  <button
+                    onClick={() => downloadCSV(students)}
+                    className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      {isExporting ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Download className="w-5 h-5" />
+                      )}
+                      {isExporting ? "Exporting..." : "Download Report"}
+                    </span>
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
