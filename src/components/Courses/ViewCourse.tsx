@@ -542,23 +542,22 @@ function ViewCourse() {
 
             {/* Toggle between Sections and Assignments and View report button */}
             <div className="flex mb-4 border-b border-gray-200">
-              {role === "FACULTY" &&
-                 (
-                  <button
-                    onClick={() => {
-                      setShowSection(true);
-                      setShowAssignments(false);
-                      setShowReport(false);
-                    }}
-                    className={`px-4 py-2 font-medium ${
-                      showSection
-                        ? "text-gray-800 border-b-2 border-gray-800"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    Sections
-                  </button>
-                )}
+              {role === "FACULTY" && (
+                <button
+                  onClick={() => {
+                    setShowSection(true);
+                    setShowAssignments(false);
+                    setShowReport(false);
+                  }}
+                  className={`px-4 py-2 font-medium ${
+                    showSection
+                      ? "text-gray-800 border-b-2 border-gray-800"
+                      : "text-gray-500"
+                  }`}
+                >
+                  Sections
+                </button>
+              )}
               {isEnrolled && role === "STUDENT" && (
                 <button
                   onClick={() => {
@@ -608,22 +607,23 @@ function ViewCourse() {
                   Assignments
                 </button>
               )}
-              {role === "FACULTY" && ( profile.profile.name === course.instructorName)&&(
-                <button
-                  onClick={() => {
-                    setShowSection(false);
-                    setShowAssignments(false);
-                    setShowReport(true);
-                  }}
-                  className={`px-4 py-2 font-medium ${
-                    showReport
-                      ? "text-gray-800 border-b-2 border-gray-800"
-                      : "text-gray-500"
-                  }`}
-                >
-                  View Report
-                </button>
-              )}
+              {role === "FACULTY" &&
+                profile.profile.name === course.instructorName && (
+                  <button
+                    onClick={() => {
+                      setShowSection(false);
+                      setShowAssignments(false);
+                      setShowReport(true);
+                    }}
+                    className={`px-4 py-2 font-medium ${
+                      showReport
+                        ? "text-gray-800 border-b-2 border-gray-800"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    View Report
+                  </button>
+                )}
             </div>
             {/* handle add section */}
             {showSection && (
@@ -820,45 +820,45 @@ function ViewCourse() {
                 )}
 
                 {/* Quick Actions / Handle add section and handle edit course details */}
-                {(role === "FACULTY" || role === "ADMIN") && 
-                (profile.profile.name === course.instructorName)&&(
-                  <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                    <h2 className="text-xl font-bold mb-4 text-gray-800">
-                      Quick Actions
-                    </h2>
-                    <div className="space-y-3">
-                      <button
-                        onClick={() => setShowAddSection((prev) => !prev)}
-                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
-                      >
-                        <PlusIcon className="w-5 h-5" />
-                        {showAddSection
-                          ? "Hide Add Section"
-                          : "Add New Section"}
-                      </button>
-                      <button
-                        onClick={handleEditCourse}
-                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
-                      >
-                        <PencilSquareIcon className="w-5 h-5" />
-                        Edit Course Details
-                      </button>
-                      {/* create assignment button link to assignment team page */}
-                      <Link
-                        to="/faculty/assignments/create"
-                        state={{
-                          course_id: course.course_id,
-                          courseTitle: course.courseTitle,
-                        }}
-                      >
-                        <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
+                {(role === "FACULTY" || role === "ADMIN") &&
+                  profile.profile.name === course.instructorName && (
+                    <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                      <h2 className="text-xl font-bold mb-4 text-gray-800">
+                        Quick Actions
+                      </h2>
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => setShowAddSection((prev) => !prev)}
+                          className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+                        >
                           <PlusIcon className="w-5 h-5" />
-                          Create New Assignment
+                          {showAddSection
+                            ? "Hide Add Section"
+                            : "Add New Section"}
                         </button>
-                      </Link>
+                        <button
+                          onClick={handleEditCourse}
+                          className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer"
+                        >
+                          <PencilSquareIcon className="w-5 h-5" />
+                          Edit Course Details
+                        </button>
+                        {/* create assignment button link to assignment team page */}
+                        <Link
+                          to="/faculty/assignments/create"
+                          state={{
+                            course_id: course.course_id,
+                            courseTitle: course.courseTitle,
+                          }}
+                        >
+                          <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
+                            <PlusIcon className="w-5 h-5" />
+                            Create New Assignment
+                          </button>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           )}
