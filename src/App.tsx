@@ -53,6 +53,9 @@ import { Outlet, Navigate } from "react-router-dom";
 import CourseList from "./components/Courses/CourseList";
 import ViewCourse from "./components/Courses/ViewCourse";
 
+
+
+
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -73,7 +76,6 @@ const ProtectedRoute = () => {
 
 const DashboardSelector = () => {
   const { profile } = useAuth();
-  console.log("At dbSelector : Profile:", profile);
   switch (profile?.profile.role) {
     case "STUDENT":
       return <StudentDashboard />;
@@ -103,6 +105,7 @@ const RoleProtectedRoute = ({
 };
 
 const AppRoutes = () => (
+  <>
   <Routes>
     {/* Public routes - no protection needed */}
     <Route path="/login" element={<Login />} />
@@ -293,13 +296,30 @@ const AppRoutes = () => (
       <Route path="*" element={<NotFound />} />
     </Route>
   </Routes>
+  </>
 );
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner
+    // position="top-center"
+    theme="light"
+    toastOptions={{
+      classNames: {
+        error: "bg-red-100 text-red-800 border-l-4 border-red-600",
+        success: "bg-green-100 text-green-800 border-l-4 border-green-600",
+        info: "bg-blue-100 text-blue-800 border-l-4 border-blue-600",
+        warning:"bg-yellow-100 text-yellow-800 border-l-4 border-yellow-600"
+      },
+      style: {
+        fontSize: "14px",
+        fontFamily: "Inter, sans-serif",
+        padding: "16px",
+      },
+    }}
+  />
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>

@@ -23,15 +23,12 @@ export default function ViewProfile() {
 
 
   useEffect(() => {
-    console.log("profile:", profile); // Check if auth exists
     if (!profile) {
-      console.warn("No profile - redirecting");
       navigate('/');
       return;
     }
 
     const id = profile.profile.id;
-    console.log("Fetching profile for ID:", id);
 
 
     const fetchProfile = async () => {
@@ -45,7 +42,6 @@ export default function ViewProfile() {
 
       try {
         const id = profile.profile.id;
-        console.log("Fetching profile for ID:", id);
 
         // Use different endpoints based on user role
         const endpoint = profile.profile.role === 'STUDENT'
@@ -60,7 +56,6 @@ export default function ViewProfile() {
           throw new Error("No profile data received");
         }
       } catch (err) {
-        console.error("Profile fetch error:", err);
 
         if (axios.isAxiosError(err)) {
           if (err.response?.status === 404) {
@@ -102,7 +97,6 @@ export default function ViewProfile() {
 
 
   function mapBackendToFrontend(data: any) {
-    console.log("Mapping backend data to frontend format:");
     return {
       // Basic Info
       image: data.image,

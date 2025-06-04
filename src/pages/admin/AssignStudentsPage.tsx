@@ -17,10 +17,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { toast} from "sonner";
 import api from "../../service/api";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
 interface Student {
   id: string;
   name: string;
@@ -77,7 +76,7 @@ const AssignStudentsPage = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]);
   const [selectedFaculty, setSelectedFaculty] = useState<string>(null);
-
+  const[loader,setLoader]=useState(false);
   useEffect(() => {
     const fetchData = async () => {
       const deptResponse = await api.get("/profile/faculty/departments");
@@ -86,7 +85,6 @@ const AssignStudentsPage = () => {
         return;
       }
       const departmentsData: string[] = deptResponse.data.filter(dep => dep !== null);
-      console.log(departmentsData);
       setDepartments(departmentsData);
 
       const courseResponse = await api.get("/course/details");
@@ -116,7 +114,6 @@ const AssignStudentsPage = () => {
           toast.error("Failed to load faculty");
           return;
         }
-        console.log(response.data);
         const facultyData: Faculty[] = response.data.map((f: any) => ({
           id: f.staffId,
           name: f.name,
@@ -134,7 +131,6 @@ const AssignStudentsPage = () => {
         toast.error("Failed to load faculty");
         return;
       }
-      console.log(response.data);
       const facultyData: Faculty[] = response.data.map((f: any) => ({
         id: f.staffId,
         name: f.name,
@@ -150,16 +146,13 @@ const AssignStudentsPage = () => {
   useEffect(() => {
     if(!selectedCourse) return;
     const fetchEnrolledStudents = async () => {
-      console.log("Fetching enrolled students for course:", selectedCourse);
       const response = await api.get(`/course-enrollment/by-course/${selectedCourse?.id}`);
       if (response.status !== 200) {
         toast.error("Failed to load enrolled students");
         return;
       }
       const rollNumbers = response.data.rollNums;
-      console.log("Enrolled students roll numbers:", rollNumbers);
       const studentsResponse = await api.get("/profile/student");
-      console.log("Students response:", studentsResponse.data);
       const studentsData: Student[] = studentsResponse.data.map((s: any) => ({
         id: s.rollNum,
         name: s.name,
@@ -168,14 +161,12 @@ const AssignStudentsPage = () => {
         department: s.program,
       }));
       setStudents(studentsData);
-      console.log("All students data:", students);
       const enrollmentData: User[] = studentsResponse.data.map((s: any) => ({
         id: s.rollNum,
         name: s.name,
         type: "student",
         status: `Roll: ${s.rollNum}`,
       })).filter((s:any) => s.id && rollNumbers.includes(s.id));
-      console.log("Filtered enrolled students:", enrollmentData);
       setEnrolledUsers(enrollmentData);
     }
     fetchEnrolledStudents();
@@ -208,7 +199,7 @@ const AssignStudentsPage = () => {
     if (selectedCourse === null ||
       selectedUsers.length === 0 ||
       selectedFaculty === null ) {
-      toast.error(
+      toast.warning(
         "Please select a course, at least one student, and at least one faculty member"
       );
       return;
@@ -225,6 +216,7 @@ const AssignStudentsPage = () => {
 
     if (response.status !== 200) {
       toast.error("Failed to assign students to faculty");
+      setLoader(false);
       return;
     }
 
@@ -239,10 +231,12 @@ const AssignStudentsPage = () => {
     toast.success(
       `Successfully Assigned ${selectedStudentIds.length} students to  faculty members for course ${selectedCourse.name}`
     );
+    setLoader(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      
       <AdminNavbar currentPage="/admin/assign-students" />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
@@ -475,11 +469,12 @@ const AssignStudentsPage = () => {
               </div>
               <div className="mt-4 pt-4 border-t">
                 <Button
-                  onClick={handleAssignStudents}
+                  onClick={()=>{setLoader(true);handleAssignStudents()}}
                   className="w-full"
                   size="lg"
                 >
                   Assign Selected Students to Faculty
+                 {(loader)?<img src="/preloader1.png" className="w-5 h-5 animate-spin"/>:""}
                 </Button>
               </div>
             </CardContent>

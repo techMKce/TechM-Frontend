@@ -21,7 +21,6 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   const {signOut, isAuthenticated } = useAuth();
   const [currentUser, setCurrentUser] = useState(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    console.log('Initial user data:', user);
     return user;
   });
 
@@ -29,7 +28,6 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
   useEffect(() => {
     const handleStorageChange = () => {
       const updatedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      console.log('Updated user data:', updatedUser);
       setCurrentUser(updatedUser);
     };
 

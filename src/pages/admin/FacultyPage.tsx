@@ -41,7 +41,6 @@ const FacultyPage = () => {
   const getFaculties = async () => {
     try {
       const res = await api.get('/auth/faculty/all');
-      console.log("Fetch faculties response:", res);
 
       const facultyData = res.data?.faculties ?? res.data;
 
@@ -51,7 +50,6 @@ const FacultyPage = () => {
 
       setFaculties(facultyData);
     } catch (error: any) {
-      console.error("Failed to fetch faculty data:", error.message || error);
       toast.error("Failed to fetch faculty data");
     }
   };
@@ -62,7 +60,7 @@ const FacultyPage = () => {
 
   const handleSubmit = async () => {
     if (!formData.id || !formData.name || !formData.email || !formData.department) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 
@@ -70,7 +68,7 @@ const FacultyPage = () => {
       (f) => f.id === formData.id || f.email === formData.email
     );
     if (alreadyExists) {
-      toast.error("Faculty with the same ID or Email already exists");
+      toast.warning("Faculty with the same ID or Email already exists");
       return;
     }
 
@@ -80,7 +78,6 @@ const FacultyPage = () => {
         for: "FACULTY"
       }
     })
-    console.log(res);
 
     const newFaculty: Faculty = {
       id: Date.now().toString(),
@@ -111,7 +108,6 @@ const FacultyPage = () => {
       });
       setIsEditDialogOpen(false); // ✅ Add this to close the dialog if needed
     } catch (error) {
-      console.error("Error updating faculty:", error);
       toast.error("Error updating faculty");
     }
   };
@@ -154,7 +150,7 @@ const FacultyPage = () => {
     const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
     if (!isCSV && !isExcel) {
-      toast.error("Please select a valid CSV or Excel (.xlsx) file");
+      toast.warning("Please select a valid CSV or Excel (.xlsx) file");
       return;
     }
 
@@ -200,7 +196,7 @@ const FacultyPage = () => {
       const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
-        toast.error("Excel file is empty");
+        toast.warning("Excel file is empty");
         return;
       }
 
@@ -230,7 +226,7 @@ const FacultyPage = () => {
       const results = await Promise.allSettled(signupPromises);
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          console.error(`Faculty ${facultiesToSignup[index].email} failed:`, result.reason);
+          toast.error(`Faculty ${facultiesToSignup[index].email} failed:`, result.reason);
         }
       });
 
@@ -238,13 +234,12 @@ const FacultyPage = () => {
       const failureCount = results.length - successCount;
 
       if (failureCount > 0) {
-        toast.warning(`${failureCount} signup(s) failed. ${successCount} succeeded.`);
+        toast.error(`${failureCount} signup(s) failed. ${successCount} succeeded.`);
       } else {
         toast.success("All faculty signed up successfully.");
       }
     } catch (error) {
       toast.error("Bulk signup failed.");
-      console.error("Bulk signup error:", error);
     }
   };
 
@@ -308,6 +303,7 @@ const FacultyPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar currentPage="/admin/faculty" />
+      
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Faculty Management</h1>

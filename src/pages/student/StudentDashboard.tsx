@@ -47,9 +47,7 @@ let allCourses = [];
 try {
   const response = await api.get('/course/details');
   allCourses = [...response.data].length > 0 ? response.data : [];
-  console.log("Fetched all courses:", allCourses);
 } catch (error) {
-  console.error("Error fetching all courses:", error);
   toast.error("Failed to load courses");
   allCourses = []; // fallback in case of error
 }
@@ -60,11 +58,9 @@ try {
     const enrolledCourseIds = studentEnrollments.map((enrollment: Enrollment) => enrollment.courseId);
 
     // Get enrolled courses details
-    console.log("Fetching enrolled courses for student:", profile.profile.id);
     const enrolledCoursesData =await api.get(`/course-enrollment/by-student/${profile.profile.id}`)
   .then(response => response.data)
   .catch(error => {
-    console.error("Error fetching enrolled courses:", error);
   });
 
 
@@ -80,7 +76,6 @@ try {
   });
 
   const attendanceRecords = Array.isArray(response.data) ? response.data : [];
-  console.log("Fetched attendance records:", attendanceRecords);
 
   // Filter records for the current user
   const studentAttendance = attendanceRecords.filter(
@@ -94,7 +89,6 @@ try {
     attendancePercentage = Math.round((attendedSessions / totalSessions) * 100);
   }
 } catch (error) {
-  console.error("Error fetching attendance records:", error);
   attendancePercentage = 0;
 }
 

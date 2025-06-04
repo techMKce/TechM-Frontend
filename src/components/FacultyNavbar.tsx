@@ -19,7 +19,6 @@ import {
   ListTodoIcon,
   Book,
 } from "lucide-react";
-// import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 interface FacultyNavbarProps {

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AdminNavbar from "@/components/AdminNavbar";
 import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast} from "sonner";
 import * as XLSX from 'xlsx';
 import api from "@/service/api";
 
@@ -51,7 +51,6 @@ const StudentsPage = () => {
         const response = await api.get('/auth/students/all'); // adjust the URL if different
         setStudents(response.data);
       } catch (error) {
-        console.error("Failed to fetch students:", error);
         toast.error("Failed to fetch students");
       }
     };
@@ -60,7 +59,7 @@ const StudentsPage = () => {
 
   const handleSubmit = async () => {
     if (!formData.id || !formData.name || !formData.email || !formData.department || !formData.year) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 
@@ -70,9 +69,6 @@ const StudentsPage = () => {
         for: "STUDENT"
       }
     })
-    console.log(res);
-
-
 
     const newStudent: Student = {
       ...res.data, // include backend response
@@ -111,7 +107,6 @@ const StudentsPage = () => {
       setIsEditDialogOpen(false); 
       window.location.reload(); // reload the page to reflect changes
     } catch (error) {
-      console.error("Error updating Student:", error);
       toast.error("Error updating Student");
     }
   };
@@ -153,7 +148,7 @@ const StudentsPage = () => {
     const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
     if (!isCSV && !isExcel) {
-      toast.error("Please select a valid CSV or Excel (.xlsx) file");
+      toast.warning("Please select a valid CSV or Excel (.xlsx) file");
       return;
     }
 
@@ -198,7 +193,7 @@ const StudentsPage = () => {
       const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
-        toast.error("Excel file is empty");
+        toast.warning("Excel file is empty");
         return;
       }
 
@@ -265,7 +260,6 @@ const StudentsPage = () => {
         });
 
       } catch (error) {
-        console.error(`Failed to register student at row ${i + 2}:`, error);
         toast.error(`Signup failed for student at row ${i + 2}`);
       }
     }
