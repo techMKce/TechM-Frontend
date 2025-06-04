@@ -1,135 +1,84 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import api from "@/service/api";
 import Navbar from "@/components/StudentNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart4 } from "lucide-react";
-import api from "@/service/api";
-import { useAuth } from "@/hooks/useAuth";
 
-// Define interface for the API response data
-interface AttendanceData {
-  session: string;
-  stdId: string;
-  deptName: string;
-  sem: number;
-  stdName: string;
-  batch: string;
-  deptId: string;
-  totaldays: number;
-  presentcount: number;
+interface CourseAttendanceData {
+  courseId: string;
+  courseName: string;
+  credits: number;
+  assignedSessions: number;
+  conductedSessions: number;
+  attendedSessions: number;
   percentage: number;
 }
 
 const StudentAttendancePage = () => {
-  const {profile} = useAuth();
-  // State variables
-  const studentId = profile.profile.id; // Hardcoded for now, can be made dynamic later
-  const studentName = profile.profile.name; // Hardcoded for now, can be made dynamic later
+  const { profile } = useAuth();
   const [selectedSemester, setSelectedSemester] = useState("");
-  const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([]);
+  const [courseAttendance, setCourseAttendance] = useState<CourseAttendanceData[]>([]);
+  const [overallPercentage, setOverallPercentage] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
-  // Session data for the selected semester
-  const [fnSessionData, setFnSessionData] = useState({ conducted: 0, attended: 0, percentage: 0 });
-  const [anSessionData, setAnSessionData] = useState({ conducted: 0, attended: 0, percentage: 0 });
 
-  // Function to handle semester selection
+  const semesters = [
+    "Semester 1", "Semester 2", "Semester 3", "Semester 4",
+    "Semester 5", "Semester 6", "Semester 7", "Semester 8"
+  ];
+
   const handleSemesterChange = (value: string) => {
     setSelectedSemester(value);
-    fetchAttendanceData(value);
+    if (value) fetchAttendanceData(value);
   };
 
-  // Function to fetch attendance data from API
   const fetchAttendanceData = async (semester: string) => {
-    if (!semester) return;
-    
     setLoading(true);
     setError("");
-    
     try {
-      const response = await api.get<AttendanceData[]>(`/attendance/getstudent`,
-        {
-          params: {
-            id: studentId,
-          }
-        }
-      );
-      console.log("Fetched attendance data:", response);
-      setAttendanceData(response.data);
-      
-      // Set student name from the first record if available
- 
-      
-      // Filter data for the selected semester
-      const semNumber = parseInt(semester.split(" ")[1]);
-      const semesterData = response.data.filter(item => item.sem === semNumber);
+      const studentId = profile.profile.id;
+      const semesterNumber = parseInt(semester.split(" ")[1]);
 
-      console.log("Filtered semester data:", semesterData);
-      
-      // Check if data exists for this semester
-      if (semesterData.length === 0) {
-        setError(`No attendance data found for ${semester}`);
-        setFnSessionData({ conducted: 0, attended: 0, percentage: 0 });
-        setAnSessionData({ conducted: 0, attended: 0, percentage: 0 });
-        return;
-      }
-      
-      // Process FN (forenoon) session data
-      const fnData = semesterData.find(item => item.session === "FN");
-      if (fnData) {
-        setFnSessionData({
-          conducted: fnData.totaldays,
-          attended: fnData.presentcount,
-          percentage: fnData.presentcount > 0 ? (fnData.presentcount / fnData.totaldays) * 100 : 0
-        });
-      } else {
-        setFnSessionData({ conducted: 0, attended: 0, percentage: 0 });
-      }
-      
-      console.log("FN Data:", fnData);
-      console.log("FN Session Data:", fnSessionData);
-      // Process AN (afternoon) session data
-      const anData = semesterData.find(item => item.session === "AN");
-      console.log("AN Data:", anData);
-      if (anData) {
-        setAnSessionData({
-          conducted: anData.totaldays,
-          attended: anData.presentcount,
-          percentage: anData.presentcount > 0 ? (anData.presentcount / anData.totaldays) * 100 : 0
-        });
-      } else {
-        setAnSessionData({ conducted: 0, attended: 0, percentage: 0 });
-      }
-      console.log("AN Data:", anData);
-      console.log("AN Session Data:", anSessionData);
-    } catch (err) {
-      console.error("Error fetching attendance data:", err);
-      setError("Failed to fetch attendance data. Please try again later.");
-      setFnSessionData({ conducted: 0, attended: 0, percentage: 0 });
-      setAnSessionData({ conducted: 0, attended: 0, percentage: 0 });
-    } finally {
-      setLoading(false);
+      const [attendanceRes, courseRes] = await Promise.all([
+        api.get(`/api/v1/attendance/getstudentbyid`, { params: { id: studentId } }),
+        api.get("/api/v1/course/details")
+      ]);
+
+      const semesterAttendance = attendanceRes.data.filter((item: any) => item.sem === semesterNumber);
+      const courseMap = new Map(courseRes.data.map((course: any) => [course.courseid, course.credits]));
+
+      const data: CourseAttendanceData[] = semesterAttendance.map((item: any) => {
+        const credits = courseMap.get(item.courseid) || 0;
+        const assignedSessions = credits * 5;
+        const percentage = item.totaldays > 0 ? Math.round((item.presentcount / item.totaldays) * 100) : 0;
+
+        return {
+          courseId: item.courseid,
+          courseName: item.coursename,
+          credits,
+          assignedSessions,
+          conductedSessions: item.totaldays,
+          attendedSessions: item.presentcount,
+          percentage
+        };
+      });
+
+      const totalConducted = data.reduce((sum, d) => sum + d.conductedSessions, 0);
+      const totalAttended = data.reduce((sum, d) => sum + d.attendedSessions, 0);
+      const overall = totalConducted > 0 ? Math.round((totalAttended / totalConducted) * 100) : 0;
+
+      setCourseAttendance(data);
+      setOverallPercentage(overall);
+    } catch (err: any) {
+      setError("Failed to fetch attendance data.");
+      setCourseAttendance([]);
+      setOverallPercentage(null);
     }
+    setLoading(false);
   };
-  
-  // Calculate overall percentage
-  const getOverallPercentage = () => {
-    if (fnSessionData.conducted === 0 && anSessionData.conducted === 0) return 0;
-    if (fnSessionData.conducted === 0) return Math.round(anSessionData.percentage);
-    if (anSessionData.conducted === 0) return Math.round(fnSessionData.percentage);
-    
-    return Math.round((fnSessionData.percentage + anSessionData.percentage) / 2);
-  };
-  
-  const dynamicOverallPercentage = getOverallPercentage();
 
   const getAttendanceStatus = (percentage: number) => {
     if (percentage >= 90) return { text: "Excellent", color: "text-green-600" };
@@ -138,44 +87,27 @@ const StudentAttendancePage = () => {
     return { text: "Needs Improvement", color: "text-red-500" };
   };
 
-  const attendanceStatus = getAttendanceStatus(dynamicOverallPercentage);
-
-  const semesters = [
-    "Semester 1",
-    "Semester 2",
-    "Semester 3",
-    "Semester 4",
-    "Semester 5",
-    "Semester 6",
-    "Semester 7",
-    "Semester 8",
-  ];
+  const attendanceStatus = overallPercentage !== null ? getAttendanceStatus(overallPercentage) : null;
 
   return (
     <>
       <Navbar />
-      {/* <Navbar userType="faculty" userName={facultyName} /> */}
       <div className="page-container max-w-5xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Attendance Dashboard</h1>
-          <p className=" mt-2">Track your attendance statistics</p>
+          <p className="mt-2">Track your attendance statistics</p>
         </div>
 
         <div className="mb-6">
           <Label htmlFor="semester">Select a semester to view your attendance details for that semester.</Label>
-          <div>
-            <br />
-          </div>
-          <div className="max-w-xs">
+          <div className="max-w-xs mt-2">
             <Select value={selectedSemester} onValueChange={handleSemesterChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select semester" />
               </SelectTrigger>
               <SelectContent>
                 {semesters.map((semester) => (
-                  <SelectItem key={semester} value={semester}>
-                    {semester}
-                  </SelectItem>
+                  <SelectItem key={semester} value={semester}>{semester}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -189,39 +121,35 @@ const StudentAttendancePage = () => {
               <div className="flex flex-col md:flex-row md:justify-between items-center">
                 <div className="flex items-center mb-4 md:mb-0">
                   <div className="h-20 w-20 rounded-full border-4 border-primary flex items-center justify-center mr-4">
-                    <span className="text-2xl font-bold">
-                      {!selectedSemester || error ? "--" : `${dynamicOverallPercentage}%`}
-                    </span>
+                    <span className="text-2xl font-bold">{overallPercentage !== null ? `${overallPercentage}%` : "--"}</span>
                   </div>
                   <div>
                     <h3 className="font-medium text-lg">Overall Attendance</h3>
-                    <p className={`text-sm ${!selectedSemester || error ? "text-gray-500" : attendanceStatus.color}`}>
-                      {!selectedSemester || error ? "--" : attendanceStatus.text}
+                    <p className={`text-sm ${attendanceStatus ? attendanceStatus.color : "text-gray-500"}`}>
+                      {attendanceStatus ? attendanceStatus.text : "--"}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-6">
                   <div className="text-center">
-                    <p className="text-xs ">Required</p>
+                    <p className="text-xs">Required</p>
                     <p className="text-2xl font-bold">75%</p>
-                    <p className="text-xs ">Minimum</p>
+                    <p className="text-xs">Minimum</p>
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs ">Current</p>
-                    <p className="text-2xl font-bold">
-                      {loading ? "Loading..." : !selectedSemester || error ? "--" : `${dynamicOverallPercentage}%`}
-                    </p>
-                    <p className="text-xs ">Attendance</p>
+                    <p className="text-xs">Current</p>
+                    <p className="text-2xl font-bold">{overallPercentage !== null ? `${overallPercentage}%` : "--"}</p>
+                    <p className="text-xs">Attendance</p>
                   </div>
 
                   <div className="text-center">
-                    <p className="text-xs ">Risk Status</p>
-                    <p className={`text-2xl font-bold ${!selectedSemester || error ? "text-gray-500" : dynamicOverallPercentage >= 75 ? "text-green-500" : "text-red-500"}`}>
-                      {loading ? "Loading..." : !selectedSemester || error ? "--" : dynamicOverallPercentage >= 75 ? "Safe" : "At Risk"}
+                    <p className="text-xs">Risk Status</p>
+                    <p className={`text-2xl font-bold ${overallPercentage !== null ? (overallPercentage >= 75 ? "text-green-500" : "text-red-500") : "text-gray-500"}`}>
+                      {overallPercentage !== null ? (overallPercentage >= 75 ? "Safe" : "At Risk") : "--"}
                     </p>
-                    <p className="text-xs ">Status</p>
+                    <p className="text-xs">Status</p>
                   </div>
                 </div>
               </div>
@@ -229,60 +157,49 @@ const StudentAttendancePage = () => {
           </Card>
         </div>
 
-        {/* FN & AN Session */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="md:col-span-2">
+        <div className="grid grid-cols-1 gap-6">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BarChart4 size={20} className="mr-2" />
-                Session-Based Attendance Overview
+                Course-wise Attendance
               </CardTitle>
-              <CardDescription>Breakdown by FN & AN session</CardDescription>
+              <CardDescription>Your attendance breakdown by course</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <p>Loading session data...</p>
-              ) : !selectedSemester ? (
-                <p className="text-sm text-muted-foreground">Please select a semester to view session data.</p>
+                <p>Loading course data...</p>
               ) : error ? (
                 <p className="text-red-500">{error}</p>
+              ) : courseAttendance.length === 0 ? (
+                <p className="text-muted-foreground">No course attendance data available.</p>
               ) : (
                 <div className="space-y-4">
-                  <div className="border rounded-md p-4 bg-muted/30">
-                    <h4 className="font-semibold mb-1">FN Session (Forenoon)</h4>
-                    <p>
-                      Total FN Sessions Conducted:{" "}
-                      <strong>{fnSessionData.conducted}</strong>
-                    </p>
-                    <p>
-                      Total FN Sessions Attended:{" "}
-                      <strong>{fnSessionData.attended}</strong>
-                    </p>
-                    <p>
-                      Attendance %:{" "}
-                      <strong className="text-green-600">
-                        {fnSessionData.percentage.toFixed(2)}%
-                      </strong>
-                    </p>
+                  <div className="grid grid-cols-6 gap-4 font-semibold text-sm border-b pb-2">
+                    <div className="col-span-2">Course</div>
+                    <div className="text-center">Assigned</div>
+                    <div className="text-center">Conducted</div>
+                    <div className="text-center">Attended</div>
+                    <div className="text-center">Percentage</div>
                   </div>
-
-                  <div className="border rounded-md p-4 bg-muted/30">
-                    <h4 className="font-semibold mb-1">AN Session (Afternoon)</h4>
-                    <p>
-                      Total AN Sessions Conducted:{" "}
-                      <strong>{anSessionData.conducted}</strong>
-                    </p>
-                    <p>
-                      Total AN Sessions Attended:{" "}
-                      <strong>{anSessionData.attended}</strong>
-                    </p>
-                    <p>
-                      Attendance %:{" "}
-                      <strong className="text-yellow-600">
-                        {anSessionData.percentage.toFixed(2)}%
-                      </strong>
-                    </p>
-                  </div>
+                  {courseAttendance.map((course) => (
+                    <div key={course.courseId} className="grid grid-cols-6 gap-4 items-center">
+                      <div className="col-span-2">
+                        <h4 className="font-medium">{course.courseName}</h4>
+                        <p className="text-sm text-muted-foreground">{course.courseId}</p>
+                      </div>
+                      <div className="text-center">{course.assignedSessions}</div>
+                      <div className="text-center">{course.conductedSessions}</div>
+                      <div className="text-center">{course.attendedSessions}</div>
+                      <div className={`text-center font-bold ${
+                        course.percentage >= 90 ? "text-green-600" :
+                        course.percentage >= 80 ? "text-green-500" :
+                        course.percentage >= 75 ? "text-yellow-600" : "text-red-500"
+                      }`}>
+                        {course.percentage}%
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -294,3 +211,4 @@ const StudentAttendancePage = () => {
 };
 
 export default StudentAttendancePage;
+
