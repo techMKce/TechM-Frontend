@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '@/service/api'; // Adjust the import path as necessary
-import {useAuth} from '@/hooks/useAuth'; // Adjust the import path as necessary
-import { Edit, Trash, Undo } from 'lucide-react';
+import api from '@/service/api';
+import { useAuth } from '@/hooks/useAuth';
+import { Edit, Trash, ClipboardCheck } from 'lucide-react';
+
 interface Assignment {
   assignmentId: string;
   courseId: string;
   title: string;
   description: string;
   createdAt: string;
+  dueDate?: string;
   fileno?: string;
-  resourcelink?: string;
+  fileName?: string;
+  resourceLink?: string;
 }
+
 interface ApiResponse {
   assignments: Assignment[];
   message: string;
@@ -27,7 +31,9 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
+
   useEffect(() => {
     if (showAssignments) {
       fetchAssignments(courseId.toString());
@@ -35,86 +41,40 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
     // eslint-disable-next-line
   }, [showAssignments, courseId]);
 
-  // handle Redirect to submission page
-  const handleSubmit = (assignmentId: string) => {
-    if (!assignmentId) {
-      alert("Invalid assignment ID");
-      return;
-    }
-    navigate(`/student/assignments/${assignmentId}/submit`);
-  }
-
-  // handle Redirect to submission page
-  const handleDeleteSubmission = async (assignmentId: string) => {
-    if (!assignmentId) {
-      alert("Invalid assignment ID");
-      return;
-    }
-     try {
-    const response = await api.delete('/submissions', {
-      data: {
-        assignmentId,
-        id: profile.profile.id
-      },
-    });
-
-    console.log('Success:', response.data);
-  } catch (error) {
-    console.error('Error deleting submission:', error);
-  }
-  }
-  // handle Redirect to grade page
-  const handleGrade = (assignmentId: string) => {
-    if (!assignmentId) {
-      alert("Invalid assignment ID");
-      return;
-    }
-    navigate(`/faculty/assignments/${assignmentId}/grade`);
-  }
-
-  //handling Delete Assignments
-  const handleDeleteAssignment = async (id: string) => {
-    if (!id) {
-      alert("Invalid assignment ID");
-      return;
-    }
-
-    const confirmDelete = window.confirm("Are you sure you want to delete this assignment?");
-    if (!confirmDelete) return;
-
-    try {
-      setDeletingId(id);
-
-      await api.delete(`/assignments`, {
-        params: { assignmentId: id },
-      });
-
-      setAssignments((prev) => prev.filter((assignment) => assignment.assignmentId !== id));
-    } catch (error: any) {
-      console.error("Failed to delete assignment with ID:", id);
-      console.error(error.response?.data || error.message);
-      alert("Error deleting assignment: " + (error.response?.data?.message || error.message));
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   const fetchAssignments = async (courseId: string): Promise<Assignment[]> => {
     setLoadingAssignments(true);
     try {
-      const response = await api.get<ApiResponse>(
-        '/assignments/course?',
-        {
-          params: { courseId }
-        }
-      );
-      
+      const response = await api.get<ApiResponse>('/assignments/course?', {
+        params: { courseId },
+      });
       console.log('Full response:', response.data);
       console.log('Assignments array:', response.data.assignments);
       setAssignments(response.data.assignments);
+
+      // Check submission status for students
+      if (profile.profile.role === 'STUDENT' && response.data.assignments.length > 0) {
+        const status: Record<string, boolean> = {};
+        for (const assignment of response.data.assignments) {
+          try {
+            const gradingResponse = await api.get('/gradings', {
+              params: { assignmentId: assignment.assignmentId },
+            });
+            const submissions = gradingResponse.data.submissions || [];
+            const hasSubmitted = submissions.some(
+              (sub: any) => sub.studentRollNumber === profile.profile.id
+            );
+            status[assignment.assignmentId] = hasSubmitted;
+          } catch (err) {
+            console.error(`Error checking submission for assignment ${assignment.assignmentId}:`, err);
+            status[assignment.assignmentId] = false;
+          }
+        }
+        setSubmissionStatus(status);
+      }
+
       return response.data.assignments;
     } catch (error) {
-      console.error("Error fetching assignments:", error);
+      console.error('Error fetching assignments:', error);
       setAssignments([]);
       return [];
     } finally {
@@ -122,82 +82,162 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
     }
   };
 
+  const handleSubmit = (assignmentId: string) => {
+    if (!assignmentId) {
+      alert('Invalid assignment ID');
+      return;
+    }
+    navigate(`/student/assignments/${assignmentId}/submit`);
+  };
+
+  const handleGrade = (assignmentId: string) => {
+    if (!assignmentId) {
+      alert('Invalid assignment ID');
+      return;
+    }
+    navigate(`/faculty/assignments/${assignmentId}/grade`);
+  };
+
+  const handleEditAssignment = (assignmentId: string) => {
+    if (!assignmentId) {
+      alert('Invalid assignment ID');
+      return;
+    }
+    navigate(`/faculty/assignments/${assignmentId}/edit`);
+  };
+
+  const handleDeleteAssignment = async (id: string) => {
+    if (!id) {
+      alert('Invalid assignment ID');
+      return;
+    }
+
+    const confirmDelete = window.confirm('Are you sure you want to delete this assignment?');
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(id);
+      await api.delete(`/assignments`, {
+        params: { assignmentId: id },
+      });
+      setAssignments((prev) => prev.filter((assignment) => assignment.assignmentId !== id));
+      alert('Assignment deleted successfully');
+    } catch (error: any) {
+      console.error('Failed to delete assignment with ID:', id);
+      console.error(error.response?.data || error.message);
+      alert('Error deleting assignment: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="mt-4">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Assignments</h2>
+      <h2 className="text-3xl font-bold mb-6 text-black">Assignments</h2>
       {assignments.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {assignments.map((assignment) => (
-            <div key={assignment.assignmentId} className="border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div
+              key={assignment.assignmentId}
+              className="bg-white border border-gray-700 rounded-xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200"
+            >
               <div className="flex justify-between items-start">
-                <h3 className="font-semibold text-lg">{assignment.title}</h3>
-                <span className="bg-gray-100 text-gray-900 px-2 py-1 rounded text-sm font-medium">
-                  Due: {new Date(assignment.createdAt).toLocaleDateString()}
-                </span>
+                <div>
+                  <h3 className="font-bold text-1xl text-black">
+                    <span className="text-lg font-semibold text-gray-600">Title: </span>
+                    {assignment.title}
+                  </h3>
+                  <p className="text-lg text-gray-800 mt-2">
+                    <span className="text-lg font-semibold text-gray-600">Description: </span>
+                    {assignment.description}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className="bg-gray-200 text-black px-6 py-3 rounded-md text-base font-medium shadow-sm">
+                    Due:{' '}
+                    {assignment.dueDate
+                      ? new Date(assignment.dueDate).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                      : new Date(assignment.createdAt).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                  </span>
+                  {profile.profile.role === 'FACULTY' && (
+                    <>
+                      <button
+                        className="flex items-center space-x-2 text-blue-600 px-6 py-3 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-all duration-200"
+                        onClick={() => handleEditAssignment(assignment.assignmentId)}
+                        disabled={deletingId === assignment.assignmentId}
+                        title="Edit Assignment"
+                      >
+                        <Edit size={24} />
+                        <span className="text-base">Edit</span>
+                      </button>
+                      <button
+                        className="flex items-center space-x-2 text-red-600 px-6 py-3 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-all duration-200"
+                        onClick={() => handleDeleteAssignment(assignment.assignmentId)}
+                        disabled={deletingId === assignment.assignmentId}
+                        title="Delete Assignment"
+                      >
+                        <Trash size={24} />
+                        <span className="text-base">Delete</span>
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              <p className="text-gray-600 mt-2">{assignment.description}</p>
-              {assignment.fileno && (
-                <p className="text-sm text-gray-500 mt-1">
-                  File No: {assignment.fileno}
+              {assignment.fileName && (
+                <p className="text-base text-gray-600 mt-3">
+                  <span className="text-lg font-semibold text-gray-600">File: </span>
+                  {assignment.fileName}
                 </p>
               )}
-              <div className="mt-4 flex justify-between items-center">
-                <span className="text-sm text-gray-500">
-                  {assignment.resourcelink ? (
+              <div className="mt-6 flex justify-between items-center">
+                <span className="text-base">
+                  {assignment.resourceLink ? (
                     <a
-                      href={assignment.resourcelink}
+                      href={assignment.resourceLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-all duration-200 text-base"
                     >
                       View Resources
                     </a>
-                  ) : 'No resources available'}
+                  ) : (
+                    <span className="text-gray-600">No resources available</span>
+                  )}
                 </span>
-              <div>
-              
-                {(profile.profile.role=="STUDENT")?
-                <>
-                {/* <Undo className="inline-block mr-2 text-gray-500 cursor-pointer hover:text-gray-700 transition-colors"
-                  onClick={() => handleSubmit(assignment.assignmentId)}/> */}
-                  <button
-                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors m-1"
-                  onClick={() => handleSubmit(assignment.assignmentId)}
-                  disabled={deletingId === assignment.assignmentId}
-                >
-                  Submit Assignment
-                </button>
-                </>
-                :
-                <>
-                   {/* <Trash className="inline-block mr-2 text-gray-500 cursor-pointer hover:text-gray-700 transition-colors"
-                  onClick={() => handleSubmit(assignment.assignmentId)}/> */}
-                   <button
-                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors m-1"
-                  onClick={() => handleGrade(assignment.assignmentId)}
-                  disabled={deletingId === assignment.assignmentId}
-                >
-                  Grade Assignment
-                </button>
-                  <button
-                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors m-1"
-                  onClick={() => handleDeleteAssignment(assignment.assignmentId)}
-                  disabled={deletingId === assignment.assignmentId}
-                >
-                  {deletingId === assignment.assignmentId ? 'Deleting...' : 'Delete Assignment'}
-                </button>
-                </>
-                }
+                <div className="flex space-x-4">
+                  {profile.profile.role === 'STUDENT' ? (
+                    <button
+                      className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-base"
+                      onClick={() => handleSubmit(assignment.assignmentId)}
+                      disabled={deletingId === assignment.assignmentId}
+                    >
+                      {submissionStatus[assignment.assignmentId] ? 'View Assignment' : 'Submit Assignment'}
+                    </button>
+                  ) : (
+                    <button
+                      className="flex items-center space-x-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-base"
+                      onClick={() => handleGrade(assignment.assignmentId)}
+                      disabled={deletingId === assignment.assignmentId}
+                    >
+                      <ClipboardCheck size={24} />
+                      <span>Grade Assignment</span>
+                    </button>
+                  )}
                 </div>
-                {/* {(profile.profile.role=='FACULTY')?:
-                
-                } */}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-10 text-gray-400">
+        <div className="text-center py-10 text-gray-600 text-lg">
           {loadingAssignments ? 'Loading assignments...' : 'No assignments available'}
         </div>
       )}

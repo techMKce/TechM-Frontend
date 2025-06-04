@@ -121,11 +121,16 @@ const SchedulePage = () => {
       courseId: entry.courseId,
       name: entry.courseName,
     }));
-
+    // Adjusting the date format to match the expected input <==> Cause it get yesterDay Date So ,i Adjusted it.
+    // const duration = {
+    //   startDate: fromDate.toISOString().split("T")[0],
+    //   endDate: toDate.toISOString().split("T")[0],
+    // };
     const duration = {
-      startDate: fromDate.toISOString().split("T")[0],
-      endDate: toDate.toISOString().split("T")[0],
-    };
+  startDate: new Date(new Date(fromDate).setDate(fromDate.getDate() + 1)).toISOString().split("T")[0],
+  endDate: new Date(new Date(toDate).setDate(toDate.getDate() + 1)).toISOString().split("T")[0],
+};
+
 
     formData.append("courses", JSON.stringify(courseArray));
     formData.append("duration", JSON.stringify(duration));
@@ -257,7 +262,13 @@ const SchedulePage = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={fromDate} onSelect={setFromDate} initialFocus />
+                      <Calendar
+                        mode="single"
+                        selected={fromDate}
+                        onSelect={setFromDate}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        initialFocus
+                      />
                     </PopoverContent>
                   </Popover>
                 </div>

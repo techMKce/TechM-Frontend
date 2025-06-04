@@ -17,8 +17,9 @@ import {
   BookOpen,
   UserCheck,
   ListTodoIcon,
+  Book,
 } from "lucide-react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 interface FacultyNavbarProps {
@@ -66,9 +67,9 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
 
   const menuItems = [
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
-    { label: "Students", path: "/faculty/students", icon: Users },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
     { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
+    {label: "Exams", path: "/faculty/exams", icon: Book }
   ];
 
   const initials = currentUser.name

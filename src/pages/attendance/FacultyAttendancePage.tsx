@@ -98,7 +98,38 @@ const FacultyAttendancePage = () => {
       );
 
       const facultyAssignments: FacultyAssignment[] = response.data;
-      setFacultyAssignments(facultyAssignments);
+
+
+      // Get unique course IDs
+      console.log("Sample Attendance Page ",facultyAssignments);
+      const courseIds = [
+        ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
+      ];
+
+      // Fetch course details for each course ID
+      const coursePromises = courseIds.map(async (courseId) => {
+        const courseResponse = await api.get(`course/detailsbyId`, {
+          params: {
+            id: courseId,
+          },
+        });
+
+        return {
+          courseId: courseId,
+          courseName: courseResponse.data[0].courseTitle || courseId, // Fallback to courseId if name not available
+        };
+      });
+
+      const fetchedCourses = await Promise.all(coursePromises);
+      setCourses(fetchedCourses);
+
+      const studentResponse = await api.get(
+        `faculty-student-assigning/admin/faculty/${profile.profile.id}`
+      );
+
+      const facultyAssignmentsData: FacultyAssignment[] = studentResponse.data;
+      setFacultyAssignments(facultyAssignmentsData);
+
       
       const courseIds = [...new Set(facultyAssignments.map(a => a.courseId))];
       

@@ -391,7 +391,7 @@ const StudentsPage = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Year</TableHead>
-                  <TableHead>Password</TableHead>
+                  {/* <TableHead>Password</TableHead> */}
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -403,8 +403,8 @@ const StudentsPage = () => {
                     <TableCell>{student.email}</TableCell>
                     <TableCell>{student.department}</TableCell>
                     <TableCell>{student.year}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    {/* <TableCell>
+                       <div className="flex items-center gap-2">
                         <span>{showPassword[student.id] ? student.password : "••••••"}</span>
                         <Button
                           variant="ghost"
@@ -413,8 +413,8 @@ const StudentsPage = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </TableCell>
+                      </div> 
+                    </TableCell> */}
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="ghost" size="sm" onClick={() => handleView(student)}>
