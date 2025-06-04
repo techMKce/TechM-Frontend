@@ -52,6 +52,8 @@ const CourseForm = ({
     imageUrl: "",
   });
 
+  // add field->> courseCode 
+
   useEffect(() => {
     if (isEditMode && initialData) {
       setFormData({
