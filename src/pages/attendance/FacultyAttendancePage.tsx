@@ -93,33 +93,33 @@ const FacultyAttendancePage = () => {
 
   const fetchFacultyCourses = async () => {
     try {
-      const response = await api.get(
-        `/faculty-student-assigning/admin/faculty/${profile.profile.id}`
-      );
+      // const response = await api.get(
+      //   `/faculty-student-assigning/admin/faculty/${profile.profile.id}`
+      // );
 
-      const facultyAssignments: FacultyAssignment[] = response.data;
+      // const facultyAssignments: FacultyAssignment[] = response.data;
 
 
-      const courseIds = [
-        ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
-      ];
+      // const courseIds = [
+      //   ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
+      // ];
 
-      // Fetch course details for each course ID
-      const coursePromises = courseIds.map(async (courseId) => {
-        const courseResponse = await api.get(`course/detailsbyId`, {
-          params: {
-            id: courseId,
-          },
-        });
+      // // Fetch course details for each course ID
+      // const coursePromises = courseIds.map(async (courseId) => {
+      //   const courseResponse = await api.get(`course/detailsbyId`, {
+      //     params: {
+      //       id: courseId,
+      //     },
+      //   });
 
-        return {
-          courseId: courseId,
-          courseName: courseResponse.data[0].courseTitle || courseId, // Fallback to courseId if name not available
-        };
-      });
+      //   return {
+      //     courseId: courseId,
+      //     courseName: courseResponse.data[0].courseTitle || courseId, // Fallback to courseId if name not available
+      //   };
+      // });
 
-      const fetchedCourses = await Promise.all(coursePromises);
-      setCourses(fetchedCourses);
+      // const fetchedCourses = await Promise.all(coursePromises);
+      // setCourses(fetchedCourses);
 
       const studentResponse = await api.get(
         `faculty-student-assigning/admin/faculty/${profile.profile.id}`

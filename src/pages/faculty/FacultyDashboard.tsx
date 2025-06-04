@@ -106,7 +106,7 @@ const FacultyDashboard = () => {
       if (!profile?.profile?.id) return;
 
       const response = await api.get(
-        `/faculty-student-assigning/admin/assign/${profile.profile.id}/count`
+        `/faculty-student-assigning/admin/faculty/${profile.profile.id}/count`
       );
       const studentCount = response.data?.count || 0;
 
@@ -125,7 +125,7 @@ const FacultyDashboard = () => {
       if (!profile?.profile?.id) return;
 
       const response = await api.get(
-        `/faculty-student-assigning/admin/assign/${profile.profile.id}/count`
+        `/faculty-student-assigning/admin/faculty/${profile.profile.id}/count`
       );
       const students = response.data || [];
       setStudentsData(students);
