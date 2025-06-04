@@ -12,11 +12,27 @@ type Student = {
   studentName: string;
   studentDepartment: string;
   progressPercentage: number;
+  attendancePercentage: number;
   averageGrade: string | number;
 };
 
+type AttendanceRecord = {
+  batch: string;
+  courseId: string;
+  courseName: string;
+  deptId: string;
+  deptName: string;
+  percentage: number;
+  presentcount: number;
+  sem: number;
+  stdId: string;
+  stdName: string;
+  totaldays: number;
+};
+
 function useStudentProgress(courseId: string, studentId: string) {
-  const [percentage, setPercentage] = useState(0);
+  const [progresPercentage, setProgresPercentage] = useState(0);
+  const [attendancePercentage, setAttendancePercentage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { profile } = useAuth();
@@ -30,12 +46,32 @@ function useStudentProgress(courseId: string, studentId: string) {
         const response = await api.get(
           `/submissions/courses/${courseId}/student-progress`
         );
+        const attendanceResponse = await api.get(
+          `/attendance/getstudentbyid?id=CS124`
+        );
 
         const userProgress = response.data.students.find(
           (student: Student) =>
             student.studentRollNumber === profile?.profile?.id
         );
-        setPercentage(userProgress ? userProgress.progressPercentage : 0);
+
+        const attendanceProgress = attendanceResponse.data.find(
+          (record: AttendanceRecord) =>
+            record.stdId === studentId && record.courseId === courseId
+            // record.stdId === "CS124" && record.courseId === "17"
+        );
+
+        //  console.log("attendance percentage: ", attendanceResponse.data);
+
+        // set user course progress
+        setProgresPercentage(
+          userProgress ? userProgress.progressPercentage : 0
+        );
+        // set attendance
+        setAttendancePercentage(
+          attendanceProgress ? attendanceProgress.percentage : 0
+        );
+
         setLoading(false);
       } catch (error) {
         setLoading(false);
@@ -47,18 +83,16 @@ function useStudentProgress(courseId: string, studentId: string) {
     fetchProgress();
   }, [courseId, studentId]);
 
-  return { percentage, loading, error };
+  return { progresPercentage, loading, error, attendancePercentage };
 }
 
 export const StudentProgressDisplay = ({
   courseId,
   studentId,
 }: StudentProgressDisplayProps) => {
-  const { percentage, loading, error } = useStudentProgress(
-    courseId,
-    studentId
-  );
-  console.log("user percentage: ", percentage);
+  const { progresPercentage, loading, error, attendancePercentage } =
+    useStudentProgress(courseId, studentId);
+  // console.log("user percentage: ", progresPercentage);
 
   if (loading) {
     return <div className="text-center py-4">Loading progress...</div>;
@@ -69,18 +103,38 @@ export const StudentProgressDisplay = ({
   }
 
   return (
-    <div className="mb-4">
-      <div className="flex justify-between mb-1">
-        <span className="text-sm text-gray-800 font-medium">
-          Percentage Completed
-        </span>
-        <span className="text-sm text-gray-800 font-bold">{percentage} %</span>
+    <div className="mb-1">
+      <div>
+        <div className="flex justify-between mb-1">
+          <span className="text-sm text-gray-800 font-medium">
+            Percentage Completed
+          </span>
+          <span className="text-sm text-gray-800 font-bold">
+            {progresPercentage} %
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3">
+          <div
+            className="bg-gradient-to-r from-gray-800 to-gray-800 h-3 rounded-full transition-all"
+            style={{ width: `${progresPercentage}%` }}
+          ></div>
+        </div>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-3">
-        <div
-          className="bg-gradient-to-r from-gray-800 to-gray-800 h-3 rounded-full transition-all"
-          style={{ width: `${percentage}%` }}
-        ></div>
+      <div>
+        <div className="flex justify-between mt-5">
+          <span className="text-sm text-gray-800 font-medium">
+            Attendance Percentage
+          </span>
+          <span className="text-sm text-gray-800 font-bold">
+            {attendancePercentage} %
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3">
+          <div
+            className="bg-gradient-to-r from-gray-800 to-gray-800 h-3 rounded-full transition-all"
+            style={{ width: `${attendancePercentage}%` }}
+          ></div>
+        </div>
       </div>
     </div>
   );
