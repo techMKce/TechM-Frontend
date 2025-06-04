@@ -102,8 +102,6 @@ const FacultyAttendancePage = () => {
       // const courseIds = new Set(response.data.map((assignment: FacultyAssignment) => assignment.courseId));
       const facultyAssignments: FacultyAssignment[] = response.data;
 
-      // Get unique course IDs
-      console.log("Sample Attendance Page ",facultyAssignments);
       const courseIds = [
         ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
       ];
@@ -144,7 +142,6 @@ const FacultyAttendancePage = () => {
         batch: student.year,
         sem: student.semester,
         }));
-      console.log("All Students Data:", allStudents);
 
       const assignedRollNums = facultyAssignmentsData.flatMap(a => a.assignedRollNums);
       const filteredStudents = allStudents.filter(student =>
@@ -153,8 +150,6 @@ const FacultyAttendancePage = () => {
 
       // setStudents(filteredStudents);
       setAllStudents(filteredStudents);
-
-      console.log("Filtered Students:", filteredStudents);
 
       // const uniqueBatches = [
       //   ...new Set(
@@ -184,8 +179,11 @@ const FacultyAttendancePage = () => {
       // setDepartments(uniqueDepartments);
       // setSemesters(uniqueSemesters);
     } catch (error) {
-      console.error("Error fetching faculty courses:", error);
-      toast.error("Failed to load faculty courses");
+     toast.error("Failed to load faculty courses", {
+        description: "Please check your internet connection.",
+        className: "bg-red-100 text-red-800 border border-red-400 shadow-md",
+        icon: "🚫",
+      });
     }
   };
 
@@ -202,10 +200,6 @@ const FacultyAttendancePage = () => {
         setSemesters([]);
         return;
       }
-
-      console.log("Fetching students for course11:", courseId);
-
-
       // Find the assignment for the selected course
       const assignment = facultyAssignments.find(a => a.courseId === courseId);
       if (!assignment) {
@@ -245,14 +239,13 @@ const FacultyAttendancePage = () => {
 
       setStudents(studentsWithAttendance);
     } catch (error) {
-      console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
     }
   };
 
   const handleGenerateList = () => {
     if (!formData.course) {
-      toast.error("Please select a course");
+      toast.warning("Please select a course");
       return;
     }
     // fetchFacultyCourses();
@@ -271,7 +264,7 @@ const FacultyAttendancePage = () => {
 
   const handleSubmitAttendance = async () => {
     if (students.length === 0) {
-      toast.error("No students to mark attendance for");
+      toast.info("No students to mark attendance for");
       return;
     }
 
@@ -302,8 +295,6 @@ const FacultyAttendancePage = () => {
         dates: formData.date,
       }));
 
-      console.log("Attendance Records:", attendanceRecords);
-
       await api.post("/attendance/attupdate", attendanceRecords);
 
       const absentees = students.filter((student) => !student.isPresent).length;
@@ -312,7 +303,6 @@ const FacultyAttendancePage = () => {
 
       toast.success("Attendance marked successfully");
     } catch (error) {
-      console.error("Error submitting attendance:", error);
       toast.error("Failed to submit attendance");
     } finally{
       setLoading(false);
@@ -331,8 +321,7 @@ const FacultyAttendancePage = () => {
     <>
       <Navbar />
       {/* <Navbar userType="faculty" userName={facultyName} /> */}
-
-      <div className="page-container max-w-4xl mx-auto">
+      <div className="page-container max-w-4xl mx-auto mt-3">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Attendance Marking</h1>
           <p className=" mt-2">

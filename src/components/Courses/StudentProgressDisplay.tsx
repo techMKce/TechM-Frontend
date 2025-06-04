@@ -61,8 +61,6 @@ function useStudentProgress(courseId: string, studentId: string) {
             // record.stdId === "CS124" && record.courseId === "17"
         );
 
-        //  console.log("attendance percentage: ", attendanceResponse.data);
-
         // set user course progress
         setProgresPercentage(
           userProgress ? userProgress.progressPercentage : 0
@@ -75,7 +73,6 @@ function useStudentProgress(courseId: string, studentId: string) {
         setLoading(false);
       } catch (error) {
         setLoading(false);
-        console.error("Error fetching progress data:", error);
       } finally {
         setLoading(false);
       }
@@ -92,7 +89,6 @@ export const StudentProgressDisplay = ({
 }: StudentProgressDisplayProps) => {
   const { progresPercentage, loading, error, attendancePercentage } =
     useStudentProgress(courseId, studentId);
-  // console.log("user percentage: ", progresPercentage);
 
   if (loading) {
     return <div className="text-center py-4">Loading progress...</div>;

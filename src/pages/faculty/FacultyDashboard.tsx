@@ -84,12 +84,10 @@ const FacultyDashboard = () => {
   try {
     const response = await api.get('/course/details');
     allCourses = [...response.data].length > 0 ? response.data : [];
-    console.log("Fetched all courses:", allCourses);
   } catch (error) {
-    console.error("Error fetching all courses:", error);
+    toast.error("Error fetching all courses:");
     allCourses = [];
   }
-  console.log('Current faculty profile:', profile.profile.name);
   const facultyCourses = allCourses.filter((course) => course.instructorName === profile.profile.name);
   setCourses(facultyCourses);
 
@@ -99,7 +97,7 @@ const FacultyDashboard = () => {
     studentCount = response.data;
     setTotalStudentCount(studentCount);
   } catch (error) {
-    console.error("Error fetching assignments:", error);
+    toast.error("Error fetching assignments:");
     studentCount = 0;
     setTotalStudentCount(0);
   }
@@ -118,7 +116,7 @@ const FacultyDashboard = () => {
 
   const handleSubmit = () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 
@@ -153,7 +151,7 @@ const FacultyDashboard = () => {
 
   const handleUpdate = () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.error("Please fill all fields");
+      toast.warning("Please fill all fields");
       return;
     }
 
@@ -190,7 +188,7 @@ const FacultyDashboard = () => {
       
       return courseNames.length > 0 ? courseNames : ['No courses assigned'];
     } catch (error) {
-      console.error('Error getting student assigned courses:', error);
+      toast.error('Error getting student assigned courses:');
       return ['Error loading courses'];
     }
   };

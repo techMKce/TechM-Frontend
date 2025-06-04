@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import api from "../../service/api"; // Adjust the import path as necessary
-import axios from 'axios';
+import { toast } from "sonner";
 interface Course {
   id: string;
   courseId: string;
@@ -49,7 +49,6 @@ const SchedulePage = () => {
         const data = response.data;
 
         if (!Array.isArray(data)) {
-          console.error("Expected array but got:", data);
           setCourses([]);
           return;
         }
@@ -67,7 +66,6 @@ const SchedulePage = () => {
         const enabledCourses = mappedCourses.filter((course) => course.isEnabled);
         setCourses(enabledCourses);
       } catch (error) {
-        console.error("Error fetching courses:", error);
         setCourses([]);
       }
     };
@@ -89,15 +87,15 @@ const SchedulePage = () => {
 
   const handleGenerate = async () => {
     if (selectedCourses.length === 0) {
-      alert("Please select at least one course");
+      toast.warning("Please select at least one course");
       return;
     }
     if (!fromDate || !toDate) {
-      alert("Please select both from and to dates");
+      toast.warning("Please select both from and to dates");
       return;
     }
     if (fromDate >= toDate) {
-      alert("From date must be before to date");
+      toast.warning("From date must be before to date");
       return;
     }
 
@@ -134,9 +132,7 @@ const SchedulePage = () => {
 
     formData.append("courses", JSON.stringify(courseArray));
     formData.append("duration", JSON.stringify(duration));
-    alert("Data sent:\n" +
-      "Courses: " + JSON.stringify(courseArray, null, 2) + "\n" +
-      "Duration: " + JSON.stringify(duration, null, 2));
+    toast.success("Data sent SuccessFully");
 
     try {
       const response = await api.post('/attendance/postexam', formData, {
@@ -145,12 +141,11 @@ const SchedulePage = () => {
         }
       });
 
-      console.log('Upload successful:', response.data);
+      toast.success('Upload successful:', response.data);
       setGeneratedSchedule(response.data);
       setShowSuccessMessage(true);
     } catch (error) {
-      console.error('Upload error', error);
-      alert('Failed to upload schedule.');
+      toast.info('Failed to upload schedule.');
     } finally {
       setIsGenerating(false);
     }

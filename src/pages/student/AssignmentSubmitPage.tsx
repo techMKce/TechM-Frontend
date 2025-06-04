@@ -26,8 +26,8 @@ interface SubmittedFile {
 const AssignmentSubmitPage = () => {
   const { profile } = useAuth();
   const { assignmentId } = useParams<{ assignmentId: string }>();
-  const [studentName] = useState("John Doe");
-  const [studentRollNumber] = useState("CS101");
+  const [studentName] = useState(profile.profile.name);
+  const [studentRollNumber] = useState(profile.profile.id);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [submittedFiles, setSubmittedFiles] = useState<SubmittedFile[]>([]);
@@ -48,6 +48,7 @@ const AssignmentSubmitPage = () => {
         const response = await api.get("/assignments/id", {
           params: { assignmentId }
         });
+
         setAssignment(response.data.assignment);
         setError(null);
         const dueDate = new Date(response.data.assignment.dueDate);
@@ -56,7 +57,6 @@ const AssignmentSubmitPage = () => {
       } catch (err: any) {
         setError(err?.response?.data?.message || "Failed to fetch assignment details.");
         toast.error("Error fetching assignment");
-        console.error("Fetch assignment error:", err);
       } finally {
         setLoading(false);
       }
@@ -79,6 +79,7 @@ const AssignmentSubmitPage = () => {
         if (userSubmission) {
           setSubmittedAt(userSubmission.submittedAt);
           setSubmittedFiles([{ name: userSubmission.fileName, size: userSubmission.fileSize }]);
+          
         }
         if (userGrading) {
           setIsGraded(true);
@@ -87,7 +88,6 @@ const AssignmentSubmitPage = () => {
         }
       } catch (err: any) {
         toast.error(err?.response?.data?.message || "Failed to check submission and grading status");
-        console.error("Submission/grading error:", err);
       }
     };
 
@@ -116,7 +116,7 @@ const AssignmentSubmitPage = () => {
     }
 
     if (files.length === 0) {
-      toast.error("Please upload a file");
+      toast.warning("Please upload a file");
       return;
     }
 
@@ -146,7 +146,6 @@ const AssignmentSubmitPage = () => {
       setFiles([]);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to submit assignment");
-      console.error("Submit error:", err);
     }
   };
 
@@ -176,7 +175,6 @@ const AssignmentSubmitPage = () => {
       toast.info("Assignment unsubmitted successfully");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to unsubmit assignment");
-      console.error("Unsubmit error:", err);
     }
   };
 
@@ -213,7 +211,6 @@ const AssignmentSubmitPage = () => {
       window.URL.revokeObjectURL(url);
       toast.info("Document downloaded successfully");
     } catch (err: any) {
-      console.error("Download error:", err);
       toast.error(err?.response?.data?.message || "Failed to download document");
     }
   };
