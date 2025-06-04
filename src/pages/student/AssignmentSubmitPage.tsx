@@ -20,7 +20,7 @@ interface Assignment {
 
 interface SubmittedFile {
   name: string;
-  size: number;
+  size: number; // Size in KB
 }
 
 const AssignmentSubmitPage = () => {
@@ -78,7 +78,11 @@ const AssignmentSubmitPage = () => {
         setRejected(userSubmission?.status === "Rejected");
         if (userSubmission) {
           setSubmittedAt(userSubmission.submittedAt);
-          setSubmittedFiles([{ name: userSubmission.fileName, size: userSubmission.fileSize }]);
+          // Updated to handle fileSize in bytes, convert to KB
+          setSubmittedFiles([{
+            name: userSubmission.fileName || 'Unknown',
+            size: userSubmission.fileSize ? userSubmission.fileSize / 1024 : 0
+          }]);
         }
         if (userGrading) {
           setIsGraded(true);
@@ -132,6 +136,10 @@ const AssignmentSubmitPage = () => {
     formData.append("file", files[0]);
     formData.append("studentDepartment", profile.profile?.department || "");
     formData.append("studentSemester", profile.profile?.year || "");
+    // Added studentEmail if available
+    if (profile.profile?.email) {
+      formData.append("studentEmail", profile.profile.email);
+    }
 
     try {
       const response = await api.post(
@@ -142,7 +150,8 @@ const AssignmentSubmitPage = () => {
       toast.success("Assignment submitted successfully");
       setIsSubmitted(true);
       setSubmittedAt(response.data.submission?.submittedAt || new Date().toISOString());
-      setSubmittedFiles([{ name: files[0].name, size: files[0].size }]);
+      // Updated to convert size to KB
+      setSubmittedFiles([{ name: files[0].name, size: files[0].size / 1024 }]);
       setFiles([]);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to submit assignment");
@@ -259,7 +268,6 @@ const AssignmentSubmitPage = () => {
               <ArrowLeft size={24} className="mr-2" />
               Back to Course
             </Link>
-        
           </div>
 
           <div className="flex flex-col lg:flex-row gap-6">
@@ -342,7 +350,7 @@ const AssignmentSubmitPage = () => {
                           {submittedFiles.map((file, index) => (
                             <div key={index} className="flex items-center text-base text-gray-600">
                               <span className="truncate max-w-[200px]">{file.name}</span>
-                              <span className="ml-2">({(file.size / 1024).toFixed(1)} KB)</span>
+                              <span className="ml-2">({file.size.toFixed(1)} KB)</span>
                             </div>
                           ))}
                         </div>
