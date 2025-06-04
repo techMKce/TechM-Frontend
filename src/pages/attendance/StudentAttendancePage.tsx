@@ -17,11 +17,16 @@ interface CourseAttendanceData {
   percentage: number;
 }
 
+interface OverallAttendanceData {
+  sem: number;
+  percentage: number;
+}
+
 const StudentAttendancePage = () => {
   const { profile } = useAuth();
   const [selectedSemester, setSelectedSemester] = useState("");
   const [courseAttendance, setCourseAttendance] = useState<CourseAttendanceData[]>([]);
-  const [overallPercentage, setOverallPercentage] = useState<number | null>(null);
+  const [overallAttendance, setOverallAttendance] = useState<OverallAttendanceData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,49 +41,67 @@ const StudentAttendancePage = () => {
   };
 
   const fetchAttendanceData = async (semester: string) => {
-    setLoading(true);
-    setError("");
-    try {
-      const studentId = profile.profile.id;
-      const semesterNumber = parseInt(semester.split(" ")[1]);
+  setLoading(true);
+  setError("");
+  try {
+    const studentId = profile.profile.id;
+    const semesterNumber = parseInt(semester.split(" ")[1]);
 
-      const [attendanceRes, courseRes] = await Promise.all([
-        api.get(`/api/v1/attendance/getstudentbyid`, { params: { id: studentId } }),
-        api.get("/api/v1/course/details")
-      ]);
-
-      const semesterAttendance = attendanceRes.data.filter((item: any) => item.sem === semesterNumber);
-      const courseMap = new Map(courseRes.data.map((course: any) => [course.courseid, course.credits]));
-
-      const data: CourseAttendanceData[] = semesterAttendance.map((item: any) => {
-        const credits = courseMap.get(item.courseid) || 0;
-        const assignedSessions = credits * 5;
-        const percentage = item.totaldays > 0 ? Math.round((item.presentcount / item.totaldays) * 100) : 0;
-
-        return {
-          courseId: item.courseid,
-          courseName: item.coursename,
-          credits,
-          assignedSessions,
-          conductedSessions: item.totaldays,
-          attendedSessions: item.presentcount,
-          percentage
-        };
+    // Fetch overall attendance percentage
+    const overallRes = await api.get(`/attendance/allattendancepercentage`);
+    const studentOverall = overallRes.data.find(
+      (item: any) => item.stdId === studentId && item.sem === semesterNumber
+    );
+    
+    if (studentOverall) {
+      setOverallAttendance({
+        sem: studentOverall.sem,
+        percentage: Math.round(studentOverall.percentage)
       });
-
-      const totalConducted = data.reduce((sum, d) => sum + d.conductedSessions, 0);
-      const totalAttended = data.reduce((sum, d) => sum + d.attendedSessions, 0);
-      const overall = totalConducted > 0 ? Math.round((totalAttended / totalConducted) * 100) : 0;
-
-      setCourseAttendance(data);
-      setOverallPercentage(overall);
-    } catch (err: any) {
-      setError("Failed to fetch attendance data.");
-      setCourseAttendance([]);
-      setOverallPercentage(null);
+    } else {
+      setOverallAttendance(null);
     }
-    setLoading(false);
-  };
+
+    // Fetch course-wise attendance
+    const courseRes = await api.get(`/attendance/getstudentbyid`, { 
+      params: { id: studentId } 
+    });
+    
+    // Filter for selected semester
+    const semesterCourses = courseRes.data.filter(
+      (item: any) => item.sem === semesterNumber
+    );
+
+    // Fetch course details to get credits
+    const courseDetailsRes = await api.get("/course/details");
+    const courseMap = new Map(
+      courseDetailsRes.data.map((course: any) => [course.courseId, course.credit])
+    );
+
+    // Transform data
+    const data: CourseAttendanceData[] = semesterCourses.map((item: any) => {
+      const credits = courseMap.get(item.credit) || 0;
+      const assignedSessions = credits * 5; // Calculate assigned sessions as credits * 5
+      
+      return {
+        courseId: item.courseId,
+        courseName: item.courseName,
+        credits,
+        assignedSessions,
+        conductedSessions: item.totaldays,
+        attendedSessions: item.presentcount,
+        percentage: item.percentage ? Math.round(item.percentage) : 0
+      };
+    });
+
+    setCourseAttendance(data);
+  } catch (err: any) {
+    setError("Failed to fetch attendance data.");
+    setCourseAttendance([]);
+    setOverallAttendance(null);
+  }
+  setLoading(false);
+};
 
   const getAttendanceStatus = (percentage: number) => {
     if (percentage >= 90) return { text: "Excellent", color: "text-green-600" };
@@ -87,7 +110,7 @@ const StudentAttendancePage = () => {
     return { text: "Needs Improvement", color: "text-red-500" };
   };
 
-  const attendanceStatus = overallPercentage !== null ? getAttendanceStatus(overallPercentage) : null;
+  const attendanceStatus = overallAttendance ? getAttendanceStatus(overallAttendance.percentage) : null;
 
   return (
     <>
@@ -121,7 +144,9 @@ const StudentAttendancePage = () => {
               <div className="flex flex-col md:flex-row md:justify-between items-center">
                 <div className="flex items-center mb-4 md:mb-0">
                   <div className="h-20 w-20 rounded-full border-4 border-primary flex items-center justify-center mr-4">
-                    <span className="text-2xl font-bold">{overallPercentage !== null ? `${overallPercentage}%` : "--"}</span>
+                    <span className="text-2xl font-bold">
+                      {overallAttendance ? `${Math.round(overallAttendance.percentage)}%` : "--"}
+                    </span>
                   </div>
                   <div>
                     <h3 className="font-medium text-lg">Overall Attendance</h3>
@@ -140,14 +165,22 @@ const StudentAttendancePage = () => {
 
                   <div className="text-center">
                     <p className="text-xs">Current</p>
-                    <p className="text-2xl font-bold">{overallPercentage !== null ? `${overallPercentage}%` : "--"}</p>
+                    <p className="text-2xl font-bold">
+                      {overallAttendance ? `${Math.round(overallAttendance.percentage)}%` : "--"}
+                    </p>
                     <p className="text-xs">Attendance</p>
                   </div>
 
                   <div className="text-center">
                     <p className="text-xs">Risk Status</p>
-                    <p className={`text-2xl font-bold ${overallPercentage !== null ? (overallPercentage >= 75 ? "text-green-500" : "text-red-500") : "text-gray-500"}`}>
-                      {overallPercentage !== null ? (overallPercentage >= 75 ? "Safe" : "At Risk") : "--"}
+                    <p className={`text-2xl font-bold ${
+                      overallAttendance ? 
+                        (overallAttendance.percentage >= 75 ? "text-green-500" : "text-red-500") 
+                        : "text-gray-500"
+                    }`}>
+                      {overallAttendance ? 
+                        (overallAttendance.percentage >= 75 ? "Safe" : "At Risk") 
+                        : "--"}
                     </p>
                     <p className="text-xs">Status</p>
                   </div>
@@ -211,4 +244,3 @@ const StudentAttendancePage = () => {
 };
 
 export default StudentAttendancePage;
-
