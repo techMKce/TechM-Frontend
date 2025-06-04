@@ -18,7 +18,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import api from "@/service/api";
+import api from "../../service/api";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface Student {
@@ -196,13 +196,13 @@ const AssignStudentsPage = () => {
     }
   };
 
-  const handleFacultySelect = (facultyId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedFaculty((prev) => [...prev, facultyId]);
-    } else {
-      setSelectedFaculty((prev) => prev.filter((id) => id !== facultyId));
-    }
-  };
+  // const handleFacultySelect = (facultyId: string, checked: boolean) => {
+  //   if (checked) {
+  //     setSelectedFaculty((prev) => [...prev, facultyId]);
+  //   } else {
+  //     setSelectedFaculty((prev) => prev.filter((id) => id !== facultyId));
+  //   }
+  // };
 
   const handleAssignStudents = async () => {
     if (selectedCourse === null ||

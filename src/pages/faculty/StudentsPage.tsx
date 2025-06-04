@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Users, GraduationCap } from "lucide-react";
-import api from "@/service/api";
+import api from "../../service/api";
 import { useAuth } from "@/hooks/useAuth";
 interface Student {
   id: string;

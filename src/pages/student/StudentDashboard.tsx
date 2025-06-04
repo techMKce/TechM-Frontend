@@ -4,6 +4,7 @@ import { BookOpen, Calendar, Award } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from '../../service/api';
 import {useAuth} from "@/hooks/useAuth";
+import { toast } from "sonner";
 interface Course {
   id: string;
   courseId: string;
@@ -49,6 +50,7 @@ try {
   console.log("Fetched all courses:", allCourses);
 } catch (error) {
   console.error("Error fetching all courses:", error);
+  toast.error("Failed to load courses");
   allCourses = []; // fallback in case of error
 }
 
