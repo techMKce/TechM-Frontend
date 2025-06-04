@@ -44,7 +44,7 @@ function getYouTubeEmbedUrl(url) {
   const match = url.match(regExp);
 
   const videoId = match && match[2].length === 11 ? match[2] : null;
-
+  
   // Return embed URL if valid ID found, otherwise return original URL
   return videoId
     ? `https://www.youtube.com/embed/${videoId}?rel=0&showinfo=0&autoplay=0`
