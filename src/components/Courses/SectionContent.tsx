@@ -69,6 +69,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
         setContents(response.data);
         // console.log("recevice contents: ", response.data);
       } catch (error) {
+        toast.error("Failed to load section content. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -163,7 +164,9 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
     } catch (error) {
 
 
+
       toast.error(`Failed to add ${pdfTitle}. Please try again.`);
+
 
     }
   };

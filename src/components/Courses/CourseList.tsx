@@ -229,7 +229,7 @@ const CourseList: React.FC = () => {
         setCourses((prev) => prev.filter((c) => c.course_id !== course_id));
          
       } catch (error) {
-        // console.log(error);
+
             toast.error("Failed to Delete the Course");
         window.location.reload();
       }

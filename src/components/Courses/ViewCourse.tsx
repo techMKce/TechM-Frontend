@@ -29,7 +29,6 @@ function ViewCourse() {
   const role = profile.profile.role;
   const { id } = useParams();
   const { state } = useLocation();
-  const navigate = useNavigate();
   const [course, setCourse] = useState<Course>(state?.course);
   const [currentCourseId, setCurrentCourseId] = useState(
     state?.course.course_id
@@ -124,6 +123,7 @@ function ViewCourse() {
 
   // course editing
   const handleEditCourse = () => {
+    
     setEditData({
       course_id: course.course_id,
       courseTitle: course.courseTitle || "",

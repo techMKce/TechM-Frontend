@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import Navbar from "@/components/FacultyNavbar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +47,7 @@ const GradeStudentSubmissionPage = () => {
   const isGraded = gradingData !== null;
   const [submissionStatus, setSubmissionStatus] = useState<"Accepted" | "Rejected">("Accepted");
   const [isLoading, setIsLoading] = useState(false);
-
+  const {state}=useLocation();
   useEffect(() => {
     const fetchData = async () => {
       if (!submissionId || !assignmentId) {
@@ -329,7 +329,7 @@ const GradeStudentSubmissionPage = () => {
     return (
       <div className="page-container max-w-4xl mx-auto">
         <p>Error: Submission not found.</p>
-        <Link to={`/faculty/assignments/${assignmentId}/grade`} className="text-accent hover:text-accent-dark">
+        <Link to={`/faculty/assignments/${assignmentId}/grade`} state={{course:state}} className="text-accent hover:text-accent-dark">
           ← Back to All Submissions
         </Link>
       </div>
