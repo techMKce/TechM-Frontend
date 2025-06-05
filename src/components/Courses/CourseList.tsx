@@ -9,6 +9,7 @@ import StudentNavbar from "../StudentNavbar";
 import axios from "axios";
 import { toast } from "sonner";
 export type Course = {
+  courseCode: string;
   course_id: number;
   courseTitle: string;
   courseDescription: string;
@@ -165,6 +166,7 @@ const CourseList: React.FC = () => {
       const response = await api.post(
         "/course/add",
         {
+          courseCode: newCourseData.courseCode,
           courseTitle: newCourseData.courseTitle,
           courseDescription: newCourseData.courseDescription,
           instructorName: newCourseData.instructorName,

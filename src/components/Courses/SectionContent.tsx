@@ -68,6 +68,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
         setContents(response.data);
         console.log("recevice contents: ", response.data);
       } catch (error) {
+        toast.error("Failed to load section content. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -162,7 +163,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
     } catch (error) {
 
 
-      toast.error(`Failed to add ${contentType}. Please try again.`);
+      toast.error(`Failed to add file/video. Please try again.`);
 
     }
   };
