@@ -15,7 +15,9 @@ import {
 
 import api from "../../service/api";
 import { useAuth } from "@/hooks/useAuth";
+
 import { toast } from "@/hooks/use-toast";
+
 
 interface Assignment {
   title: string;
@@ -50,6 +52,7 @@ const AssignmentSubmitPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [isDueDateOver, setIsDueDateOver] = useState(false);
   const [rejected, setRejected] = useState(false);
+
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewable, setIsPreviewable] = useState(false);
@@ -97,6 +100,7 @@ const AssignmentSubmitPage = () => {
       console.error("Submission/grading error:", err);
     }
   };
+
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -412,6 +416,7 @@ const AssignmentSubmitPage = () => {
           <div className="flex items-center justify-between mb-6">
             <Link
               to={`/student/courses/${assignment.courseId}`}
+
               state={state}
               className="flex items-center text-primary hover:text-primary-dark text-lg font-semibold transition-all duration-200"
             >

@@ -48,7 +48,7 @@ function useStudentProgress(courseId: string, studentId: string) {
         );
         // here course id set by default after integration change this
         const attendanceResponse = await api.get(
-          `/attendance/getstudentbyid?id=038`
+          `/attendance/getstudentbyid?id=${profile.profile.id}`
         );
 
         const userProgress = response.data.students.find(
@@ -59,8 +59,9 @@ function useStudentProgress(courseId: string, studentId: string) {
         const attendanceProgress = attendanceResponse.data.find(
           (record: AttendanceRecord) =>
             record.stdId === studentId && record.courseId === courseId
-            // record.stdId === "038" && record.courseId === "15"
+            // record.stdId === "717821Y116" && record.courseId === "10"
         );
+        // console.log("attendance response: " ,attendanceResponse.data);
 
 
         // set user course progress

@@ -21,7 +21,7 @@ import StudentNavbar from "../StudentNavbar";
 import FacultyNavbar from "../FacultyNavbar";
 import { isAsyncFunction } from "node:util/types";
 // import { toast } from "@/components/ui/sonner";
-import {toast} from 'sonner';
+import { toast } from "sonner";
 import { Section } from "lucide-react";
 
 function ViewCourse() {
@@ -101,6 +101,7 @@ function ViewCourse() {
           : [sectionResponse.data];
 
         setCourseSection(sections); // Update state
+        // console.log("course details: ", course)
       } catch (error) {
       } finally {
         setLoading(false);
@@ -151,6 +152,7 @@ function ViewCourse() {
 
   interface Course {
     course_id: string;
+    courseCode: string;
     courseTitle: string;
     courseDescription: string;
     instructorName: string;
@@ -218,8 +220,7 @@ function ViewCourse() {
       // Reset form
       setNewSection({ sectionTitle: "", sectionDesc: "" });
       setShowAddSection(false);
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const handleEditSection = (section) => {
@@ -273,6 +274,7 @@ function ViewCourse() {
         updatedAt: null,
         course: { course_id: null },
       });
+      toast.success("Section Edit Successfully");
       setError(null);
     } catch (err) {
       setError(
@@ -295,9 +297,7 @@ function ViewCourse() {
         setCourseSection((prevSections) =>
           prevSections.filter((s) => s.section_id !== sectionId)
         );
-
       } catch (error) {
-
         if (error) {
           toast.error("Failed to delete section");
         } else {
@@ -315,14 +315,12 @@ function ViewCourse() {
     });
     if (response.status === 200) {
       setIsEnrolled(true);
-      toast.success(
-        "Enrolled Successfully",{
+      toast.success("Enrolled Successfully", {
         description: `You have successfully enrolled in ${course.courseTitle}.`,
       });
     } else {
-      toast.error(
-        "Enrollment Failed",{
-        description:"An error occurred during enrollment",
+      toast.error("Enrollment Failed", {
+        description: "An error occurred during enrollment",
       });
     }
     setLoading(false);
@@ -473,32 +471,41 @@ function ViewCourse() {
                     {course.dept}
                   </span>
                   <span className="text-gray-600 text-sm">
-                    By{" "}
-                    <span className="text-red-600">
-                      {course.instructorName}
-                    </span>
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Duration: {course.duration}
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Credits: {course.credit}
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Status: {course.isActive ? "Active" : "Inactive"}
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Created: {new Date(course.createdAt).toLocaleDateString()}
-                  </span>
-                  {course.updatedAt && (
+                    Couse Code:{" "}
                     <span className="text-gray-600 text-sm">
-                      Updated: {new Date(course.updatedAt).toLocaleDateString()}
+                      {course.courseCode}
                     </span>
-                  )}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <span className="text-gray-600 text-sm">
+                      By{" "}
+                      <span className="text-red-600">
+                        {course.instructorName}
+                      </span>
+                    </span>
+                    <span className="text-gray-600 text-sm">
+                      Duration: {course.duration}
+                    </span>
+                    <span className="text-gray-600 text-sm">
+                      Credits: {course.credit}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                      <span className="text-gray-600 text-sm">
+                        Created:{" "}
+                        {new Date(course.createdAt).toLocaleDateString()}
+                      </span>
+                      {course.updatedAt && (
+                        <span className="text-gray-600 text-sm">
+                          Updated:{" "}
+                          {new Date(course.updatedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-base text-gray-800 mb-6">
+                <pre className="font-sans mb-4 text-gray-800 whitespace-pre-wrap break-words max-h-[9em] overflow-y-auto">
                   {course.courseDescription}
-                </p>
+                </pre>
                 {!isEnrolled && role === "STUDENT" ? (
                   <button
                     onClick={handleEnroll}
@@ -684,7 +691,7 @@ function ViewCourse() {
                                       {section.sectionTitle}
                                     </h3>
                                   )}
-                                  {(role === "FACULTY" || role === "ADMIN") && (
+                                  {(role === "FACULTY" || role === "ADMIN") && (profile.profile.name === course.instructorName)&&(
                                     <div className="flex gap-1">
                                       {editingSectionId ===
                                       section.section_id ? (
@@ -744,13 +751,14 @@ function ViewCourse() {
                                     rows={4}
                                   />
                                 ) : (
-                                  <pre className="font-sans mb-4 text-gray-800">
+                                  <pre className="font-sans mb-4 text-gray-800 whitespace-pre-wrap break-words max-h-[9em] overflow-y-auto">
                                     {section.sectionDesc}
                                   </pre>
                                 )}
                                 <SectionContent
                                   key={section.section_id}
                                   section={section}
+                                  course = {course}
                                   // user={user}
                                 />
                               </div>
@@ -771,7 +779,6 @@ function ViewCourse() {
             {showAssignments && (
               <DisplayAssignments
                 courseId={course.course_id}
-                
                 showAssignments={showAssignments}
               />
             )}
