@@ -47,6 +47,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
   const user: User = {
     role: profile.profile.role,
   };
+  const [loader,setLoader]=useState(false);
   const [contents, setContents] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [showVideoForm, setShowVideoForm] = useState(false);
@@ -92,6 +93,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
   const handleUploadVideo = async () => {
     if (!videoUrl) {
       toast.error("Please enter a video URL");
+      setLoader(false);
       return;
     }
 
@@ -126,11 +128,15 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       console.error("Error adding video:", error);
       toast.error("Failed to add video. Please try again.");
     }
+    finally{
+      setLoader(false);
+    }
   };
 
   const handleUploadPdf = async () => {
     if (!pdfFile) {
       toast.error("Please upload a PDF file");
+      setLoader(false);
       return;
     }
 
@@ -169,6 +175,9 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       toast.error(`Failed to add ${pdfTitle}. Please try again.`);
 
 
+    }
+    finally{
+      setLoader(false);
     }
   };
 
@@ -294,7 +303,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
               className="flex items-center gap-1 px-3 py-1 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 font-semibold"
             >
               <PlusIcon className="w-4 h-4" />
-              Add Video
+              Add Video 
             </button>
           )}
         </div>
@@ -430,10 +439,10 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleUploadVideo}
+                  onClick={()=>{setLoader(true);handleUploadVideo()}}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700"
                 >
-                  Add Video
+                  Add Video {(loader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin inline-block"/>:""}
                 </button>
               </div>
             </div>
@@ -561,11 +570,11 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleUploadPdf}
+                  onClick={()=>{setLoader(true);handleUploadPdf()}}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer disabled:bg-blue-300"
                   disabled={!pdfFile}
                 >
-                  Upload PDF
+                  Upload PDF {(loader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin inline-block"/>:""}
                 </button>
               </div>
             </div>
