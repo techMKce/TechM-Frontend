@@ -12,8 +12,12 @@ import { CalendarIcon, BookOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import api from "../../service/api"; // Adjust the import path as necessary
-import axios from 'axios';
+
+import api from "../../service/api";
+import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
+
+
 interface Course {
   id: string;
   courseId: string;
@@ -49,7 +53,6 @@ const SchedulePage = () => {
         const data = response.data;
 
         if (!Array.isArray(data)) {
-          console.error("Expected array but got:", data);
           setCourses([]);
           return;
         }
@@ -67,7 +70,6 @@ const SchedulePage = () => {
         const enabledCourses = mappedCourses.filter((course) => course.isEnabled);
         setCourses(enabledCourses);
       } catch (error) {
-        console.error("Error fetching courses:", error);
         setCourses([]);
       }
     };
@@ -89,15 +91,17 @@ const SchedulePage = () => {
 
   const handleGenerate = async () => {
     if (selectedCourses.length === 0) {
-      alert("Please select at least one course");
+
+      toast.error("Please select at least one course");
       return;
     }
     if (!fromDate || !toDate) {
-      alert("Please select both from and to dates");
+      toast.error("Please select both from and to dates");
       return;
     }
     if (fromDate >= toDate) {
-      alert("From date must be before to date");
+      toast.error("From date must be before to date");
+
       return;
     }
 
@@ -134,9 +138,10 @@ const SchedulePage = () => {
 
     formData.append("courses", JSON.stringify(courseArray));
     formData.append("duration", JSON.stringify(duration));
-    alert("Data sent:\n" +
-      "Courses: " + JSON.stringify(courseArray, null, 2) + "\n" +
-      "Duration: " + JSON.stringify(duration, null, 2));
+
+
+    toast.success(`Schedule data prepared for ${courseArray.length} course(s)`);
+
 
     try {
       const response = await api.post('/attendance/postexam', formData, {
@@ -145,22 +150,22 @@ const SchedulePage = () => {
         }
       });
 
-      console.log('Upload successful:', response.data);
+      toast.success('Upload successful:', response.data);
       setGeneratedSchedule(response.data);
       setShowSuccessMessage(true);
+      toast.success("Schedule uploaded successfully");
     } catch (error) {
-      console.error('Upload error', error);
-      alert('Failed to upload schedule.');
+
+      toast.error("Failed to upload schedule");
+
     } finally {
       setIsGenerating(false);
     }
   };
-  
-
-  
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" reverseOrder={false} />
       <AdminNavbar currentPage="/admin/schedule" />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
@@ -302,7 +307,6 @@ const SchedulePage = () => {
                 </div>
               </div>
 
-              {/* Duration Display */}
               {fromDate && toDate && (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg">
                   <h4 className="font-medium text-green-900">Selected Period</h4>
@@ -365,5 +369,4 @@ const SchedulePage = () => {
     </div>
   );
 };
-
 export default SchedulePage;

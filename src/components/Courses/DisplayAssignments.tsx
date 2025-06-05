@@ -4,7 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/service/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Trash, ClipboardCheck } from 'lucide-react';
+<<<<<<< HEAD
 import { useToast } from '@/components/ui/use-toast';
+=======
+import { toast } from 'sonner';
+>>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
 
 interface Assignment {
   assignmentId: string;
@@ -53,8 +57,6 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
       const response = await api.get<ApiResponse>('/assignments/course?', {
         params: { courseId },
       });
-      console.log('Full response:', response.data);
-      console.log('Assignments array:', response.data.assignments);
       setAssignments(response.data.assignments);
 
       if (profile.profile.role === 'STUDENT' && response.data.assignments.length > 0) {
@@ -70,7 +72,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
             );
             status[assignment.assignmentId] = hasSubmitted;
           } catch (err) {
-            console.error(`Error checking submission for assignment ${assignment.assignmentId}:`, err);
+            toast.warning("No Assignment Found");
             status[assignment.assignmentId] = false;
           }
         }
@@ -79,7 +81,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
       return response.data.assignments;
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      toast.error('Failed to fetching assignments:');
       setAssignments([]);
       return [];
     } finally {
@@ -89,11 +91,14 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleSubmit = (assignmentId: string) => {
     if (!assignmentId) {
+<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
+=======
+>>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
     navigate(`/student/assignments/${assignmentId}/submit`);
@@ -101,11 +106,14 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleGrade = (assignmentId: string) => {
     if (!assignmentId) {
+<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
+=======
+>>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
     navigate(`/faculty/assignments/${assignmentId}/grade`);
@@ -113,11 +121,15 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleEditAssignment = (assignmentId: string) => {
     if (!assignmentId) {
+<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
+=======
+      toast.error('Invalid assignment ');
+>>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
     navigate(`/faculty/assignments/${assignmentId}/edit`);
@@ -125,11 +137,14 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleDeleteAssignment = (id: string) => {
     if (!id) {
+<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
+=======
+>>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
 
@@ -172,6 +187,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
     });
   };
 
+<<<<<<< HEAD
   const toggleDescription = (assignmentId: string) => {
     setExpandedDescriptions((prev) => ({
       ...prev,
@@ -186,6 +202,21 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
       month: 'short',
       day: 'numeric',
     });
+=======
+    try {
+      setDeletingId(id);
+      await api.delete(`/assignments`, {
+        params: { assignmentId: id },
+      });
+      setAssignments((prev) => prev.filter((assignment) => assignment.assignmentId !== id));
+      toast.success('Assignment deleted successfully');
+    } catch (error: any) {
+      toast.error(`Failed to delete assignment with ID:${id}`);
+      toast.error('Error deleting assignment ');
+    } finally {
+      setDeletingId(null);
+    }
+>>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
   };
 
   return (

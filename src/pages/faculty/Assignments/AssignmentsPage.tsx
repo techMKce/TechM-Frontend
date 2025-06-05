@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/FacultyNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {toast} from 'sonner';
 import {
   Plus,
   Calendar,
@@ -37,7 +38,6 @@ const AssignmentsPage = () => {
       setLoading(true);
       try {
         const response = await api.get(`/assignments/all`);
-        console.log("Raw assignments from API:", response.data.assignments);
 
         const fetchedAssignments: Assignment[] = (response.data.assignments || []).map((a: any) => ({
           id: a.assignmentId,
@@ -51,7 +51,7 @@ const AssignmentsPage = () => {
         setAssignments(fetchedAssignments);
       } catch (err) {
         setError("Failed to load assignments.");
-        console.error(err);
+        toast.error("Failed To Load Assignments",{description:"please Check Internet Connection"});
       } finally {
         setLoading(false);
       }
@@ -80,9 +80,7 @@ const AssignmentsPage = () => {
 
       setAssignments((prev) => prev.filter((assignment) => assignment.id !== id));
     } catch (error: any) {
-      console.error("Failed to delete assignment with ID:", id);
-      console.error(error.response?.data || error.message);
-      alert("Error deleting assignment: " + (error.response?.data?.message || error.message));
+      toast.error(`Failed to delete assignment with ID: ${id}`);
     } finally {
       setDeletingId(null);
     }
@@ -180,7 +178,7 @@ const AssignmentsPage = () => {
 
                     <Link
                       to={`/faculty/assignments/${assignment.id}/grade`}
-                      className="flex items-center justify-center w-full py-2 mt-2 bg-accent hover:bg-accent-dark bg-primary text-white rounded transition-colors"
+                      className="flex items-center justify-center w-full py-2 mt-2 bg-accent hover:bg-accent-dark text-white rounded transition-colors"
                     >
                       <FileEdit size={16} className="mr-2" />
                       Grade Submissions

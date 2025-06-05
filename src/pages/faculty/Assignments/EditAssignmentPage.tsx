@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,6 @@ interface Assignment {
 const EditAssignmentPage: React.FC = () => {
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,11 +41,7 @@ const EditAssignmentPage: React.FC = () => {
   useEffect(() => {
     const fetchAssignment = async () => {
       if (!assignmentId) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Invalid assignment ID",
-        });
+        toast.warning("assignment ID Not Found");
         setLoading(false);
         return;
       }
@@ -67,26 +62,17 @@ const EditAssignmentPage: React.FC = () => {
             resourceLink: found.resourceLink || "",
           });
         } else {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Assignment not found",
-          });
+          toast.warning("Assignment not found");
         }
       } catch (error: any) {
-        console.error("Error fetching assignment:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.response?.data?.message || "Failed to fetch assignment",
-        });
+        toast.error("Failed to fetch assignment");
       } finally {
         setLoading(false);
       }
     };
 
     fetchAssignment();
-  }, [assignmentId, toast]);
+  }, [assignmentId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -102,11 +88,7 @@ const EditAssignmentPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assignmentId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Invalid assignment ID",
-      });
+      toast.warning("Assignment ID Not Found");
       return;
     }
 
@@ -128,17 +110,9 @@ const EditAssignmentPage: React.FC = () => {
         title: "Success",
         description: "Assignment updated successfully",
       });
-      // Add 2-second delay before navigating back
-      setTimeout(() => {
-        navigate(-1);
-      }, 1000);
+      navigate(-1);
     } catch (error: any) {
-      console.error("Error updating assignment:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.response?.data?.message || "Failed to update assignment",
-      });
+      toast.error("Failed to update assignment");
     } finally {
       setSubmitting(false);
     }

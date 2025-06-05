@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import CourseForm from "./CourseForm";
-// import axios from "axios";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import api from "@/service/api";
 import FacultyNavbar from "../FacultyNavbar";
 import StudentNavbar from "../StudentNavbar";
+import axios from "axios";
+import { toast } from "sonner";
 export type Course = {
   course_id: number;
   courseTitle: string;
@@ -34,6 +35,8 @@ const CourseList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoverStates, setHoverStates] = useState<Record<number, boolean>>({});
+  const [selectedTab, setSelectedTab] = useState<"my" | "other">("my");
+  const [enrolledCourses, setEnrolledCourses] = useState<string[]>([]);
 
   const handleMouseEnter = (courseId: number) => {
     setHoverStates((prev) => ({ ...prev, [courseId]: true }));
@@ -46,17 +49,24 @@ const CourseList: React.FC = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await api("/course/details");
+        const response = await api("/course/active");
         setCourses(response.data);
 
-        const uniqueCategories = ["All", ...Array.from(
-          new Set(
-            response.data.map((course: Course) => course.dept).filter(Boolean)
-          )
-        )] as string[];
+        const uniqueCategories = [
+          "All",
+          ...Array.from(
+            new Set(
+              response.data.map((course: Course) => course.dept).filter(Boolean)
+            )
+          ),
+        ] as string[];
         setCategories(uniqueCategories);
       } catch (err: any) {
-        setError(err.response?.data?.message || err.message || "Failed to fetch courses");
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to fetch courses"
+        );
       } finally {
         setLoading(false);
       }
@@ -65,19 +75,62 @@ const CourseList: React.FC = () => {
     fetchCourses();
   }, []);
 
+  // fetch student enrolled courses
+  // First fetch all enrolled courses for the student
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      try {
+        const response = await api.get("course-enrollment/by-student/s123");
+        setEnrolledCourses(response.data);
+      } catch (error) {
+        toast.error("Error fetching enrolled courses:", error);
+      }
+    };
+
+    if (profile.profile.role === "STUDENT") {
+      fetchEnrolledCourses();
+    }
+  }, [selectedTab]);
+
+
   const filteredCourses =
     selectedCategory === "All"
       ? courses
       : courses.filter((c) => c.dept === selectedCategory);
 
-  const searchFilteredCourses = filteredCourses.filter((course) =>
-    course.courseTitle?.toLowerCase()?.includes(search?.toLowerCase() || "")
+  const searchFilteredCoursesByAuthor = filteredCourses.filter(
+    (course) =>
+      course.instructorName?.toLowerCase() ===
+        profile.profile.name?.toLowerCase() &&
+      course.courseTitle?.toLowerCase()?.includes(search?.toLowerCase() || "")
+  );
+  const searchFilteredCoursesOtherThanAuthor = filteredCourses.filter(
+    (course) =>
+      profile.profile.role === "FACULTY"
+        ? course.instructorName?.toLowerCase() !=
+            profile.profile.name?.toLowerCase() &&
+          course.courseTitle
+            ?.toLowerCase()
+            ?.includes(search?.toLowerCase() || "")
+        : !enrolledCourses.includes(String(course.course_id)) &&
+          course.courseTitle
+            ?.toLowerCase()
+            ?.includes(search?.toLowerCase() || "")
+  );
+
+  // Then filter courses based on enrollment
+  const searchFilteredCoursesByStudent = filteredCourses.filter(
+    (course) =>
+      enrolledCourses.includes(String(course.course_id)) &&
+      course.courseTitle?.toLowerCase()?.includes(search?.toLowerCase() || "")
   );
 
   const suggestions = search
     ? filteredCourses
         .filter((course) =>
-          course.courseTitle?.toLowerCase()?.includes(search?.toLowerCase() || "")
+          course.courseTitle
+            ?.toLowerCase()
+            ?.includes(search?.toLowerCase() || "")
         )
         .slice(0, 5)
     : [];
@@ -85,21 +138,20 @@ const CourseList: React.FC = () => {
   const handleShowMore = () => setVisibleCount((prev) => prev + 8);
 
   const handleViewCourse = (course: Course) => {
-    if(profile.profile.role === "FACULTY"){
+    if (profile.profile.role === "FACULTY") {
       navigate(`/faculty/courses/${course.course_id}`, {
         state: {
           course: course,
         },
       });
       return;
-    }else{
+    } else {
       navigate(`/student/courses/${course.course_id}`, {
-      state: {
-        course: course,
-      },
-    });
+        state: {
+          course: course,
+        },
+      });
     }
-
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -120,7 +172,7 @@ const CourseList: React.FC = () => {
           isActive: true,
           duration: parseInt(newCourseData.duration),
           credit: parseInt(newCourseData.credit),
-          imageUrl:newCourseData.imageUrl,
+          imageUrl: newCourseData.imageUrl,
         },
         {
           headers: {
@@ -131,7 +183,9 @@ const CourseList: React.FC = () => {
 
       const newCourse: Course = {
         ...response.data,
-        course_id: response.data.course_id || Math.max(0, ...courses.map((c) => c.course_id)) + 1,
+        course_id:
+          response.data.course_id ||
+          Math.max(0, ...courses.map((c) => c.course_id)) + 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         courseTitle: newCourseData.courseTitle,
@@ -141,31 +195,38 @@ const CourseList: React.FC = () => {
         isActive: true,
         duration: parseInt(newCourseData.duration),
         credit: parseInt(newCourseData.credit),
-        imageUrl:newCourseData.imageUrl,
+        imageUrl: newCourseData.imageUrl,
       };
 
       setCourses((prevCourses) => [newCourse, ...prevCourses]);
       setShowCourseForm(false);
 
       if (!categories.includes(newCourseData.dept)) {
-        setCategories((prevCategories) => [...prevCategories, newCourseData.dept]);
+        setCategories((prevCategories) => [
+          ...prevCategories,
+          newCourseData.dept,
+        ]);
       }
 
-      alert("Course added successfully!");
+      toast.success("Course added successfully!");
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to add course");
+      setError(
+        err.response?.data?.message || err.message || "Failed to add course"
+      );
     }
   };
 
   const handleDeleteCourse = async (course_id: number) => {
     if (
-      window.confirm("Are you sure you want to delete this course? This action cannot be undone.")
+      window.confirm(
+        "Are you sure you want to delete this course? This action cannot be undone."
+      )
     ) {
       try {
         await api.delete(`/course/delete?course_id=${course_id}`);
         setCourses((prev) => prev.filter((c) => c.course_id !== course_id));
       } catch (error) {
-        console.log("Error while deleting course by : ", error);
+            toast.error("Failed to Delete the Course");
       }
     }
   };
@@ -188,95 +249,16 @@ const CourseList: React.FC = () => {
     );
   }
 
-  return (
-    <>
-      {(profile.profile.role=='FACULTY')?<FacultyNavbar/>:<StudentNavbar/>}
-    <div className="min-h-screen py-6 px-4 bg-white text-black">
-      {/* Search Bar */}
-      <div className="max-w-3xl mx-auto mb-8 relative">
-        <input
-          type="text"
-          className="w-full px-5 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg shadow"
-          placeholder="Search courses..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setShowSuggestions(true);
-          }}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          onKeyDown={handleSearchKeyDown}
-        />
-        {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-2 z-10">
-            {suggestions.map((s) => (
-              <li
-                key={s.course_id}
-                className="px-5 py-2 hover:bg-gray-100 cursor-pointer"
-                onMouseDown={() => {
-                  setSearch(s.courseTitle);
-                  setShowSuggestions(false);
-                }}
-              >
-                {s.courseTitle}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Add Course Button */}
-      {profile.profile.role === "FACULTY" && (
-        <div className="text-center mb-8">
-          <button
-            onClick={() => setShowCourseForm(true)}
-            className="px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-700 transition"
-          >
-            Add New Course
-          </button>
+  // Helper for rendering course grid
+  const renderCourseGrid = (coursesToShow: Course[]) => (
+    <div className="grid gap-8 max-w-6xl mx-auto grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {coursesToShow.length === 0 ? (
+        <div className="col-span-full text-center text-gray-500 text-lg py-16">
+          No courses found
         </div>
-      )}
-
-      {/* Course Form Modal */}
-      {showCourseForm && (
-        <CourseForm
-          onClose={() => setShowCourseForm(false)}
-          onSave={handleAddCourse}
-          departments={categories}
-        />
-      )}
-
-      {/* Filter Buttons */}
-      <div className="mb-6 text-center">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => {
-              setSelectedCategory(cat);
-              setVisibleCount(8);
-              setSearch("");
-            }}
-            className={`mr-2 mb-2 px-6 py-2 rounded-full font-semibold transition-all shadow
-              ${
-                selectedCategory === cat
-                  ? "bg-gradient-to-r from-black to-gray-700 text-white shadow-md"
-                  : "bg-white text-black border border-gray-200 hover:bg-gray-100"
-              }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Course Grid */}
-      <div className="grid gap-8 max-w-6xl mx-auto grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {searchFilteredCourses.length === 0 ? (
-          <div className="col-span-full text-center text-gray-500 text-lg py-16">
-            No courses found
-          </div>
-        ) : (
-          searchFilteredCourses.slice(0, visibleCount).map((course) => (
-            console.log("course: ", course),
+      ) : (
+        <>
+          {coursesToShow.slice(0, visibleCount).map((course) => (
             <div
               key={course.course_id}
               className="rounded-xl overflow-hidden bg-white bg-opacity-95 shadow-lg flex flex-col border border-gray-100 transition-transform duration-200 cursor-pointer hover:-translate-y-1.5 hover:scale-105 hover:shadow-2xl relative"
@@ -297,15 +279,27 @@ const CourseList: React.FC = () => {
                 <h3 className="mb-2 text-lg font-bold text-black">
                   {course.courseTitle || "Untitled Course"}
                 </h3>
-                <p className="text-sm text-gray-600 flex-1">
-                  {course.courseDescription || "No description available"}
+                <p
+                  className="text-sm text-gray-700 mb-2 line-clamp-2"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {course.courseDescription ||
+                    "No detailed description available"}
                 </p>
                 <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
                   <span>
-                    By {course.instructorName?.toUpperCase() || "Unknown Instructor"}
+                    By{" "}
+                    {course.instructorName?.toUpperCase() ||
+                      "Unknown Instructor"}
                   </span>
                   <span>
-                    {course.duration || "N/A"} hours | {course.credit || "0"} credits
+                    {course.duration || "N/A"} hours | {course.credit || "0"}{" "}
+                    credits
                   </span>
                 </div>
               </div>
@@ -313,7 +307,8 @@ const CourseList: React.FC = () => {
               {hoverStates[course.course_id] && (
                 <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col justify-center items-center p-6 z-20 transition-all duration-300">
                   {profile.profile.role === "FACULTY" &&
-                    course.instructorName.toLowerCase() === profile.profile.name.toLowerCase() && (
+                    course.instructorName.toLowerCase() ===
+                      profile.profile.name.toLowerCase() && (
                       <button
                         className="absolute top-2 right-2 p-1 text-gray-500 hover:text-red-500 transition-colors  cursor-pointer"
                         onClick={() => handleDeleteCourse(course.course_id)}
@@ -324,52 +319,201 @@ const CourseList: React.FC = () => {
                   <h3 className="text-lg font-bold mb-2 text-black">
                     {course.courseTitle || "Untitled Course"}
                   </h3>
-                  <p className="text-sm text-gray-700 mb-2">
-                    {course.courseDescription || "No detailed description available"}
+                  <p
+                    className="text-sm text-gray-700 mb-2 line-clamp-2"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {course.courseDescription ||
+                      "No detailed description available"}
                   </p>
                   <div className="text-sm mb-4 text-left w-full px-4">
                     <p>
                       <strong>Department:</strong> {course.dept || "N/A"}
                     </p>
                     <p>
-                      <strong>Duration:</strong> {course.duration || "N/A"} hours
+                      <strong>Duration:</strong> {course.duration || "N/A"}{" "}
+                      hours
                     </p>
                     <p>
                       <strong>Credits:</strong> {course.credit || "0"}
                     </p>
                     <p>
                       <strong>Created:</strong>{" "}
-                      {course.createdAt ? new Date(course.createdAt).toLocaleDateString() : "N/A"}
+                      {course.createdAt
+                        ? new Date(course.createdAt).toLocaleDateString()
+                        : "N/A"}
                     </p>
                   </div>
-                  { (
+                  {
                     <button
                       className="px-6 py-2 bg-gradient-to-r from-black to-gray-700 text-white rounded-full font-semibold shadow hover:from-gray-900 hover:to-gray-700 
-                                transition cursor-pointer"
+                            transition cursor-pointer"
                       onClick={() => handleViewCourse(course)}
                     >
                       View Course
                     </button>
-                  )}
+                  }
                 </div>
               )}
             </div>
-          ))
-        )}
-      </div>
-
-      {/* Show More Button */}
-      {visibleCount < searchFilteredCourses.length && (
-        <div className="text-center mt-10">
-          <button
-            onClick={handleShowMore}
-            className="px-9 py-3 bg-gradient-to-r from-black to-gray-700 text-white rounded-full font-semibold text-lg shadow-lg hover:from-gray-900 hover:to-gray-700 transition"
-          >
-            Show More
-          </button>
-        </div>
+          ))}
+        </>
       )}
     </div>
+  );
+
+  return (
+    <>
+      {profile.profile.role == "FACULTY" ? (
+        <FacultyNavbar />
+      ) : (
+        <StudentNavbar />
+      )}
+      <div className="min-h-screen py-6 px-4 bg-white text-black">
+        {/* Search Bar */}
+        <div className="max-w-3xl mx-auto mb-8 relative">
+          <input
+            type="text"
+            className="w-full px-5 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg shadow"
+            placeholder="Search courses..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            onKeyDown={handleSearchKeyDown}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-2 z-10">
+              {suggestions.map((s) => (
+                <li
+                  key={s.course_id}
+                  className="px-5 py-2 hover:bg-gray-100 cursor-pointer"
+                  onMouseDown={() => {
+                    setSearch(s.courseTitle);
+                    setShowSuggestions(false);
+                  }}
+                >
+                  {s.courseTitle}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Add Course Button */}
+        {profile.profile.role === "FACULTY" && (
+          <div className="text-center mb-8">
+            <button
+              onClick={() => setShowCourseForm(true)}
+              className="px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-700 transition"
+            >
+              Add New Course
+            </button>
+          </div>
+        )}
+
+        {/* Course Form Modal */}
+        {showCourseForm && (
+          <CourseForm
+            onClose={() => setShowCourseForm(false)}
+            onSave={handleAddCourse}
+            departments={categories}
+          />
+        )}
+
+        {/* Filter Buttons */}
+        <div className="mb-6 text-center">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setVisibleCount(8);
+                setSearch("");
+              }}
+              className={`mr-2 mb-2 px-6 py-2 rounded-full font-semibold transition-all shadow
+              ${
+                selectedCategory === cat
+                  ? "bg-gradient-to-r from-black to-gray-700 text-white shadow-md"
+                  : "bg-white text-black border border-gray-200 hover:bg-gray-100"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Buttons - Single Line, Transparent, Underline on Selected, Left Aligned */}
+        <div className="flex justify-start mb-10 max-w-6xl mx-auto">
+          <div className="flex flex-row gap-8">
+            <button
+              className={`px-0 py-2 text-lg font-bold text-left transition-all border-none bg-transparent
+          ${
+            selectedTab === "my"
+              ? "text-black underline underline-offset-8 decoration-4 decoration-gray-800"
+              : "text-gray-500 hover:text-black"
+          }`}
+              onClick={() => setSelectedTab("my")}
+            >
+              {profile.profile.role === "FACULTY"
+                ? "My Courses"
+                : "Enrolled Courses"}
+            </button>
+            <button
+              className={`px-0 py-2 text-lg font-bold text-left transition-all border-none bg-transparent
+          ${
+            selectedTab === "other"
+              ? "text-black underline underline-offset-8 decoration-4 decoration-gray-800"
+              : "text-gray-500 hover:text-black"
+          }`}
+              onClick={() => setSelectedTab("other")}
+            >
+              Available Courses
+            </button>
+          </div>
+        </div>
+
+        {/* Course Grids */}
+        {selectedTab === "my"
+          ? renderCourseGrid(
+              profile.profile.role === "FACULTY"
+                ? searchFilteredCoursesByAuthor
+                : searchFilteredCoursesByStudent
+            )
+          : renderCourseGrid(searchFilteredCoursesOtherThanAuthor)}
+
+        {/* Show More Button */}
+        {selectedTab === "my" &&
+          visibleCount < searchFilteredCoursesByAuthor.length && (
+            <div className="text-center mt-10">
+              <button
+                onClick={handleShowMore}
+                className="px-9 py-3 bg-gradient-to-r from-black to-gray-700 text-white rounded-full font-semibold text-lg shadow-lg hover:from-gray-900 hover:to-gray-700 transition"
+              >
+                Show More
+              </button>
+            </div>
+          )}
+        {selectedTab === "other" &&
+          visibleCount < searchFilteredCoursesOtherThanAuthor.length && (
+            <div className="text-center mt-10">
+              <button
+                onClick={handleShowMore}
+                className="px-9 py-3 bg-gradient-to-r from-black to-gray-700 text-white rounded-full font-semibold text-lg shadow-lg hover:from-gray-900 hover:to-gray-700 transition"
+              >
+                Show More
+              </button>
+            </div>
+          )}
+      </div>
     </>
   );
 };

@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsAuthenticated(false);
           }
         } catch (error) {
-          console.error("Error checking auth status:", error);
           setIsAuthenticated(false);
         } finally {
           setIsLoading(false);
@@ -45,7 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const credentials: LoginRequest = loginData;
         const authData = await authService.login(credentials);
-        console.log("Login response:", authData);
         
         setProfile(authData as LoginResponse);
         setIsAuthenticated(true);
