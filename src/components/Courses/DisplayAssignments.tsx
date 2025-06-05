@@ -4,11 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/service/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Trash, ClipboardCheck } from 'lucide-react';
-<<<<<<< HEAD
 import { useToast } from '@/components/ui/use-toast';
-=======
-import { toast } from 'sonner';
->>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
 
 interface Assignment {
   assignmentId: string;
@@ -57,6 +53,8 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
       const response = await api.get<ApiResponse>('/assignments/course?', {
         params: { courseId },
       });
+      console.log('Full response:', response.data);
+      console.log('Assignments array:', response.data.assignments);
       setAssignments(response.data.assignments);
 
       if (profile.profile.role === 'STUDENT' && response.data.assignments.length > 0) {
@@ -72,7 +70,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
             );
             status[assignment.assignmentId] = hasSubmitted;
           } catch (err) {
-            toast.warning("No Assignment Found");
+            console.error(`Error checking submission for assignment ${assignment.assignmentId}:`, err);
             status[assignment.assignmentId] = false;
           }
         }
@@ -81,7 +79,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
       return response.data.assignments;
     } catch (error) {
-      toast.error('Failed to fetching assignments:');
+      console.error('Error fetching assignments:', error);
       setAssignments([]);
       return [];
     } finally {
@@ -91,14 +89,11 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleSubmit = (assignmentId: string) => {
     if (!assignmentId) {
-<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
-=======
->>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
     navigate(`/student/assignments/${assignmentId}/submit`);
@@ -106,14 +101,11 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleGrade = (assignmentId: string) => {
     if (!assignmentId) {
-<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
-=======
->>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
     navigate(`/faculty/assignments/${assignmentId}/grade`);
@@ -121,15 +113,11 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleEditAssignment = (assignmentId: string) => {
     if (!assignmentId) {
-<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
-=======
-      toast.error('Invalid assignment ');
->>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
     navigate(`/faculty/assignments/${assignmentId}/edit`);
@@ -137,18 +125,14 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
   const handleDeleteAssignment = (id: string) => {
     if (!id) {
-<<<<<<< HEAD
       toast({
         title: "Error",
         description: "Invalid assignment ID",
         variant: "destructive",
       });
-=======
->>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
       return;
     }
 
-    // Show confirmation toast with an action button
     toast({
       title: "Confirm Deletion",
       description: "Are you sure you want to delete this assignment?",
@@ -183,11 +167,10 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
           Confirm
         </button>
       ),
-      duration: 5000, // Auto-dismiss after 5 seconds if no action
+      duration: 5000,
     });
   };
 
-<<<<<<< HEAD
   const toggleDescription = (assignmentId: string) => {
     setExpandedDescriptions((prev) => ({
       ...prev,
@@ -202,21 +185,6 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
       month: 'short',
       day: 'numeric',
     });
-=======
-    try {
-      setDeletingId(id);
-      await api.delete(`/assignments`, {
-        params: { assignmentId: id },
-      });
-      setAssignments((prev) => prev.filter((assignment) => assignment.assignmentId !== id));
-      toast.success('Assignment deleted successfully');
-    } catch (error: any) {
-      toast.error(`Failed to delete assignment with ID:${id}`);
-      toast.error('Error deleting assignment ');
-    } finally {
-      setDeletingId(null);
-    }
->>>>>>> 8b81178c4ca19a7d0faf4aeb774220ebcee0d0b8
   };
 
   return (
@@ -234,11 +202,11 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
             return (
               <div
                 key={assignment.assignmentId}
-                className="bg-white border border-gray-700 rounded-xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 flex flex-col gap-4"
+                className="bg-white border border-gray-700 rounded-xl p-8 pb-16 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 flex flex-col gap-4 relative"
               >
                 {/* Top Row: Title, Due Date, Edit, Delete */}
                 <div className="flex items-center justify-between flex-wrap gap-4">
-                  <h3 className="font-bold text-xl text-black flex-1 min-w-0">
+                  <h3 className="font-semibold text-xl text-black flex-1 min-w-0">
                     <span className="text-lg font-semibold text-gray-600">Title: </span>
                     {assignment.title}
                   </h3>
@@ -287,8 +255,24 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                   </p>
                 </div>
 
-                {/* File Name, Resources, and Grade/Submit Button in One Line */}
-                <div className="flex items-center justify-between flex-wrap gap-4">
+                {/* View Resources - Fixed in Bottom Left of Card */}
+                <div className="absolute bottom-8 left-7 text-base z-10">
+                  {assignment.resourceLink ? (
+                    <a
+                      href={assignment.resourceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-all duration-200 text-base mb-4"
+                    >
+                      View Resources
+                    </a>
+                  ) : (
+                    <span className="text-gray-600">No resources available</span>
+                  )}
+                </div>
+
+                {/* File Name and Submit Button in One Line */}
+                <div className="flex items-center justify-between flex-wrap gap-4 mb-7">
                   <div className="flex items-center space-x-6">
                     {assignment.fileName && (
                       <p className="text-base text-gray-600">
@@ -296,32 +280,8 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                         {assignment.fileName}
                       </p>
                     )}
-                    <div className="text-base">
-                      {assignment.resourceLink ? (
-                        <a
-                          href={assignment.resourceLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-all duration-200 text-base"
-                        >
-                          View Resources
-                        </a>
-                      ) : (
-                        <span className="text-gray-600">No resources available</span>
-                      )}
-                    </div>
                   </div>
                   <div className="action-buttons flex space-x-4 shrink-0">
-                    {profile.profile.role === 'FACULTY' && (
-                      <button
-                        className="flex items-center space-x-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-base whitespace-nowrap shrink-0"
-                        onClick={() => handleGrade(assignment.assignmentId)}
-                        disabled={deletingId === assignment.assignmentId}
-                      >
-                        <ClipboardCheck size={24} />
-                        <span>Grade Assignment</span>
-                      </button>
-                    )}
                     {profile.profile.role === 'STUDENT' && (
                       <button
                         className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-base whitespace-nowrap shrink-0"
@@ -333,6 +293,19 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                     )}
                   </div>
                 </div>
+
+                {/* Grade Assignment Button for Faculty - Fixed in Bottom Right of Card */}
+                {profile.profile.role === 'FACULTY' && (
+                  <button
+                    className="absolute bottom-4 right-4 flex items-center space-x-2 px-6 py-3 bg-black text-white rounded-lg shadow-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 z-10 text-base"
+                    onClick={() => handleGrade(assignment.assignmentId)}
+                    disabled={deletingId === assignment.assignmentId}
+                    title="Grade Assignment"
+                  >
+                    <ClipboardCheck size={24} />
+                    <span>Grade Assignment</span>
+                  </button>
+                )}
               </div>
             );
           })}

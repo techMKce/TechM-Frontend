@@ -106,10 +106,7 @@ const EditAssignmentPage: React.FC = () => {
       await api.put('/assignments', form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast({
-        title: "Success",
-        description: "Assignment updated successfully",
-      });
+      toast.success("Assignment updated successfully");
       navigate(-1);
     } catch (error: any) {
       toast.error("Failed to update assignment");

@@ -96,6 +96,7 @@ const GradeStudentSubmissionPage = () => {
           }
         }
       } catch (err) {
+        console.error("Error fetching data:", err);
         toast.error("Error loading submission or grading data.");
       } finally {
         setLoading(false);
@@ -116,7 +117,7 @@ const GradeStudentSubmissionPage = () => {
 
   const handleDeleteGrade = async () => {
     if (!submission || !assignmentId || !submissionId) {
-      toast.info("Submission data or assignment ID not available");
+      toast.error("Submission data or assignment ID not available");
       return;
     }
 
@@ -126,6 +127,27 @@ const GradeStudentSubmissionPage = () => {
     if (!confirmDelete) return;
 
     try {
+      // const response = await fetch("https://assignmentservice-2a8o.onrender.com/api/gradings", {
+      //   method: "DELETE",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     studentRollNumber: submission.studentRollNumber,
+      //     assignmentId,
+      //   }),
+      // });
+
+      // const data = await response.json();
+
+      // if (response.ok) {
+      //   toast.success("Grade deleted. You can now regrade.");
+      //   setGradingData(null);
+      //   setIsEditing(true);
+      //   setGrade("");
+      //   setFeedback("");
+      // } else {
+      //   toast.error(data.message || "Failed to delete grade");
+      // }
+      // cause axios wont support body and response.json()
       const response = await api.delete("/gradings", {
         data: {
           studentRollNumber: submission.studentRollNumber,
@@ -149,12 +171,12 @@ const GradeStudentSubmissionPage = () => {
 
   const handleSubmitGrade = async () => {
     if (!grade) {
-      toast.warning("Please select a grade");
+      toast.error("Please select a grade");
       return;
     }
 
     if (!submission || !assignmentId) {
-      toast.warning("Submission or assignment data missing");
+      toast.error("Submission or assignment data missing");
       return;
     }
 
@@ -186,7 +208,7 @@ const GradeStudentSubmissionPage = () => {
 
   const handleDownloadDocument = async () => {
     if (!submissionId) {
-      toast.warning("Submission ID not available");
+      toast.error("Submission ID not available");
       return;
     }
 
@@ -218,6 +240,7 @@ const GradeStudentSubmissionPage = () => {
 
       toast.info("Document downloaded successfully.");
     } catch (err) {
+      console.error("Download error:", err);
       toast.error("Failed to download document.");
     }
   };
@@ -234,7 +257,7 @@ const GradeStudentSubmissionPage = () => {
     }
 
     if (!submissionId) {
-      toast.warning("Submission ID not available");
+      toast.error("Submission ID not available");
       return;
     }
 
@@ -278,6 +301,7 @@ const GradeStudentSubmissionPage = () => {
       setIsViewerOpen(true);
       toast.info("Document opened for viewing.");
     } catch (err) {
+      console.error("View error:", err);
       toast.error("Failed to view document. Try downloading instead.");
     }
   };
@@ -306,13 +330,15 @@ const GradeStudentSubmissionPage = () => {
         status: "Rejected",
       });
 
+      console.log("Response:", response);
+
       if (response.status >= 200 && response.status < 300) {
         toast.success("Submission Rejected successfully.");
         setSubmissionStatus("Rejected");
         navigate(-1);
 
       } else {
-        toast.error("Failed to reject submission");
+        toast.error(response.data?.message || "Failed to reject submission");
       }
     } catch (error) {
       toast.error("Network error: Could not reject submission");
