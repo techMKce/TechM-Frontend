@@ -98,8 +98,8 @@ function ViewCourse() {
 
         const courseResponse = await api.get(`/course/detailsbyId?id=${course.course_id}`)
 
-        console.log("receive courseResponse: ", courseResponse);
-        setCourse(courseResponse.data[0]);
+        // console.log("receive courseResponse: ", courseResponse);
+        setCourse(courseResponse.data[0]);  
 
         const sections = Array.isArray(sectionResponse.data)
           ? sectionResponse.data
@@ -410,6 +410,7 @@ function ViewCourse() {
                         });
                       }}
                       min="0"
+                      max="10"
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
                       placeholder="e.g., 2"
                     />
@@ -774,6 +775,8 @@ function ViewCourse() {
                 showAssignments={showAssignments}
               />
             )}
+
+            
             {showReport && (
               <div className="mt-4">
                 <StudentProgressReport courseId={course.course_id} />

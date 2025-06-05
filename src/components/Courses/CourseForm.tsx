@@ -106,6 +106,7 @@ const CourseForm = ({
       return;
     }
 
+    // console.log("form data: ", formData);
 
     onSave({
       ...formData,
@@ -183,16 +184,14 @@ const CourseForm = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duration (hours) <span className="text-red-500">*</span>
+                  Duration (hours) {" "} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   name="duration"
                   value={formData.duration}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  min="1"
-                  required
+                  readOnly
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -203,9 +202,18 @@ const CourseForm = ({
                   type="number"
                   name="credit"
                   value={formData.credit}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                        handleChange
+                        const credits = e.target.value;
+                        setFormData({
+                          ...formData,
+                          credit: credits,
+                          duration: (Number(credits) * 15).toString(), // 1 credit = 15 duration
+                        });
+                      }
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  min="1"
+                  min="0"
                   max="10"
                   required
                 />
