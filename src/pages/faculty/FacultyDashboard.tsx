@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import api from "../../service/api";
-import {useAuth} from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Course {
   course_id: number;
@@ -64,6 +64,18 @@ const FacultyDashboard = () => {
   useEffect(() => {
     loadCourses();
     fetchStudentCount();
+
+    // Listen for assignment updates from AssignStudentsPage
+    const handleAssignmentsUpdated = () => {
+      fetchStudentCount();
+      fetchStudents();
+    };
+
+    window.addEventListener('assignmentsUpdated', handleAssignmentsUpdated);
+
+    return () => {
+      window.removeEventListener('assignmentsUpdated', handleAssignmentsUpdated);
+    };
   }, [profile?.profile?.id]);
 
   const loadCourses = async () => {
@@ -73,16 +85,13 @@ const FacultyDashboard = () => {
       // Fetch all courses (both active and inactive)
       const coursesResponse = await api.get('/course/details');
       const allCourses: Course[] = coursesResponse.data || [];
-
       setAllCoursesData(allCourses);
-
 
       // Filter courses for current faculty
       const facultyCourses = allCourses.filter(
         (course) => course.instructorName === profile?.profile?.name
       );
       setCourses(facultyCourses);
-
 
       // Get active courses
       const facultyActiveCourses = facultyCourses.filter(course => course.isActive);
@@ -94,7 +103,7 @@ const FacultyDashboard = () => {
         activeCourses: facultyActiveCourses.length
       }));
     } catch (error) {
-      console.error("Error loading courses:", error);
+      // console.error("Error loading courses:", error);
       toast.error("Failed to load courses data");
     } finally {
       setIsLoading(false);
@@ -108,14 +117,15 @@ const FacultyDashboard = () => {
       const response = await api.get(
         `/faculty-student-assigning/admin/faculty/${profile.profile.id}/count`
       );
-      const studentCount = response.data?.count || 0;
+
+      const studentCount = response.data || 0;
 
       setStats(prev => ({
         ...prev,
         totalStudents: studentCount
       }));
     } catch (error) {
-      console.error("Error fetching student count:", error);
+      // console.error("Error fetching student count:", error);
       toast.error("Failed to load student count");
     }
   };
@@ -125,12 +135,30 @@ const FacultyDashboard = () => {
       if (!profile?.profile?.id) return;
 
       const response = await api.get(
-        `/faculty-student-assigning/admin/faculty/${profile.profile.id}/count`
+        `/faculty-student-assigning/admin/faculty/${profile.profile.id}`
       );
-      const students = response.data || [];
-      setStudentsData(students);
+
+      const allStudents = await api.get('/auth/students/all');
+      
+      const rollNums = new Set(response.data.map((assign)  => assign.assignedRollNums).flat());
+      const students = allStudents.data.filter((student: Student) => rollNums.has(student.id));
+      const formattedStudents = students.map((student: Student) => ({
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        rollNumber: student.id,
+        department: student.department,
+      }));
+      setStudentsData(formattedStudents);
+
+
+      // Update count based on actual returned students
+      setStats(prev => ({
+        ...prev,
+        totalStudents: students.length
+      }));
     } catch (error) {
-      console.error("Error fetching students:", error);
+      // console.error("Error fetching students:", error);
       toast.error("Failed to load students data");
     }
   };
@@ -149,7 +177,7 @@ const FacultyDashboard = () => {
       );
       setActiveCoursesData(activeCourses);
     } catch (error) {
-      console.error("Error fetching active courses:", error);
+      // console.error("Error fetching active courses:", error);
       toast.error("Failed to load active courses");
     }
   };
@@ -182,7 +210,7 @@ const FacultyDashboard = () => {
         setIsAddDialogOpen(false);
       }
     } catch (error) {
-      console.error("Error creating course:", error);
+      // console.error("Error creating course:", error);
       toast.error("Failed to create course");
     }
   };
@@ -196,7 +224,6 @@ const FacultyDashboard = () => {
     });
     setIsEditDialogOpen(true);
   };
-
 
   const handleUpdate = async () => {
     if (!editingCourse || !formData.courseId || !formData.name || !formData.description) {
@@ -221,7 +248,6 @@ const FacultyDashboard = () => {
       }
     } catch (error) {
       toast.error("Failed to update course");
-
     }
   };
 
@@ -249,6 +275,9 @@ const FacultyDashboard = () => {
               <p className="text-gray-600">Welcome, {profile?.profile?.name}</p>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Add Course</Button>
+              </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Course</DialogTitle>

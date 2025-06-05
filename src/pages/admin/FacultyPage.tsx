@@ -89,7 +89,7 @@ const FacultyPage = () => {
       setIsAddDialogOpen(false);
       toast.success("Faculty added successfully");
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       toast.error("Failed to add faculty");
     } finally {
       setIsAdding(false);
@@ -245,7 +245,7 @@ const FacultyPage = () => {
     } catch (error) {
       toast.error("Bulk signup failed.");
 
-      console.error("Bulk signup error:", error);
+      // console.error("Bulk signup error:", error);
     } finally {
       setIsUploading(false);
 

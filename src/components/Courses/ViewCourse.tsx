@@ -187,8 +187,7 @@ function ViewCourse() {
 
       setIsEditing(false);
       setCourse(updatedCourse);
-      console.log("updated course: ", updatedCourse);
-      toast.success("Edit Successfully");
+      toast.success("Updated Successfully");
     } catch (error: any) {
       toast.error("Failed to update course. Please try again.");
     } finally {

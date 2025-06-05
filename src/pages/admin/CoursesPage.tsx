@@ -40,7 +40,7 @@ const CoursesPage = () => {
         }));
         setCourses(data);
       } catch (error) {
-        console.error('Error fetching courses:', error);
+        // console.error('Error fetching courses:', error);
         toast.error('Failed to load courses');
       }
     };

@@ -36,7 +36,7 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
         const response = await profileApi.get(`/profile/student/${profile.profile.id}`);
         setCurrentUser(response.data);
       } catch (error) {
-        console.error("Failed to fetch student data:", error);
+        toast.error("Failed to load student profile. Please try again later.");
       } finally {
         setLoading(false);
       }

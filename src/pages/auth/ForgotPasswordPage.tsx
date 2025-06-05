@@ -43,7 +43,7 @@ const ForgotPassword = () => {
       {/* Header */}
       <div className="flex justify-center pt-6">
         <img
-          src="/public/Karpagam_Logo-removebg-preview.png" // use a public URL or make sure it's in /public
+          src="/Karpagam_Logo-removebg-preview.png" // use a public URL or make sure it's in /public
           alt="University Logo"
           className="h-20 object-contain"
         />

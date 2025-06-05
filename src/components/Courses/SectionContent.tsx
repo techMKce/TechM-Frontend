@@ -123,7 +123,6 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
 
       toast.success("Video added successfully");
     } catch (error) {
-      console.error("Error adding video:", error);
       toast.error("Failed to add video. Please try again.");
     }
   };
@@ -225,7 +224,6 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       setPdfViewerUrl(fileUrl);
       toast.info("Document opened for viewing.");
     } catch (error) {
-      console.error("Error loading PDF:", error);
       toast.error("Failed to load PDF. Please try again.");
 
       // Fallback option

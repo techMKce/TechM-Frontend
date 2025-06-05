@@ -40,7 +40,7 @@ const Login = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-blue-100 to-blue-200">
      <header className="flex flex-col items-center justify-center p-4">
     <img
-      src="/public/Karpagam_Logo-removebg-preview.png" 
+      src="/Karpagam_Logo-removebg-preview.png" 
       alt="University Logo"
      className="h-400 w-100 object-contain mb-4" 
     />

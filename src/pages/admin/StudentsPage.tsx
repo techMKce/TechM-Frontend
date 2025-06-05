@@ -54,7 +54,7 @@ const StudentsPage = () => {
       const response = await api.get('/auth/students/all');
       setStudents(response.data);
     } catch (error) {
-      console.error("Failed to fetch students:", error);
+      // console.error("Failed to fetch students:", error);
       toast.error("Failed to fetch students");
     } finally {
       setIsFetching(false);
@@ -78,7 +78,7 @@ const StudentsPage = () => {
       setIsAddDialogOpen(false);
       toast.success("Student added successfully");
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       toast.error("Failed to add student");
     } finally {
       setIsAdding(false);
@@ -98,7 +98,7 @@ const StudentsPage = () => {
       setFormData({ id: "", name: "", email: "", department: "", year: "", semester: "" });
       setIsEditDialogOpen(false);
     } catch (error) {
-      console.error("Error updating Student:", error);
+      // console.error("Error updating Student:", error);
       toast.error("Error updating Student");
     } finally {
       setIsEditing(false);
@@ -255,7 +255,7 @@ const StudentsPage = () => {
           semester: studentData.semester
         });
       } catch (error) {
-        console.error("Failed to register student because trying to register the existing data");
+        // console.error("Failed to register student because trying to register the existing data");
         toast.error(`Upload failed because you are trying to upload the existing data`);
       }
     }

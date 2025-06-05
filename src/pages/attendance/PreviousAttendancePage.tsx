@@ -189,7 +189,7 @@ const PreviousAttendancePage = () => {
       setDepartments(uniqueDepartments);
       setSemesters(uniqueSemesters);
     } catch (error) {
-      console.error("Error fetching faculty courses:", error);
+      // console.error("Error fetching faculty courses:", error);
       toast.error("Failed to load faculty courses");
     }
   }, [facultyId]);
@@ -255,7 +255,7 @@ const PreviousAttendancePage = () => {
       setDepartments(uniqueDepartments);
       setSemesters(uniqueSemesters);
     } catch (error) {
-      console.error("Error fetching students:", error);
+      // console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
     }
   }, [allStudents, courses, facultyAssignments, facultyId]);
@@ -265,11 +265,7 @@ const PreviousAttendancePage = () => {
     
     setIsLoading(true);
     try {
-      console.log('Fetching single date attendance with:', {
-        facultyId,
-        courseId: singleFilters.courseId,
-        date: singleFilters.singleDate
-      });
+  
 
       const response = await api.get(
         `/attendance/getfacultybydate?facultyid=${facultyId}&courseid=${singleFilters.courseId}&date=${singleFilters.singleDate}`
@@ -282,7 +278,7 @@ const PreviousAttendancePage = () => {
         toast.error("No attendance data found for this date");
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
+      // console.error("Error fetching attendance:", error);
       toast.error("Failed to load attendance records");
       setAttendanceRecords([]);
     } finally {
@@ -295,12 +291,7 @@ const PreviousAttendancePage = () => {
     
     setIsLoading(true);
     try {
-      console.log('Fetching date range attendance with:', {
-        facultyId,
-        courseId: groupFilters.courseId,
-        fromDate: groupFilters.fromDate,
-        toDate: groupFilters.toDate
-      });
+
 
       const response = await api.get(
         `/attendance/getfacultybydates?facultyid=${facultyId}&courseid=${groupFilters.courseId}&stdate=${groupFilters.fromDate}&endate=${groupFilters.toDate}`
@@ -344,7 +335,7 @@ const PreviousAttendancePage = () => {
         toast.error("No attendance data found for this date range");
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
+      // console.error("Error fetching attendance:", error);
       toast.error("Failed to load attendance records");
       setRangeAttendanceSummary([]);
       setConsolidatedRangeAttendance([]);
@@ -423,7 +414,7 @@ const PreviousAttendancePage = () => {
     let currentY = 15;
     
     try {
-      const logoUrl = "/public/Karpagam_Logo-removebg-preview.png";
+      const logoUrl = "/Karpagam_Logo-removebg-preview.png";
       const response = await fetch(logoUrl);
       const blob = await response.blob();
       const base64Image = await new Promise<string>((resolve) => {
@@ -446,7 +437,7 @@ const PreviousAttendancePage = () => {
       });
       currentY += 15;
     } catch (logoError) {
-      console.error("Logo load error:", logoError);
+      // console.error("Logo load error:", logoError);
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, {
@@ -544,7 +535,7 @@ const PreviousAttendancePage = () => {
     let currentY = 15;
 
     try {
-      const logoUrl = "/public/Karpagam_Logo-removebg-preview.png";
+      const logoUrl = "/Karpagam_Logo-removebg-preview.png";
       const response = await fetch(logoUrl);
       const blob = await response.blob();
       const base64Image = await new Promise<string>((resolve) => {
@@ -567,7 +558,7 @@ const PreviousAttendancePage = () => {
       });
       currentY += 15;
     } catch (logoError) {
-      console.error("Logo load error:", logoError);
+      // console.error("Logo load error:", logoError);
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, {

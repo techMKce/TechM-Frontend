@@ -116,7 +116,7 @@ const ExamTimetablePage = () => {
 
     // === Add Institution Logo & Header ===
     try {
-      const logoUrl = "/public/Karpagam_Logo-removebg-preview.png";
+      const logoUrl = "/Karpagam_Logo-removebg-preview.png";
       const response = await fetch(logoUrl);
       const blob = await response.blob();
       const base64Image = await new Promise<string>((resolve) => {

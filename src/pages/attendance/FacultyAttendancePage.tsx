@@ -128,7 +128,7 @@ const FacultyAttendancePage = () => {
       // Update filter options based on assigned students
       updateFilterOptions(facultyAssignments, allStudentsData);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      // console.error("Error fetching data:", error);
       toast.error("Failed to load faculty data");
     }
   };
@@ -248,7 +248,7 @@ const FacultyAttendancePage = () => {
       setShowAttendanceTable(true);
       toast.success("Student list generated successfully");
     } catch (error) {
-      console.error("Error fetching students:", error);
+      // console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
     }
   };
@@ -284,7 +284,7 @@ const FacultyAttendancePage = () => {
       setIsFormSubmitted(true);
       toast.success("Attendance marked successfully");
     } catch (error) {
-      console.error("Error submitting attendance:", error);
+      // console.error("Error submitting attendance:", error);
       toast.error("Failed to submit attendance");
     } finally {
       setLoading(false);
