@@ -96,6 +96,11 @@ function ViewCourse() {
           `/course/section/details?id=${course.course_id}`
         );
 
+        const courseResponse = await api.get(`/course/detailsbyId?id=${course.course_id}`)
+
+        console.log("receive courseResponse: ", courseResponse);
+        setCourse(courseResponse.data[0]);
+
         const sections = Array.isArray(sectionResponse.data)
           ? sectionResponse.data
           : [sectionResponse.data];
@@ -123,7 +128,6 @@ function ViewCourse() {
 
   // course editing
   const handleEditCourse = () => {
-    
     setEditData({
       course_id: course.course_id,
       courseTitle: course.courseTitle || "",
@@ -183,6 +187,8 @@ function ViewCourse() {
 
       setIsEditing(false);
       setCourse(updatedCourse);
+      console.log("updated course: ", updatedCourse);
+      toast.success("Edit Successfully");
     } catch (error: any) {
       toast.error("Failed to update course. Please try again.");
     } finally {
@@ -375,19 +381,17 @@ function ViewCourse() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-4 mb-5">
+                <div className="grid grid-cols-2 gap-4 mb-5">
                   <div>
                     <label className="block text-gray-800 mb-2 font-medium">
-                      Duration
+                      Duration{" "}
+                      <span className="text-sm">(auto-calculated)</span>
                     </label>
                     <input
                       type="text"
-                      value={editData.duration}
-                      onChange={(e) =>
-                        setEditData({ ...editData, duration: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      placeholder="e.g., 8 weeks"
+                      value={`${editData.duration || 0} hours`} // Display as "30 hours"
+                      readOnly // Prevent manual editing
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -397,32 +401,18 @@ function ViewCourse() {
                     <input
                       type="number"
                       value={editData.credit}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const credits = e.target.value;
                         setEditData({
                           ...editData,
-                          credit: e.target.value,
-                        })
-                      }
+                          credit: credits,
+                          duration: (Number(credits) * 15).toString(), // 1 credit = 15 duration
+                        });
+                      }}
+                      min="0"
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      placeholder="e.g., 2"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-gray-800 mb-2 font-medium">
-                      Status
-                    </label>
-                    <select
-                      value={editData.isActive ? "true" : "false"}
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          isActive: e.target.value === "true",
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                    >
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
-                    </select>
                   </div>
                 </div>
                 <div className="flex justify-end gap-3">
@@ -484,7 +474,7 @@ function ViewCourse() {
                       </span>
                     </span>
                     <span className="text-gray-600 text-sm">
-                      Duration: {course.duration}
+                      Duration: {`${course.duration} Hours`}
                     </span>
                     <span className="text-gray-600 text-sm">
                       Credits: {course.credit}
@@ -691,50 +681,52 @@ function ViewCourse() {
                                       {section.sectionTitle}
                                     </h3>
                                   )}
-                                  {(role === "FACULTY" || role === "ADMIN") && (profile.profile.name === course.instructorName)&&(
-                                    <div className="flex gap-1">
-                                      {editingSectionId ===
-                                      section.section_id ? (
-                                        <>
-                                          <button
-                                            onClick={handleSaveSection}
-                                            className="text-gray-900 hover:text-gray-800 font-semibold"
-                                          >
-                                            Save
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              setEditingSectionId(null)
-                                            }
-                                            className="text-gray-500 hover:text-gray-800 font-semibold"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <button
-                                            onClick={() =>
-                                              handleEditSection(section)
-                                            }
-                                            className="text-gray-900 hover:text-gray-800"
-                                          >
-                                            <PencilSquareIcon className="w-5 h-5 cursor-pointer" />
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleRemoveSection(
-                                                section.section_id
-                                              )
-                                            }
-                                            className="text-gray-500 hover:text-gray-800"
-                                          >
-                                            <TrashIcon className="w-5 h-5 cursor-pointer " />
-                                          </button>
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
+                                  {(role === "FACULTY" || role === "ADMIN") &&
+                                    profile.profile.name ===
+                                      course.instructorName && (
+                                      <div className="flex gap-1">
+                                        {editingSectionId ===
+                                        section.section_id ? (
+                                          <>
+                                            <button
+                                              onClick={handleSaveSection}
+                                              className="text-gray-900 hover:text-gray-800 font-semibold"
+                                            >
+                                              Save
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                setEditingSectionId(null)
+                                              }
+                                              className="text-gray-500 hover:text-gray-800 font-semibold"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <button
+                                              onClick={() =>
+                                                handleEditSection(section)
+                                              }
+                                              className="text-gray-900 hover:text-gray-800"
+                                            >
+                                              <PencilSquareIcon className="w-5 h-5 cursor-pointer" />
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                handleRemoveSection(
+                                                  section.section_id
+                                                )
+                                              }
+                                              className="text-gray-500 hover:text-gray-800"
+                                            >
+                                              <TrashIcon className="w-5 h-5 cursor-pointer " />
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
                                 </div>
                               </div>
                               <div className="p-6">
@@ -758,7 +750,7 @@ function ViewCourse() {
                                 <SectionContent
                                   key={section.section_id}
                                   section={section}
-                                  course = {course}
+                                  course={course}
                                   // user={user}
                                 />
                               </div>
@@ -835,7 +827,7 @@ function ViewCourse() {
                           state={{
                             course_id: course.course_id,
                             courseTitle: course.courseTitle,
-                            course:course
+                            course: course,
                           }}
                         >
                           <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">

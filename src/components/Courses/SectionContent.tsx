@@ -69,7 +69,8 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
         setContents(response.data);
         // console.log("recevice contents: ", response.data);
       } catch (error) {
-        toast.error("Failed to load section content. Please try again.");
+        // console.log("")
+        // toast.error("Failed to load section content. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -287,7 +288,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
             <VideoCameraIcon className="w-5 h-5 text-gray-800" />
             Video Lectures
           </h4>
-          {(user.role === "FACULTY" || user.role === "ADMIN") && (
+          {(user.role === "FACULTY" || user.role === "ADMIN") && (profile.profile.name === course.instructorName)&&(
             <button
               onClick={handleAddVideo}
               className="flex items-center gap-1 px-3 py-1 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 font-semibold"
@@ -341,7 +342,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
             <DocumentTextIcon className="w-5 h-5 text-gray-800" />
             PDF Materials
           </h4>
-          {(user.role === "FACULTY" || user.role === "ADMIN") && (
+          {(user.role === "FACULTY" || user.role === "ADMIN") && (profile.profile.name === course.instructorName)&& (
             <button
               onClick={handleAddPdf}
               className="flex items-center gap-1 px-3 py-1 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 font-semibold"
