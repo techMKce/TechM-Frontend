@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Navbar from "@/components/FacultyNavbar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +47,7 @@ const ReviewStudentSubmissionPage = () => {
   const [isViewerOpen, setIsViewerOpen] = useState(false); // Track viewer state
   const [viewerUrl, setViewerUrl] = useState<string | null>(null); // Store file URL
   const viewerRef = useRef<HTMLDivElement | null>(null); // Ref for viewer container
-
+  const {state}=useLocation()
   useEffect(() => {
     const fetchData = async () => {
       if (!submissionId || !assignmentId || !studentRollNumber) {
@@ -295,7 +295,7 @@ const ReviewStudentSubmissionPage = () => {
       <Navbar />
       <div className="page-container max-w-4xl mx-auto max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link to={`/faculty/assignments/${assignmentId}/grade`} className="text-black hover:text-grey">
+          <Link to={`/faculty/assignments/${assignmentId}/grade`} state={{course:state}} className="text-black hover:text-grey">
             ← Back to All Submissions
           </Link>
 

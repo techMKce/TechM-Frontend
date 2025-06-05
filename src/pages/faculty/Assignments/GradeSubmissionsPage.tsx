@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Navbar from "@/components/FacultyNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ const GradeSubmissionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false); // Track download state
   const navigate = useNavigate();
-
+  const {state}=useLocation()
   useEffect(() => {
     if (!assignmentId) {
       toast.error("Invalid assignment ID.");
@@ -165,6 +165,7 @@ const GradeSubmissionsPage = () => {
         <div className="mb-6">
          <Link
             to={assignment?.courseId ? `/faculty/courses/${assignment.courseId}` : "/faculty/courses"}
+            state={state}
           >
             ← Back to Assignments
           </Link>
@@ -283,7 +284,8 @@ const GradeSubmissionsPage = () => {
                           navigate(
                             student.grade
                               ? `/faculty/assignments/${assignmentId}/review/${student.studentRollNumber}/${student.id}`
-                              : `/faculty/assignments/${assignmentId}/grade/${student.studentRollNumber}/${student.id}`
+                              : `/faculty/assignments/${assignmentId}/grade/${student.studentRollNumber}/${student.id}`,
+                              {state:{course:state}}
                           )
                         }
                         className="text-sm flex items-center gap-1 bg-black hover:bg-black"

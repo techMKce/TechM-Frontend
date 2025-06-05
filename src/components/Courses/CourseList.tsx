@@ -81,7 +81,7 @@ const CourseList: React.FC = () => {
   useEffect(() => {
     const fetchEnrolledCourses = async () => {
       try {
-        const response = await api.get("course-enrollment/by-student/s123");
+        const response = await api.get(`course-enrollment/by-student/${profile.profile.id}`);
         setEnrolledCourses(response.data);
       } catch (error) {
         toast.error("Error fetching enrolled courses:", error);
@@ -225,10 +225,13 @@ const CourseList: React.FC = () => {
       )
     ) {
       try {
-        await api.delete(`/course/delete?course_id=${course_id}`);
+        let response=await api.delete(`/course/delete?course_id=${course_id}`);
         setCourses((prev) => prev.filter((c) => c.course_id !== course_id));
+         
       } catch (error) {
+        console.log(error);
             toast.error("Failed to Delete the Course");
+        window.location.reload();
       }
     }
   };
