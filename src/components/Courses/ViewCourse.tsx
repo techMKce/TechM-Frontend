@@ -29,7 +29,6 @@ function ViewCourse() {
   const role = profile.profile.role;
   const { id } = useParams();
   const { state } = useLocation();
-  const navigate = useNavigate();
   const [course, setCourse] = useState<Course>(state?.course);
   const [currentCourseId, setCurrentCourseId] = useState(
     state?.course.course_id
@@ -123,6 +122,7 @@ function ViewCourse() {
 
   // course editing
   const handleEditCourse = () => {
+    
     setEditData({
       course_id: course.course_id,
       courseTitle: course.courseTitle || "",
@@ -180,6 +180,7 @@ function ViewCourse() {
       await api.put("/course/update", updatedCourse);
 
       setIsEditing(false);
+      setCourse(updatedCourse);
     } catch (error: any) {
       toast.error("Failed to update course. Please try again.");
     } finally {
@@ -827,6 +828,7 @@ function ViewCourse() {
                           state={{
                             course_id: course.course_id,
                             courseTitle: course.courseTitle,
+                            course:course
                           }}
                         >
                           <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
