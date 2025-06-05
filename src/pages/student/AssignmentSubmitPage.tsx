@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import Navbar from "@/components/StudentNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +53,7 @@ const AssignmentSubmitPage = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewable, setIsPreviewable] = useState(false);
-
+  const {state}=useLocation();
   const checkSubmissionStatusAndGrading = async () => {
     try {
       const response = await api.get("/gradings", {
@@ -412,6 +412,7 @@ const AssignmentSubmitPage = () => {
           <div className="flex items-center justify-between mb-6">
             <Link
               to={`/student/courses/${assignment.courseId}`}
+              state={state}
               className="flex items-center text-primary hover:text-primary-dark text-lg font-semibold transition-all duration-200"
             >
               <ArrowLeft size={24} className="mr-2" />

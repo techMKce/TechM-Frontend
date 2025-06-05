@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '@/service/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Edit, Trash, ClipboardCheck } from 'lucide-react';
@@ -33,6 +33,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<Record<string, boolean>>({});
+  const {state}=useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,14 +86,14 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
     if (!assignmentId) {
       return;
     }
-    navigate(`/student/assignments/${assignmentId}/submit`);
+    navigate(`/student/assignments/${assignmentId}/submit`,{state:state});
   };
 
   const handleGrade = (assignmentId: string) => {
     if (!assignmentId) {
       return;
     }
-    navigate(`/faculty/assignments/${assignmentId}/grade`);
+    navigate(`/faculty/assignments/${assignmentId}/grade`,{state:state});
   };
 
   const handleEditAssignment = (assignmentId: string) => {
@@ -100,7 +101,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
       toast.error('Invalid assignment ');
       return;
     }
-    navigate(`/faculty/assignments/${assignmentId}/edit`);
+    navigate(`/faculty/assignments/${assignmentId}/edit`,{state:state});
   };
 
   const handleDeleteAssignment = async (id: string) => {
