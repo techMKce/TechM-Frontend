@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Navbar from "@/components/FacultyNavbar";
 import {
   Card,
@@ -17,10 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-
 import { Download, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import api from "@/service/api";
@@ -55,7 +53,6 @@ interface StudentDetails {
   stdId: string;
   stdName: string;
   rollNum: string;
-  deptId: string;
   deptName: string;
   batch: string;
   sem: string;
@@ -124,27 +121,20 @@ const PreviousAttendancePage = () => {
     an: boolean;
   }>({ fn: false, an: false });
 
-  const toggleSessionDetails = (session: 'fn' | 'an') => {
+  const toggleSessionDetails = useCallback((session: 'fn' | 'an') => {
     setShowSessionDetails(prev => ({
       ...prev,
       [session]: !prev[session]
     }));
-  };
+  }, []);
 
-  useEffect(() => {
-    fetchFacultyCourses();
-  }, [facultyId]);
-
-  const fetchFacultyCourses = async () => {
+  const fetchFacultyCourses = useCallback(async () => {
     try {
-      // Fetch faculty assignments
       const assignmentsResponse = await api.get(`/faculty-student-assigning/admin/faculty/${facultyId}`);
       setFacultyAssignments(assignmentsResponse.data);
 
-      // Get unique course IDs
       const courseIds = [...new Set(assignmentsResponse.data.map((assignment: FacultyAssignment) => assignment.courseId))];
       
-      // Fetch course details for each course ID
       const coursePromises = courseIds.map(async (courseId) => {
         const courseResponse = await api.get(`course/detailsbyId`, {
           params: { id: courseId }
@@ -166,18 +156,25 @@ const PreviousAttendancePage = () => {
         deptId: student.program,
         deptName: student.program,
         batch: student.year,
-        sem: student.semester,
+        sem: student.semester || "1", // Use the semester directly from student data
       }));
-
       setAllStudents(allStudentsData);
 
+      // Get unique values for filters
+      const uniqueBatches = [...new Set(allStudentsData.map(s => s.batch).filter(Boolean))];
+      const uniqueDepartments = [...new Set(allStudentsData.map(s => s.deptName).filter(Boolean))];
+      const uniqueSemesters = [...new Set(allStudentsData.map(s => s.sem).filter(Boolean))];
+
+      setBatches(uniqueBatches);
+      setDepartments(uniqueDepartments);
+      setSemesters(uniqueSemesters);
     } catch (error) {
-      toast.error("Failed to load faculty courses");
+      console.error("Error fetching faculty courses:", error);
+      // toast.error("Failed to load faculty courses");
     }
-  };
+  }, [facultyId]);
 
-
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     if (attendanceMode === "single") {
       setSingleFilters({
         singleDate: "",
@@ -200,9 +197,9 @@ const PreviousAttendancePage = () => {
       setConsolidatedRangeAttendance([]);
     }
     toast.info("All filters have been reset");
-  };
+  }, [attendanceMode]);
 
-  const fetchStudentsForCourse = async (courseName: string) => {
+  const fetchStudentsForCourse = useCallback(async (courseName: string) => {
     try {
       if (!courseName) {
         setBatches([]);
@@ -239,10 +236,9 @@ const PreviousAttendancePage = () => {
       console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
     }
-  };
+  }, [allStudents, courses, facultyAssignments, facultyId]);
 
-
-  const fetchSingleDateAttendance = async () => {
+  const fetchSingleDateAttendance = useCallback(async () => {
     if (!singleFilters.course || !singleFilters.singleDate) return;
     
     setIsLoading(true);
@@ -251,24 +247,25 @@ const PreviousAttendancePage = () => {
       if (!course) return;
 
       const response = await api.get(
-        `/api/v1/attendance/getfacultybydate?facultyid=${facultyId}&courseid=${course.courseId}&date=${singleFilters.singleDate}`
+        `/attendance/getfacultybydate?facultyid=${facultyId}&courseid=${course.courseId}&date=${singleFilters.singleDate}`
       );
-
       
       if (response.data && Array.isArray(response.data)) {
         setAttendanceRecords(response.data);
       } else {
         setAttendanceRecords([]);
-        toast.info("No attendance data found for this date");
+        toast.error("No attendance data found for this date");
       }
     } catch (error) {
+      console.error("Error fetching attendance:", error);
+      toast.error("Failed to load attendance records");
       setAttendanceRecords([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [singleFilters.course, singleFilters.singleDate, courses, facultyId]);
 
-  const fetchDateRangeAttendance = async () => {
+  const fetchDateRangeAttendance = useCallback(async () => {
     if (!groupFilters.course || !groupFilters.fromDate || !groupFilters.toDate) return;
     
     setIsLoading(true);
@@ -277,13 +274,12 @@ const PreviousAttendancePage = () => {
       if (!course) return;
 
       const response = await api.get(
-        `/api/v1/attendance/getfacultybydates?facultyid=${facultyId}&courseid=${course.courseId}&stdate=${groupFilters.fromDate}&endate=${groupFilters.toDate}`
+        `/attendance/getfacultybydates?facultyid=${facultyId}&courseid=${course.courseId}&stdate=${groupFilters.fromDate}&endate=${groupFilters.toDate}`
       );
       
       if (response.data && Array.isArray(response.data)) {
         setRangeAttendanceSummary(response.data);
 
-        // Group by student and calculate totals
         const studentMap = new Map<string, ConsolidatedRangeAttendance>();
         
         response.data.forEach((record: RangeAttendanceSummary) => {
@@ -306,7 +302,6 @@ const PreviousAttendancePage = () => {
           student.totalAttended += record.presentcount;
         });
 
-        // Calculate percentage for each student
         const consolidated = Array.from(studentMap.values()).map(student => ({
           ...student,
           percentage: student.totalConducted > 0 ? 
@@ -316,34 +311,36 @@ const PreviousAttendancePage = () => {
         setConsolidatedRangeAttendance(consolidated);
       } else {
         setRangeAttendanceSummary([]);
-
         setConsolidatedRangeAttendance([]);
         toast.error("No attendance data found for this date range");
-
       }
     } catch (error) {
+      console.error("Error fetching attendance:", error);
       toast.error("Failed to load attendance records");
       setRangeAttendanceSummary([]);
       setConsolidatedRangeAttendance([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [groupFilters.course, groupFilters.fromDate, groupFilters.toDate, courses, facultyId]);
+
+  useEffect(() => {
+    fetchFacultyCourses();
+  }, [fetchFacultyCourses]);
 
   useEffect(() => {
     if (attendanceMode === "single" && singleFilters.singleDate && singleFilters.course) {
       fetchSingleDateAttendance();
     }
-
-  }, [singleFilters.singleDate, singleFilters.course, singleFilters.department, singleFilters.batch, singleFilters.semester]);
+  }, [attendanceMode, singleFilters.singleDate, singleFilters.course, fetchSingleDateAttendance]);
 
   useEffect(() => {
     if (attendanceMode === "group" && groupFilters.fromDate && groupFilters.toDate && groupFilters.course) {
       fetchDateRangeAttendance();
     }
-  }, [groupFilters.fromDate, groupFilters.toDate, groupFilters.course, groupFilters.department, groupFilters.batch, groupFilters.semester]);
+  }, [attendanceMode, groupFilters.fromDate, groupFilters.toDate, groupFilters.course, fetchDateRangeAttendance]);
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = useCallback((name: string, value: string) => {
     if (name === "course") {
       if (attendanceMode === "single") {
         setSingleFilters(prev => ({
@@ -370,9 +367,9 @@ const PreviousAttendancePage = () => {
         setGroupFilters(prev => ({ ...prev, [name]: value }));
       }
     }
-  };
+  }, [attendanceMode, fetchStudentsForCourse]);
 
-  const downloadSingleDayPDF = async (session: string) => {
+  const downloadSingleDayPDF = useCallback(async (session: string) => {
     if (!singleFilters.course || !singleFilters.singleDate) {
       toast.error("Please select all required filters");
       return;
@@ -401,7 +398,6 @@ const PreviousAttendancePage = () => {
         reader.readAsDataURL(blob);
       });
 
-      // Add logo image
       const logoWidth = 60;
       const logoHeight = 20;
       const logoX = (pageWidth - logoWidth) / 2;
@@ -409,7 +405,6 @@ const PreviousAttendancePage = () => {
       doc.addImage(base64Image, "PNG", logoX, currentY, logoWidth, logoHeight);
       currentY += logoHeight + 10;
 
-      // Institution Name
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, {
@@ -426,19 +421,16 @@ const PreviousAttendancePage = () => {
       currentY += 15;
     }
 
-    // Add title
     doc.setFontSize(14);
     doc.text(`${session.toUpperCase()} Session Attendance`, pageWidth / 2, currentY, { 
       align: "center" 
     });
     currentY += 10;
     
-    // Add horizontal line
     doc.setDrawColor(200, 200, 200);
     doc.line(14, currentY, pageWidth - 14, currentY);
     currentY += 15;
     
-    // Add details
     doc.setFontSize(12);
     doc.text(`Course: ${singleFilters.course}`, 14, currentY);
     currentY += 10;
@@ -460,7 +452,6 @@ const PreviousAttendancePage = () => {
       currentY += 5;
     }
 
-    // Prepare table data
     const headers = [["Roll Number", "Name", "Status"]];
     const tableData = sessionRecords.map(record => [
       record.stdId,
@@ -468,7 +459,6 @@ const PreviousAttendancePage = () => {
       record.status === 1 ? "Present" : "Absent"
     ]);
 
-    // Add table
     autoTable(doc, {
       head: headers,
       body: tableData,
@@ -485,12 +475,10 @@ const PreviousAttendancePage = () => {
       margin: { left: 14, right: 14 }
     });
 
-    // Calculate summary
     const totalStudents = sessionRecords.length;
     const presentCount = sessionRecords.filter(r => r.status === 1).length;
     const absentCount = totalStudents - presentCount;
 
-    // Add summary
     currentY = doc.lastAutoTable.finalY + 15;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -504,9 +492,9 @@ const PreviousAttendancePage = () => {
     doc.text(`Absent: ${absentCount}`, 14, currentY);
 
     doc.save(`attendance-${singleFilters.singleDate}-${session}.pdf`);
-  };
+  }, [singleFilters, attendanceRecords]);
 
-  const downloadRangePDF = async () => {
+  const downloadRangePDF = useCallback(async () => {
     if (!groupFilters.course || !groupFilters.fromDate || !groupFilters.toDate) {
       toast.error("Please select all required filters");
       return;
@@ -531,7 +519,6 @@ const PreviousAttendancePage = () => {
         reader.readAsDataURL(blob);
       });
 
-      // Add logo image
       const logoWidth = 60;
       const logoHeight = 20;
       const logoX = (pageWidth - logoWidth) / 2;
@@ -539,7 +526,6 @@ const PreviousAttendancePage = () => {
       doc.addImage(base64Image, "PNG", logoX, currentY, logoWidth, logoHeight);
       currentY += logoHeight + 10;
 
-      // Institution Name
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, {
@@ -556,19 +542,16 @@ const PreviousAttendancePage = () => {
       currentY += 15;
     }
     
-    // Add title
     doc.setFontSize(14);
     doc.text("Attendance Summary Report", pageWidth / 2, currentY, { 
       align: "center" 
     });
     currentY += 10;
     
-    // Add horizontal line
     doc.setDrawColor(200, 200, 200);
     doc.line(14, currentY, pageWidth - 14, currentY);
     currentY += 15;
     
-    // Add details
     doc.setFontSize(12);
     doc.text(`Course: ${groupFilters.course}`, 14, currentY);
     currentY += 10;
@@ -590,7 +573,6 @@ const PreviousAttendancePage = () => {
       currentY += 5;
     }
 
-    // Prepare table data
     const headers = [["Roll Number", "Name", "Conducted", "Attended", "Percentage"]];
     const tableData = consolidatedRangeAttendance.map(record => [
       record.stdId,
@@ -600,7 +582,6 @@ const PreviousAttendancePage = () => {
       `${record.percentage.toFixed(1)}%`
     ]);
 
-    // Add table
     autoTable(doc, {
       head: headers,
       body: tableData,
@@ -621,29 +602,41 @@ const PreviousAttendancePage = () => {
     });
 
     doc.save(`attendance-summary-${groupFilters.fromDate}-to-${groupFilters.toDate}.pdf`);
-  };
+  }, [groupFilters, consolidatedRangeAttendance]);
 
-  // Filter records by session for single day view
-  const singleDayFN = attendanceRecords.filter(record => 
-    record.session.toLowerCase() === "fn"
-  );
-  const singleDayAN = attendanceRecords.filter(record => 
-    record.session.toLowerCase() === "an"
+  const singleDayFN = useMemo(() => 
+    attendanceRecords.filter(record => record.session.toLowerCase() === "fn"),
+    [attendanceRecords]
   );
 
-  // Calculate summary for single day sessions
-  const totalFNStudents = singleDayFN.length;
-  const presentFNCount = singleDayFN.filter(r => r.status === 1).length;
-  const absentFNCount = totalFNStudents - presentFNCount;
+  const singleDayAN = useMemo(() => 
+    attendanceRecords.filter(record => record.session.toLowerCase() === "an"),
+    [attendanceRecords]
+  );
 
-  const totalANStudents = singleDayAN.length;
-  const presentANCount = singleDayAN.filter(r => r.status === 1).length;
-  const absentANCount = totalANStudents - presentANCount;
+  const { totalFNStudents, presentFNCount, absentFNCount } = useMemo(() => {
+    const total = singleDayFN.length;
+    const present = singleDayFN.filter(r => r.status === 1).length;
+    return {
+      totalFNStudents: total,
+      presentFNCount: present,
+      absentFNCount: total - present
+    };
+  }, [singleDayFN]);
+
+  const { totalANStudents, presentANCount, absentANCount } = useMemo(() => {
+    const total = singleDayAN.length;
+    const present = singleDayAN.filter(r => r.status === 1).length;
+    return {
+      totalANStudents: total,
+      presentANCount: present,
+      absentANCount: total - present
+    };
+  }, [singleDayAN]);
 
   return (
     <>
       <Navbar />
-
       <div className="page-container max-w-4xl mx-auto">
         <div className="mb-6 flex flex-col items-center">
           <Button
@@ -709,7 +702,7 @@ const PreviousAttendancePage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {courses.map((course) => (
-                      <SelectItem key={course.courseId} value={course.courseName}>
+                      <SelectItem key={course.courseId} value={course.courseId}>
                         {course.courseName}
                       </SelectItem>
                     ))}
@@ -821,7 +814,6 @@ const PreviousAttendancePage = () => {
                   <p className="text-center">No attendance records found for the selected filters.</p>
                 ) : (
                   <div className="space-y-6">
-                    {/* FN Session Card */}
                     {singleDayFN.length > 0 && (
                       <Card>
                         <CardHeader className="flex flex-row justify-between items-center">
@@ -901,7 +893,6 @@ const PreviousAttendancePage = () => {
                       </Card>
                     )}
 
-                    {/* AN Session Card */}
                     {singleDayAN.length > 0 && (
                       <Card>
                         <CardHeader className="flex flex-row justify-between items-center">
@@ -925,7 +916,7 @@ const PreviousAttendancePage = () => {
                               onClick={() => downloadSingleDayPDF("AN")}
                               className="flex items-center gap-1"
                             >
-                              <Download size={16} />
+                              <Download size={16} /> 
                               Export PDF
                             </Button>
                           </div>
@@ -1049,6 +1040,4 @@ const PreviousAttendancePage = () => {
   );
 };
 
-
-export default PreviousAttendancePage;
-
+export default React.memo(PreviousAttendancePage);

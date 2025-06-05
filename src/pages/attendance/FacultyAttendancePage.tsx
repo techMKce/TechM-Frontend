@@ -28,7 +28,6 @@ interface Student {
   stdId: string;
   stdName: string;
   rollNum: string;
-  deptId: string;
   deptName: string;
   batch: string;
   sem: string;
@@ -50,7 +49,6 @@ interface StudentDetails {
   stdId: string;
   stdName: string;
   rollNum: string;
-  deptId: string;
   deptName: string;
   batch: string;
   sem: string;
@@ -71,6 +69,7 @@ const FacultyAttendancePage = () => {
   const [loading, setLoading] = useState(false);
   const [allStudents, setAllStudents] = useState<StudentDetails[]>([]);
   const [facultyAssignments, setFacultyAssignments] = useState<FacultyAssignment[]>([]);
+  const [showAttendanceTable, setShowAttendanceTable] = useState(false);
 
   const [formData, setFormData] = useState({
     batch: "",
@@ -93,87 +92,99 @@ const FacultyAttendancePage = () => {
 
   const fetchFacultyCourses = async () => {
     try {
+      // Get faculty assignments
       const response = await api.get(
         `/faculty-student-assigning/admin/faculty/${profile.profile.id}`
       );
-
       const facultyAssignments: FacultyAssignment[] = response.data;
-
-
-      const courseIds = [
-        ...new Set(facultyAssignments.map((assignment) => assignment.courseId)),
-      ];
-
-      // Fetch course details for each course ID
-      const coursePromises = courseIds.map(async (courseId) => {
-        const courseResponse = await api.get(`course/detailsbyId`, {
-          params: {
-            id: courseId,
-          },
-        });
-
-        return {
-          courseId: courseId,
-          courseName: courseResponse.data[0].courseTitle || courseId, // Fallback to courseId if name not available
-        };
-      });
-
-      const fetchedCourses = await Promise.all(coursePromises);
-      setCourses(fetchedCourses);
-
-      const studentResponse = await api.get(
-        `faculty-student-assigning/admin/faculty/${profile.profile.id}`
-      );
-
-      const facultyAssignmentsData: FacultyAssignment[] = studentResponse.data;
-      setFacultyAssignments(facultyAssignmentsData);
-
+      setFacultyAssignments(facultyAssignments);
       
-      const courseIds = [...new Set(facultyAssignments.map(a => a.courseId))];
-      
-      // Fetch course details for each course
+      // Get course details for assigned courses only
       const courseDetails = await Promise.all(
-        courseIds.map(async (courseId) => {
+        facultyAssignments.map(async (assignment) => {
           const res = await api.get(`course/detailsbyId`, {
-            params: { id: courseId }
+            params: { id: assignment.courseId }
           });
           return {
-            courseId,
-            courseName: res.data[0]?.courseTitle || courseId
+            courseId: assignment.courseId,
+            courseName: res.data[0]?.courseTitle || assignment.courseId
           };
         })
       );
-      
       setCourses(courseDetails);
 
-      // Fetch all students
+      // Get all students
       const studentsRes = await api.get("/profile/student");
       const allStudentsData: StudentDetails[] = studentsRes.data.map((student: any) => ({
         stdId: student.rollNum,
         stdName: student.name,
         rollNum: student.rollNum,
-        deptId: student.program,
         deptName: student.program,
         batch: student.year,
         sem: student.semester,
-
       }));
-
       setAllStudents(allStudentsData);
+
+      // Update filter options based on assigned students
+      updateFilterOptions(facultyAssignments, allStudentsData);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load faculty data");
-
     }
   };
 
+  const updateFilterOptions = (assignments: FacultyAssignment[], students: StudentDetails[]) => {
+    const assignedRollNums = assignments.reduce((acc, curr) => [...acc, ...curr.assignedRollNums], []);
+    const assignedStudents = students.filter(student => assignedRollNums.includes(student.rollNum));
+    
+    const uniqueBatches = [...new Set(assignedStudents.map(s => s.batch))].filter(Boolean).sort();
+    const uniqueDepts = [...new Set(assignedStudents.map(s => s.deptName))].filter(Boolean).sort();
+    const uniqueSems = [...new Set(assignedStudents.map(s => s.sem))].filter(Boolean).sort();
+    
+    setBatches(uniqueBatches);
+    setDepartments(uniqueDepts);
+    setSemesters(uniqueSems);
+  };
+
+  const handleCourseChange = (courseId: string) => {
+    setShowAttendanceTable(false);
+    setFormData(prev => ({
+      ...prev,
+      course: courseId,
+      batch: "",
+      department: "",
+      semester: ""
+    }));
+
+    const assignment = facultyAssignments.find(a => a.courseId === courseId);
+    if (assignment) {
+      const assignedStudents = allStudents.filter(student => 
+        assignment.assignedRollNums.includes(student.rollNum)
+      );
+
+      const courseBatches = [...new Set(assignedStudents.map(s => s.batch))].filter(Boolean).sort();
+      const courseDepts = [...new Set(assignedStudents.map(s => s.deptName))].filter(Boolean).sort();
+      const courseSems = [...new Set(assignedStudents.map(s => s.sem))].filter(Boolean).sort();
+
+      setBatches(courseBatches);
+      setDepartments(courseDepts);
+      setSemesters(courseSems);
+    }
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    setShowAttendanceTable(false);
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const resetFilters = () => {
+    setShowAttendanceTable(false);
     setFormData({
       batch: "",
       course: "",
       department: "",
       semester: "",
-      session: "FN",
+      session: "",
       date: new Date().toISOString().split("T")[0],
     });
     setStudents([]);
@@ -181,7 +192,6 @@ const FacultyAttendancePage = () => {
     setAbsenteeCount(0);
     toast.info("All filters have been reset");
   };
-
 
   const validateForm = () => {
     if (!formData.course) {
@@ -217,36 +227,28 @@ const FacultyAttendancePage = () => {
         return;
       }
 
-      const assignedStudents = allStudents.filter(student =>
+      const filteredStudents = allStudents.filter(student =>
         assignment.assignedRollNums.includes(student.rollNum) &&
         student.batch === formData.batch &&
         student.deptName === formData.department &&
         student.sem === formData.semester
       );
 
-      if (assignedStudents.length === 0) {
+      if (filteredStudents.length === 0) {
         toast.error("No students match the selected filters");
         return;
       }
 
-      const studentsWithAttendance = assignedStudents.map(student => ({
+      const studentsWithAttendance = filteredStudents.map(student => ({
         ...student,
         isPresent: true
       }));
 
       setStudents(studentsWithAttendance);
-      
-      // Extract unique values for filters
-      const uniqueBatches = [...new Set(allStudents.map(s => s.batch).filter(Boolean))];
-      const uniqueDepts = [...new Set(allStudents.map(s => s.deptName).filter(Boolean))];
-      const uniqueSems = [...new Set(allStudents.map(s => s.sem).filter(Boolean))];
-      
-      setBatches(uniqueBatches);
-      setDepartments(uniqueDepts);
-      setSemesters(uniqueSems);
-
+      setShowAttendanceTable(true);
       toast.success("Student list generated successfully");
     } catch (error) {
+      console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
     }
   };
@@ -254,7 +256,7 @@ const FacultyAttendancePage = () => {
   const handleSubmitAttendance = async () => {
     if (!validateForm()) return;
     if (students.length === 0) {
-      toast.info("No students to mark attendance for");
+      toast.error("No students to mark attendance for");
       return;
     }
 
@@ -270,21 +272,19 @@ const FacultyAttendancePage = () => {
         status: student.isPresent ? 1 : 0,
         session: formData.session,
         batch: student.batch,
-        deptId: student.deptId,
         deptName: student.deptName,
         sem: student.sem,
         dates: formData.date,
       }));
 
-
       await api.post("/attendance/attendanceupdate", attendanceRecords);
-
 
       const absentees = students.filter(s => !s.isPresent).length;
       setAbsenteeCount(absentees);
       setIsFormSubmitted(true);
       toast.success("Attendance marked successfully");
     } catch (error) {
+      console.error("Error submitting attendance:", error);
       toast.error("Failed to submit attendance");
     } finally {
       setLoading(false);
@@ -295,7 +295,6 @@ const FacultyAttendancePage = () => {
     <>
       <Navbar />
       <div className="page-container max-w-4xl mx-auto">
-
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold">Attendance Management</h1>
           <p className="mt-2">Manage student attendance and view reports</p>
@@ -357,9 +356,7 @@ const FacultyAttendancePage = () => {
                 </Label>
                 <Select
                   value={formData.course}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, course: value }))
-                  }
+                  onValueChange={handleCourseChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a course" />
@@ -381,9 +378,7 @@ const FacultyAttendancePage = () => {
                 </Label>
                 <Select
                   value={formData.batch}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, batch: value }))
-                  }
+                  onValueChange={(value) => handleFilterChange("batch", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a batch" />
@@ -405,9 +400,7 @@ const FacultyAttendancePage = () => {
                 </Label>
                 <Select
                   value={formData.department}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, department: value }))
-                  }
+                  onValueChange={(value) => handleFilterChange("department", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a department" />
@@ -429,9 +422,7 @@ const FacultyAttendancePage = () => {
                 </Label>
                 <Select
                   value={formData.semester}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, semester: value }))
-                  }
+                  onValueChange={(value) => handleFilterChange("semester", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select semester" />
@@ -453,9 +444,7 @@ const FacultyAttendancePage = () => {
                 </Label>
                 <Select
                   value={formData.session}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, session: value }))
-                  }
+                  onValueChange={(value) => handleFilterChange("session", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select session" />
@@ -479,9 +468,7 @@ const FacultyAttendancePage = () => {
                     type="date"
                     className="pl-10"
                     value={formData.date}
-                    onChange={(e) =>
-                      setFormData(prev => ({ ...prev, date: e.target.value }))
-                    }
+                    onChange={(e) => handleFilterChange("date", e.target.value)}
                     required
                   />
                 </div>
@@ -496,87 +483,87 @@ const FacultyAttendancePage = () => {
                 Generate Student List
               </Button>
             </div>
-            </CardContent>
-            </Card>
-            <br />
-            {students.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mark Attendance</CardTitle>
-                  <CardDescription>
-                    {formData.department && `Department of ${formData.department} - `}
-                    {formData.batch && `Batch ${formData.batch} - `}
-                    {formData.semester && `Semester ${formData.semester}  - `}(
-                    {formData.session === "FN" ? "Forenoon" : "Afternoon"} Session)
-                  </CardDescription>
-                </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto mb-4">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left border-b">
-                        <th className="px-4 py-2">Roll Number</th>
-                        <th className="px-4 py-2">Name</th>
-                        <th className="px-4 py-2 text-center">Attendance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {students.map((student) => (
-                        <tr key={student.stdId}>
-                          <td className="px-4 py-2">{student.rollNum}</td>
-                          <td className="px-4 py-2">{student.stdName}</td>
-                          <td className="px-4 py-2 text-center">
-                            <Switch
-                              checked={student.isPresent}
-                              onCheckedChange={() => 
-                                setStudents(prev =>
-                                  prev.map(s =>
-                                    s.stdId === student.stdId
-                                      ? { ...s, isPresent: !s.isPresent }
-                                      : s
-                                  )
-                                )
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleSubmitAttendance}
-                    disabled={loading}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {loading ? "Submitting..." : "Submit Attendance"}
-                  </Button>
-                </div>
-
-            {isFormSubmitted && (
-              <div className="mt-6 p-4 bg-blue-50 rounded-md">
-                <div className="flex items-start">
-                  <FileText className="mt-1 h-5 w-5 text-blue-600" />
-                  <div className="ml-2">
-                    <h4 className="font-medium">Attendance Summary</h4>
-                    <p className="text-sm mt-1">
-                      Total Students: {students.length}
-                    </p>
-                    <p className="text-sm">
-                      Present: {students.length - absenteeCount}
-                    </p>
-                    <p className="text-sm">
-                      Absent: {absenteeCount}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
-      )}
+
+        {showAttendanceTable && students.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Mark Attendance</CardTitle>
+              <CardDescription>
+                {formData.department && `Department of ${formData.department} - `}
+                {formData.batch && `Batch ${formData.batch} - `}
+                {formData.semester && `Semester ${formData.semester}  - `}
+                {formData.session === "FN" ? "Forenoon" : "Afternoon"} Session
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="px-4 py-2">Roll Number</th>
+                      <th className="px-4 py-2">Name</th>
+                      <th className="px-4 py-2 text-center">Attendance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {students.map((student) => (
+                      <tr key={student.stdId}>
+                        <td className="px-4 py-2">{student.rollNum}</td>
+                        <td className="px-4 py-2">{student.stdName}</td>
+                        <td className="px-4 py-2 text-center">
+                          <Switch
+                            checked={student.isPresent}
+                            onCheckedChange={() => 
+                              setStudents(prev =>
+                                prev.map(s =>
+                                  s.stdId === student.stdId
+                                    ? { ...s, isPresent: !s.isPresent }
+                                    : s
+                                )
+                              )
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSubmitAttendance}
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {loading ? "Submitting..." : "Submit Attendance"}
+                </Button>
+              </div>
+
+              {isFormSubmitted && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-md">
+                  <div className="flex items-start">
+                    <FileText className="mt-1 h-5 w-5 text-blue-600" />
+                    <div className="ml-2">
+                      <h4 className="font-medium">Attendance Summary</h4>
+                      <p className="text-sm mt-1">
+                        Total Students: {students.length}
+                      </p>
+                      <p className="text-sm">
+                        Present: {students.length - absenteeCount}
+                      </p>
+                      <p className="text-sm">
+                        Absent: {absenteeCount}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </>
   );
