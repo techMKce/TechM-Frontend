@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '@/service/api';
-import { useAuth } from '@/hooks/useAuth';
-import { Edit, Trash, ClipboardCheck } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import * as React from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "@/service/api";
+import { useAuth } from "@/hooks/useAuth";
+import { Edit, Trash, ClipboardCheck } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Assignment {
   assignmentId: string;
@@ -28,13 +28,20 @@ interface DisplayAssignmentsProps {
   showAssignments: boolean;
 }
 
-const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showAssignments }) => {
+const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({
+  courseId,
+  showAssignments,
+}) => {
   const { profile } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [submissionStatus, setSubmissionStatus] = useState<Record<string, boolean>>({});
-  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
+  const [submissionStatus, setSubmissionStatus] = useState<
+    Record<string, boolean>
+  >({});
+  const [expandedDescriptions, setExpandedDescriptions] = useState<
+    Record<string, boolean>
+  >({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -50,18 +57,21 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
   const fetchAssignments = async (courseId: string): Promise<Assignment[]> => {
     setLoadingAssignments(true);
     try {
-      const response = await api.get<ApiResponse>('/assignments/course?', {
+      const response = await api.get<ApiResponse>("/assignments/course?", {
         params: { courseId },
       });
-      console.log('Full response:', response.data);
-      console.log('Assignments array:', response.data.assignments);
+      console.log("Full response:", response.data);
+      console.log("Assignments array:", response.data.assignments);
       setAssignments(response.data.assignments);
 
-      if (profile.profile.role === 'STUDENT' && response.data.assignments.length > 0) {
+      if (
+        profile.profile.role === "STUDENT" &&
+        response.data.assignments.length > 0
+      ) {
         const status: Record<string, boolean> = {};
         for (const assignment of response.data.assignments) {
           try {
-            const gradingResponse = await api.get('/gradings', {
+            const gradingResponse = await api.get("/gradings", {
               params: { assignmentId: assignment.assignmentId },
             });
             const submissions = gradingResponse.data.submissions || [];
@@ -70,7 +80,10 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
             );
             status[assignment.assignmentId] = hasSubmitted;
           } catch (err) {
-            console.error(`Error checking submission for assignment ${assignment.assignmentId}:`, err);
+            console.error(
+              `Error checking submission for assignment ${assignment.assignmentId}:`,
+              err
+            );
             status[assignment.assignmentId] = false;
           }
         }
@@ -79,7 +92,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
 
       return response.data.assignments;
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      console.error("Error fetching assignments:", error);
       setAssignments([]);
       return [];
     } finally {
@@ -146,13 +159,15 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
               await api.delete(`/assignments`, {
                 params: { assignmentId: id },
               });
-              setAssignments((prev) => prev.filter((assignment) => assignment.assignmentId !== id));
+              setAssignments((prev) =>
+                prev.filter((assignment) => assignment.assignmentId !== id)
+              );
               toast({
                 title: "Success",
                 description: "Assignment deleted successfully",
               });
             } catch (error: any) {
-              console.error('Failed to delete assignment with ID:', id);
+              console.error("Failed to delete assignment with ID:", id);
               console.error(error.response?.data || error.message);
               toast({
                 title: "Error",
@@ -179,11 +194,15 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
   };
 
   const formatDueDate = (dueDate?: string, createdAt?: string) => {
-    const date = dueDate ? new Date(dueDate) : createdAt ? new Date(createdAt) : new Date();
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    const date = dueDate
+      ? new Date(dueDate)
+      : createdAt
+      ? new Date(createdAt)
+      : new Date();
+    return date.toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -193,10 +212,15 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
       {assignments.length > 0 ? (
         <div className="space-y-6">
           {assignments.map((assignment) => {
-            const isExpanded = expandedDescriptions[assignment.assignmentId] || false;
+            const isExpanded =
+              expandedDescriptions[assignment.assignmentId] || false;
             const truncatedDescription =
-              assignment.description.length > MAX_DESCRIPTION_LENGTH && !isExpanded
-                ? `${assignment.description.slice(0, MAX_DESCRIPTION_LENGTH)}...`
+              assignment.description.length > MAX_DESCRIPTION_LENGTH &&
+              !isExpanded
+                ? `${assignment.description.slice(
+                    0,
+                    MAX_DESCRIPTION_LENGTH
+                  )}...`
                 : assignment.description;
 
             return (
@@ -207,18 +231,23 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                 {/* Top Row: Title, Due Date, Edit, Delete */}
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <h3 className="font-semibold text-xl text-black flex-1 min-w-0">
-                    <span className="text-lg font-semibold text-gray-600">Title: </span>
+                    <span className="text-lg font-semibold text-gray-600">
+                      Title:{" "}
+                    </span>
                     {assignment.title}
                   </h3>
                   <div className="flex items-center space-x-4 shrink-0">
                     <span className="bg-gray-200 text-black px-6 py-3 rounded-md text-base font-medium shadow-sm whitespace-nowrap">
-                      Due: {formatDueDate(assignment.dueDate, assignment.createdAt)}
+                      Due:{" "}
+                      {formatDueDate(assignment.dueDate, assignment.createdAt)}
                     </span>
-                    {profile.profile.role === 'FACULTY' && (
+                    {profile.profile.role === "FACULTY" && (
                       <>
                         <button
                           className="flex items-center space-x-2 text-blue-600 px-6 py-3 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-all duration-200 shrink-0"
-                          onClick={() => handleEditAssignment(assignment.assignmentId)}
+                          onClick={() =>
+                            handleEditAssignment(assignment.assignmentId)
+                          }
                           disabled={deletingId === assignment.assignmentId}
                           title="Edit Assignment"
                         >
@@ -227,7 +256,9 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                         </button>
                         <button
                           className="flex items-center space-x-2 text-red-600 px-6 py-3 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-all duration-200 shrink-0"
-                          onClick={() => handleDeleteAssignment(assignment.assignmentId)}
+                          onClick={() =>
+                            handleDeleteAssignment(assignment.assignmentId)
+                          }
                           disabled={deletingId === assignment.assignmentId}
                           title="Delete Assignment"
                         >
@@ -242,14 +273,18 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                 {/* Description */}
                 <div className="assignment-details flex flex-col gap-2">
                   <p className="text-lg text-gray-800 overflow-hidden text-ellipsis">
-                    <span className="text-lg font-semibold text-gray-600">Description: </span>
+                    <span className="text-lg font-semibold text-gray-600">
+                      Description:{" "}
+                    </span>
                     {truncatedDescription}
                     {assignment.description.length > MAX_DESCRIPTION_LENGTH && (
                       <button
                         className="text-blue-600 hover:underline ml-2 text-base"
-                        onClick={() => toggleDescription(assignment.assignmentId)}
+                        onClick={() =>
+                          toggleDescription(assignment.assignmentId)
+                        }
                       >
-                        {isExpanded ? 'Read Less' : 'Read More'}
+                        {isExpanded ? "Read Less" : "Read More"}
                       </button>
                     )}
                   </p>
@@ -267,7 +302,9 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                       View Resources
                     </a>
                   ) : (
-                    <span className="text-gray-600">No resources available</span>
+                    <span className="text-gray-600">
+                      No resources available
+                    </span>
                   )}
                 </div>
 
@@ -276,26 +313,30 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
                   <div className="flex items-center space-x-6">
                     {assignment.fileName && (
                       <p className="text-base text-gray-600">
-                        <span className="text-lg font-semibold text-gray-600">File: </span>
+                        <span className="text-lg font-semibold text-gray-600">
+                          File:{" "}
+                        </span>
                         {assignment.fileName}
                       </p>
                     )}
                   </div>
                   <div className="action-buttons flex space-x-4 shrink-0">
-                    {profile.profile.role === 'STUDENT' && (
+                    {profile.profile.role === "STUDENT" && (
                       <button
                         className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-base whitespace-nowrap shrink-0"
                         onClick={() => handleSubmit(assignment.assignmentId)}
                         disabled={deletingId === assignment.assignmentId}
                       >
-                        {submissionStatus[assignment.assignmentId] ? 'View Assignment' : 'Submit Assignment'}
+                        {submissionStatus[assignment.assignmentId]
+                          ? "View Assignment"
+                          : "Submit Assignment"}
                       </button>
                     )}
                   </div>
                 </div>
 
                 {/* Grade Assignment Button for Faculty - Fixed in Bottom Right of Card */}
-                {profile.profile.role === 'FACULTY' && (
+                {profile.profile.role === "FACULTY" && (
                   <button
                     className="absolute bottom-4 right-4 flex items-center space-x-2 px-6 py-3 bg-black text-white rounded-lg shadow-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 z-10 text-base"
                     onClick={() => handleGrade(assignment.assignmentId)}
@@ -312,7 +353,9 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({ courseId, showA
         </div>
       ) : (
         <div className="text-center py-10 text-gray-600 text-lg">
-          {loadingAssignments ? 'Loading assignments...' : 'No assignments available'}
+          {loadingAssignments
+            ? "Loading assignments..."
+            : "No assignments available"}
         </div>
       )}
     </div>

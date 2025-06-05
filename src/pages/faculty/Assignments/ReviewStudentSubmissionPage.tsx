@@ -96,10 +96,11 @@ const ReviewStudentSubmissionPage = () => {
           setGrade(grading.grade);
           setFeedback(grading.feedback);
         } else {
-          toast.info("No grading data found for this submission.");
+          toast.error("No grading data found for this submission.");
           navigate(`/faculty/assignments/${assignmentId}/grade`);
         }
       } catch (err) {
+        console.error("Error fetching data:", err);
         toast.error("Error loading submission or grading data.");
         navigate(`/faculty/assignments/${assignmentId}/grade`);
       } finally {
@@ -121,7 +122,7 @@ const ReviewStudentSubmissionPage = () => {
 
   const handleDeleteGrade = async () => {
     if (!submission || !assignmentId || !submissionId) {
-      toast.info("Submission data or assignment ID not available");
+      toast.error("Submission data or assignment ID not available");
       return;
     }
 
@@ -154,7 +155,7 @@ const ReviewStudentSubmissionPage = () => {
 
   const handleSubmitGrade = async () => {
     if (!grade) {
-      toast.warning("Please select a grade");
+      toast.error("Please select a grade");
       return;
     }
 
@@ -196,7 +197,7 @@ const ReviewStudentSubmissionPage = () => {
 
   const handleDownloadDocument = async () => {
     if (!submissionId) {
-      toast.warning("Submission ID not available");
+      toast.error("Submission ID not available");
       return;
     }
 
@@ -209,6 +210,7 @@ const ReviewStudentSubmissionPage = () => {
       document.body.removeChild(link);
       toast.info("Document downloaded successfully.");
     } catch (err) {
+      console.error("Download error:", err);
       toast.error("Failed to download document.");
     }
   };
@@ -225,7 +227,7 @@ const ReviewStudentSubmissionPage = () => {
     }
 
     if (!submissionId) {
-      toast.warning("Submission ID not available");
+      toast.error("Submission ID not available");
       return;
     }
 
@@ -269,6 +271,7 @@ const ReviewStudentSubmissionPage = () => {
       setIsViewerOpen(true);
       toast.info("Document opened for viewing.");
     } catch (err) {
+      console.error("View error:", err);
       toast.error("Failed to view document. Try downloading instead.");
     }
   };

@@ -6,10 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { FileText, Calendar, Download, Eye } from "lucide-react";
+import { FileText, Calendar, Download, Eye, Pencil, Save, X } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import axios from "axios";
-import api from '../../../service/api';
+import api from "@/service/api";
+
 interface StudentSubmission {
   id: number;
   userId: string;
@@ -21,93 +21,116 @@ interface StudentSubmission {
     id: number;
     title: string;
   };
+  status: "accepted" | "rejected";
 }
 
 interface Grading {
   grade: string;
-  feedback: string;
+  feedback: string | null;
 }
 
 const GradeStudentSubmissionPage = () => {
-  const { assignmentId, submissionId } = useParams<{
+  const { assignmentId, studentRollNumber, submissionId } = useParams<{
     assignmentId: string;
+    studentRollNumber: string;
     submissionId: string;
   }>();
   const navigate = useNavigate();
-  const [facultyName] = useState("Dr. Jane Smith");
-  const [feedback, setFeedback] = useState("");
-  const [grade, setGrade] = useState("");
   const [submission, setSubmission] = useState<StudentSubmission | null>(null);
   const [gradingData, setGradingData] = useState<Grading | null>(null);
+  const [grade, setGrade] = useState("");
+  const [feedback, setFeedback] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [isViewerOpen, setIsViewerOpen] = useState(false); // Track viewer state
-  const [viewerUrl, setViewerUrl] = useState<string | null>(null); // Store file URL
-  const viewerRef = useRef<HTMLDivElement | null>(null); // Ref for viewer container
-  const isGraded = gradingData !== null;
-  const [submissionStatus, setSubmissionStatus] = useState<"Accepted" | "Rejected">("Accepted");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const viewerRef = useRef<HTMLDivElement | null>(null);
+  const [submissionsList, setSubmissionsList] = useState<StudentSubmission[]>([]);
+  const [isRejecting, setIsRejecting] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!submissionId || !assignmentId) {
-        toast.error("Invalid submission or assignment.");
-        setLoading(false);
+  // Fetch submission and grading data when submissionId changes
+  const fetchData = async () => {
+    if (!submissionId || !assignmentId || !studentRollNumber) {
+      toast.error("Invalid submission, assignment, or student ID.");
+      navigate(`/faculty/assignments/${assignmentId || "unknown"}/grade`);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Fetch all submissions for navigation
+      const submissionRes = await api.get("/submissions", {
+        params: { assignmentId },
+      });
+      const submissionsData = Array.isArray(submissionRes.data.submissions)
+        ? submissionRes.data.submissions
+        : [];
+      setSubmissionsList(submissionsData);
+
+      // Fetch current submission
+      const currentSubmissionRes = await api.get("/submissions/id", {
+        params: { submissionId },
+      });
+      const sub = currentSubmissionRes.data.submission;
+      if (sub) {
+        setSubmission({
+          id: sub.id,
+          userId: sub.userId,
+          studentName: sub.studentName,
+          studentRollNumber: sub.studentRollNumber,
+          submittedAt: sub.submittedAt,
+          document: sub.document || "Unknown Document",
+          assignment: {
+            id: parseInt(assignmentId),
+            title: sub.assignmentTitle || "Unknown Assignment",
+          },
+          status: sub.status?.toLowerCase() || "accepted",
+        });
+      } else {
+        toast.error("Failed to load submission details.");
+        navigate(`/faculty/assignments/${assignmentId}/grade`);
         return;
       }
 
-      try {
-        const submissionRes = await api("/submissions/id", {
-          params: { submissionId },
+      // Fetch grading data using the new endpoint
+      const gradingRes = await api.get("/gradings/grade", {
+        params: { studentRollNumber, assignmentId },
+      });
+      console.log("Fetched grading data:", gradingRes.data);
+      const grading = gradingRes.data?.grading;
+      if (grading && grading.grade) {
+        setGradingData({
+          grade: grading.grade,
+          feedback: grading.feedback || "",
         });
-
-        const sub = submissionRes.data.submission;
-        if (sub) {
-          setSubmission({
-            id: sub.id,
-            userId: sub.userId,
-            studentName: sub.studentName,
-            studentRollNumber: sub.studentRollNumber,
-            submittedAt: sub.submittedAt,
-            document: sub.document || "Unknown Document",
-            assignment: {
-              id: parseInt(assignmentId),
-              title: sub.assignmentTitle || "Unknown Assignment",
-            },
-          });
-          setSubmissionStatus(sub.status || "Accepted");
-        } else {
-          toast.error("Failed to load submission details.");
-        }
-
-        const gradingRes = await api("/gradings", {
-          params: { submissionId, assignmentId },
-        });
-
-        const grading = gradingRes.data?.grading;
-        if (grading) {
-          setGradingData({ grade: grading.grade, feedback: grading.feedback });
-          setGrade(grading.grade);
-          setFeedback(grading.feedback);
-          setIsEditing(false);
-          // Set submission status if it exists in the grading data
-          if (grading.status) {
-            setSubmissionStatus(grading.status);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        toast.error("Error loading submission or grading data.");
-      } finally {
-        setLoading(false);
+        setGrade(grading.grade);
+        setFeedback(grading.feedback || "");
+        setIsEditing(false); // Graded, start in review mode
+        console.log("Submission is graded, switching to review mode");
+      } else {
+        setGradingData(null);
+        setGrade("");
+        setFeedback("");
+        setIsEditing(true); // Ungraded, start in grading mode
+        console.log("Submission is ungraded, switching to grading mode");
       }
-    };
-
-    fetchData();
-  }, [submissionId, assignmentId]);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      toast.error("Error loading submission or grading data.");
+      navigate(`/faculty/assignments/${assignmentId}/grade`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Cleanup viewer URL on component unmount
+    fetchData();
+  }, [submissionId, assignmentId, studentRollNumber, navigate]);
+
+  // Cleanup viewer URL on unmount
+  useEffect(() => {
     return () => {
       if (viewerUrl) {
         window.URL.revokeObjectURL(viewerUrl);
@@ -127,27 +150,6 @@ const GradeStudentSubmissionPage = () => {
     if (!confirmDelete) return;
 
     try {
-      // const response = await fetch("https://assignmentservice-2a8o.onrender.com/api/gradings", {
-      //   method: "DELETE",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     studentRollNumber: submission.studentRollNumber,
-      //     assignmentId,
-      //   }),
-      // });
-
-      // const data = await response.json();
-
-      // if (response.ok) {
-      //   toast.success("Grade deleted. You can now regrade.");
-      //   setGradingData(null);
-      //   setIsEditing(true);
-      //   setGrade("");
-      //   setFeedback("");
-      // } else {
-      //   toast.error(data.message || "Failed to delete grade");
-      // }
-      // cause axios wont support body and response.json()
       const response = await api.delete("/gradings", {
         data: {
           studentRollNumber: submission.studentRollNumber,
@@ -155,15 +157,15 @@ const GradeStudentSubmissionPage = () => {
         },
       });
 
-          if (response.status >= 200 && response.status < 300) {
-            toast.success("Grade deleted. You can now regrade.");
-            setGradingData(null);
-            setIsEditing(true);
-            setGrade("");
-            setFeedback("");
-          } else {
-            toast.error(response.data.message || "Failed to delete grade");
-          }
+      if (response.status >= 200 && response.status < 300) {
+        toast.success("Grade deleted. You can now regrade.");
+        setGradingData(null);
+        setIsEditing(true);
+        setGrade("");
+        setFeedback("");
+      } else {
+        toast.error(response.data.message || "Failed to delete grade");
+      }
     } catch (error) {
       toast.error("Network error: Could not delete grade");
     }
@@ -175,35 +177,63 @@ const GradeStudentSubmissionPage = () => {
       return;
     }
 
-    if (!submission || !assignmentId) {
+    if (!submission || !assignmentId || !submissionId) {
       toast.error("Submission or assignment data missing");
       return;
     }
 
+    // Align request body with backend expectations
     const requestBody = {
-      submissionId,
+      studentRollNumber: submission.studentRollNumber,
       assignmentId,
       grade,
       feedback,
-      studentRollNumber: submission.studentRollNumber,
     };
 
     try {
       const response = await api.post("/gradings", requestBody);
+      console.log("Submit grade response:", response.data);
 
       if (response.status >= 200 && response.status < 300) {
-        toast.success(
-          `Grade ${isEditing || isGraded ? "updated" : "submitted"} successfully.`
-        );
-        setGradingData({ grade, feedback });
-        setIsEditing(false);
-        navigate(`/faculty/assignments/${assignmentId}/grade`);
+        toast.success(`Grade ${gradingData ? "updated" : "submitted"} successfully.`);
+        // Re-fetch grading data to confirm the grade was saved
+        const gradingRes = await api.get("/gradings/grade", {
+          params: { studentRollNumber: submission.studentRollNumber, assignmentId },
+        });
+        console.log("Post-submit fetched grading data:", gradingRes.data);
+        const grading = gradingRes.data?.grading;
+        if (grading && grading.grade) {
+          setGradingData({
+            grade: grading.grade,
+            feedback: grading.feedback || "",
+          });
+          setGrade(grading.grade);
+          setFeedback(grading.feedback || "");
+          setIsEditing(false); // Switch to review mode
+          console.log("Grade confirmed, switched to review mode");
+        } else {
+          toast.error("Grade submitted but could not confirm. Please refresh.");
+          setGradingData({ grade, feedback }); // Fallback to local state
+          setIsEditing(false);
+        }
       } else {
         toast.error(response.data?.message || "Failed to submit grade");
       }
     } catch (error) {
+      console.error("Submit grade error:", error);
       toast.error("Network error: Could not submit grade");
     }
+  };
+
+  const handleCancelEdit = () => {
+    if (gradingData) {
+      setGrade(gradingData.grade);
+      setFeedback(gradingData.feedback || "");
+    } else {
+      setGrade("");
+      setFeedback("");
+    }
+    setIsEditing(false);
   };
 
   const handleDownloadDocument = async () => {
@@ -213,13 +243,13 @@ const GradeStudentSubmissionPage = () => {
     }
 
     try {
-      const response = await api("/submissions/download", {
+      const response = await api.get("/submissions/download", {
         params: { submissionId },
         responseType: "blob",
       });
 
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = "document";
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = submission?.document || "document";
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?([^"]+)"?/);
         if (match && match[1]) {
@@ -227,9 +257,8 @@ const GradeStudentSubmissionPage = () => {
         }
       }
 
-      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const blob = new Blob([response.data], { type: response.headers["content-type"] || "application/octet-stream" });
       const url = window.URL.createObjectURL(blob);
-
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", filename);
@@ -237,8 +266,7 @@ const GradeStudentSubmissionPage = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
-      toast.info("Document downloaded successfully.");
+      toast.success("Document downloaded successfully.");
     } catch (err) {
       console.error("Download error:", err);
       toast.error("Failed to download document.");
@@ -247,7 +275,6 @@ const GradeStudentSubmissionPage = () => {
 
   const handleViewDocument = async () => {
     if (isViewerOpen) {
-      // Close the viewer
       setIsViewerOpen(false);
       if (viewerUrl) {
         window.URL.revokeObjectURL(viewerUrl);
@@ -262,32 +289,28 @@ const GradeStudentSubmissionPage = () => {
     }
 
     try {
-      const response = await api("/submissions/download", {
+      const response = await api.get("/submissions/download", {
         params: { submissionId },
         responseType: "blob",
       });
 
-      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const contentType = response.headers["content-type"] || "application/octet-stream";
       let blob;
 
-      // Check if the response is text (possible base64)
-      if (contentType.includes('text') || contentType.includes('json')) {
-        const textResponse = await api("/submissions/download", {
+      if (contentType.includes("text") || contentType.includes("json")) {
+        const textResponse = await api.get("/submissions/download", {
           params: { submissionId },
           responseType: "text",
         });
-
         const textData = textResponse.data;
-        if (textData.startsWith('data:') || /^[A-Za-z0-9+/=]+$/.test(textData)) {
-          const base64Data = textData.startsWith('data:') 
-            ? textData.split(',')[1] 
-            : textData;
+        if (textData.startsWith("data:") || /^[A-Za-z0-9+/=]+$/.test(textData)) {
+          const base64Data = textData.startsWith("data:") ? textData.split(",")[1] : textData;
           const binaryString = atob(base64Data);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
           }
-          blob = new Blob([bytes], { type: contentType.includes('json') ? 'application/pdf' : contentType });
+          blob = new Blob([bytes], { type: contentType.includes("json") ? "application/pdf" : contentType });
         } else {
           throw new Error("Response is text but not base64-encoded");
         }
@@ -295,15 +318,56 @@ const GradeStudentSubmissionPage = () => {
         blob = new Blob([response.data], { type: contentType });
       }
 
-      // Create a temporary URL for the Blob
       const fileUrl = window.URL.createObjectURL(blob);
       setViewerUrl(fileUrl);
       setIsViewerOpen(true);
-      toast.info("Document opened for viewing.");
+      toast.success("Document opened for viewing.");
     } catch (err) {
       console.error("View error:", err);
       toast.error("Failed to view document. Try downloading instead.");
     }
+  };
+
+  const handleRejectSubmission = async () => {
+    if (!submission || !assignmentId || !submissionId) {
+      toast.error("Submission data or assignment ID not available");
+      return;
+    }
+
+    try {
+      setIsRejecting(true);
+      const response = await api.post("/submissions/status", {
+        submissionId,
+        assignmentId,
+        status: "rejected",
+      });
+
+      if (response.status >= 200 && response.status < 300) {
+        toast.success("Submission rejected successfully.");
+        setSubmission((prev) => (prev ? { ...prev, status: "rejected" } : null));
+      } else {
+        toast.error(response.data?.message || "Failed to reject submission");
+      }
+    } catch (error) {
+      toast.error("Network error: Could not reject submission");
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  const handleNavigateSubmission = (direction: "next" | "previous") => {
+    if (!submissionsList.length || !submission) return;
+
+    const currentIndex = submissionsList.findIndex((sub) => sub.id === submission.id);
+    if (currentIndex === -1) return;
+
+    let newIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
+    if (newIndex < 0 || newIndex >= submissionsList.length) return;
+
+    const newSubmission = submissionsList[newIndex];
+    navigate(
+      `/faculty/assignments/${assignmentId}/grade/${newSubmission.studentRollNumber}/${newSubmission.id}`
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -312,69 +376,44 @@ const GradeStudentSubmissionPage = () => {
       month: "short",
       day: "numeric",
     };
-    return new Date(dateString).toLocaleString(undefined, options);
-  };
-
-  // Only handle rejection, as submissions are accepted by default
-  const handleStatusChange = async () => {
-    if (!submission || !assignmentId || !submissionId) {
-      toast.error("Submission data or assignment ID not available");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const response = await api.post("/submissions/status", {
-        submissionId,
-        assignmentId,
-        status: "Rejected",
-      });
-
-      console.log("Response:", response);
-
-      if (response.status >= 200 && response.status < 300) {
-        toast.success("Submission Rejected successfully.");
-        setSubmissionStatus("Rejected");
-        navigate(-1);
-
-      } else {
-        toast.error(response.data?.message || "Failed to reject submission");
-      }
-    } catch (error) {
-      toast.error("Network error: Could not reject submission");
-    }finally {
-      setIsLoading(false);
-    }
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   if (loading) {
-    return <div className="page-container max-w-4xl mx-auto">Loading submission details...</div>;
+    return <div className="page-container max-w-7xl mx-auto py-6 px-4">Loading submission details...</div>;
   }
 
   if (!submission) {
     return (
-      <div className="page-container max-w-4xl mx-auto">
+      <div className="page-container max-w-7xl mx-auto py-6 px-4">
         <p>Error: Submission not found.</p>
-        <Link to={`/faculty/assignments/${assignmentId}/grade`} className="text-accent hover:text-accent-dark">
+        <Link to={`/faculty/assignments/${assignmentId}/grade`} className="text-blue-600 hover:text-blue-800">
           ← Back to All Submissions
         </Link>
       </div>
     );
   }
 
+  const isGraded = !!gradingData;
+  const currentIndex = submissionsList.findIndex((sub) => sub.id === submission.id);
+  const isFirstSubmission = currentIndex === 0;
+  const isLastSubmission = currentIndex === submissionsList.length - 1;
+
   return (
     <>
       <Navbar />
-      <div className="page-container max-w-4xl mx-auto max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="page-container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link to={`/faculty/assignments/${assignmentId}/grade`} className=" hover:text-accent-dark">
+          <Link
+            to={`/faculty/assignments/${assignmentId}/grade`}
+            className="text-base text-blue-600 hover:text-blue-800"
+          >
             ← Back to All Submissions
           </Link>
           <h1 className="text-3xl font-bold mt-4">Grade Submission</h1>
-          
           {isGraded && !isEditing && (
             <p className="text-sm text-yellow-600 mt-2">
-              This submission has already been graded. You can view the grade or delete it to regrade.
+              This submission has been graded. You can edit or delete the grade.
             </p>
           )}
         </div>
@@ -387,28 +426,27 @@ const GradeStudentSubmissionPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm  ">Name</p>
-                  <p className="font-medium">{submission.studentName}</p>
+                  <p className="text-sm text-gray-600">Name</p>
+                  <p className="font-medium text-base">{submission.studentName}</p>
                 </div>
                 <div>
-                  <p className="text-sm  ">Roll Number</p>
-                  <p className="font-medium">{submission.studentRollNumber}</p>
+                  <p className="text-sm text-gray-600">Roll Number</p>
+                  <p className="font-medium text-base">{submission.studentRollNumber}</p>
                 </div>
                 <div>
-                  <p className="text-sm  ">Submitted On</p>
+                  <p className="text-sm text-gray-600">Submitted On</p>
                   <div className="flex items-center">
-                    <Calendar size={14} className="mr-1  " />
-                    <p className="font-medium">{formatDate(submission.submittedAt)}</p>
+                    <Calendar size={14} className="mr-1 text-gray-600" />
+                    <p className="font-medium text-base">{formatDate(submission.submittedAt)}</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm  ">Submitted Document</p>
-                  <div className="mt-2 p-3 bg-light rounded-md flex items-center justify-between">
+                  <p className="text-sm text-gray-600">Submitted Document</p>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-md flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className="h-8 w-20 bg-primary rounded flex items-center justify-center text-white text-xs">
-                      DOCUMENT
+                      <div className="h-8 w-20 bg-blue-500 rounded flex items-center justify-center text-white text-xs">
+                        DOCUMENT
                       </div>
-                      {/* <p className="ml-2 font-medium truncate max-w-[120px]">{submission.document}</p> */}
                     </div>
                     <div className="flex space-x-1">
                       <Button
@@ -430,21 +468,21 @@ const GradeStudentSubmissionPage = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Add submission status indicator */}
                 <div>
-                  <p className="text-sm">Submission Status</p>
-                  <div className={`mt-2 p-2 rounded-md inline-flex items-center ${
-                    submissionStatus === "Accepted" ? "bg-green-100 text-green-800" :
-                    submissionStatus === "Rejected" ? "bg-red-100 text-red-800" :
-                    "bg-yellow-100 text-yellow-800"
-                  }`}>
-                    <div className={`h-2 w-2 rounded-full mr-2 ${
-                      submissionStatus === "Accepted" ? "bg-green-500" :
-                      submissionStatus === "Rejected" ? "bg-red-500" :
-                      "bg-yellow-500"
-                    }`}></div>
-                    <p className="font-medium capitalize">{submissionStatus}</p>
+                  <p className="text-sm text-gray-600">Submission Status</p>
+                  <div
+                    className={`mt-2 p-2 rounded-md inline-flex items-center ${
+                      submission.status === "accepted"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    <div
+                      className={`h-2 w-2 rounded-full mr-2 ${
+                        submission.status === "accepted" ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    ></div>
+                    <p className="font-medium text-base capitalize">{submission.status}</p>
                   </div>
                 </div>
               </CardContent>
@@ -475,49 +513,39 @@ const GradeStudentSubmissionPage = () => {
               </Card>
             )}
             <Card className="shadow-md">
-              <CardHeader>
+              <CardHeader className="flex flex-row justify-between items-center">
                 <CardTitle className="text-lg">Grading</CardTitle>
+                {isGraded && !isEditing && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <Pencil size={14} />
+                    Edit Grade
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="space-y-6">
-                  <Button
-                    onClick={() => handleStatusChange()}
-                    className={`flex-1 ${
-                      submissionStatus === "Rejected" 
-                        ? "bg-red-700 hover:bg-red-800" 
-                        : "bg-red-600 hover:bg-red-700"
-                    }`}
-                    disabled={submissionStatus === "Rejected" || isLoading}
-                  >
-                    {isLoading
-                      ? "Rejecting..."
-                      : submissionStatus === "Rejected"
-                        ? "Rejected ✗"
-                        : "Reject Submission"}
-                  </Button>
-
-                {isGraded && !isEditing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium">Submitted Grade</h3>
-                      <p className="text-lg font-bold text-accent">{gradingData?.grade}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Faculty Feedback</h3>
-                      <p className="whitespace-pre-wrap">{gradingData?.feedback}</p>
-                    </div>
-                    <Button
-                      onClick={handleDeleteGrade}
-                      className="w-full bg-red-600 hover:bg-red-700 flex items-center gap-2"
-                    >
-                      Delete Grade and Regrade
-                    </Button>
-                  </div>
-                ) : (
+                {(isEditing || !isGraded) ? (
                   <>
-
+                    {!isGraded && submission.status !== "rejected" && (
+                      <Button
+                        onClick={handleRejectSubmission}
+                        className="w-auto px-4 mb-4 bg-red-600 hover:bg-red-700"
+                        disabled={isRejecting}
+                      >
+                        {isRejecting ? "Rejecting..." : "Reject Submission"}
+                      </Button>
+                    )}
                     <div>
-                      <h3 className="font-medium mb-3">Select Grade</h3>
-                      <RadioGroup value={grade} onValueChange={setGrade} className="grid grid-cols-3 gap-2">
+                      <h3 className="font-medium text-base mb-3">Select Grade</h3>
+                      <RadioGroup
+                        value={grade}
+                        onValueChange={setGrade}
+                        className="grid grid-cols-3 gap-2"
+                      >
                         {[
                           { value: "O", label: "Outstanding" },
                           { value: "A+", label: "Excellent" },
@@ -530,40 +558,88 @@ const GradeStudentSubmissionPage = () => {
                             <RadioGroupItem value={value} id={value} className="peer sr-only" />
                             <Label
                               htmlFor={value}
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-black bg-white p-3 hover:bg-light hover:text-accent-foreground peer-data-[state=checked]:border-accent peer-data-[state=checked]:bg-accent peer-data-[state=checked]:text-accent-foreground transition-colors cursor-pointer text-center text-sm font-medium"
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-gray-300 bg-white p-3 hover:bg-gray-100 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 peer-data-[state=checked]:text-blue-700 transition-colors cursor-pointer text-sm font-medium text-center"
                             >
                               {value}
-                              <span className="text-xs  ">{label}</span>
+                              <span className="text-xs text-gray-600">{label}</span>
                             </Label>
                           </div>
                         ))}
                       </RadioGroup>
                     </div>
-
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium">Feedback</h3>
-                        <span className="text-xs  ">{feedback.length}/500 characters</span>
+                        <h3 className="font-medium text-base">Feedback</h3>
+                        <span className="text-xs text-gray-600">{feedback.length}/500 characters</span>
                       </div>
                       <Textarea
                         placeholder="Provide feedback on the student's work..."
-                        className="min-h-32"
+                        className="min-h-32 text-base"
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                         maxLength={500}
+                        disabled={submission.status === "rejected"}
                       />
                     </div>
-
-                    <Button
-                      onClick={handleSubmitGrade}
-                      className="w-full bg-primary hover:bg-primary-dark flex items-center gap-2"
-                      disabled={submissionStatus === "Rejected"}
-                    >
-                      <FileText size={16} />
-                      {isEditing || isGraded ? "Update Grade" : "Submit Grade"}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleSubmitGrade}
+                        className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
+                        disabled={submission.status === "rejected"}
+                      >
+                        <Save size={16} />
+                        {isEditing && isGraded ? "Update Grade" : "Submit Grade"}
+                      </Button>
+                      {isEditing && isGraded && (
+                        <>
+                          <Button
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                            className="flex items-center gap-1"
+                          >
+                            <X size={16} />
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleDeleteGrade}
+                            className="w-auto px-4 bg-red-600 hover:bg-red-700 flex items-center gap-2"
+                          >
+                            Delete Grade
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium text-base">Submitted Grade</h3>
+                      <p className="text-lg font-bold text-blue-600">{gradingData.grade}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-base">Faculty Feedback</h3>
+                      <p className="whitespace-pre-wrap text-base">
+                        {gradingData.feedback || "No feedback provided."}
+                      </p>
+                    </div>
+                  </div>
                 )}
+                <div className="flex justify-between mt-6">
+                  <Button
+                    onClick={() => handleNavigateSubmission("previous")}
+                    disabled={isFirstSubmission || loading}
+                    className="bg-gray-500 hover:bg-gray-600 text-white"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={() => handleNavigateSubmission("next")}
+                    disabled={isLastSubmission || loading}
+                    className="bg-gray-500 hover:bg-gray-600 text-white"
+                  >
+                    Next
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

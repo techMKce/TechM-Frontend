@@ -10,9 +10,7 @@ import FacultyStudentsPage from "./pages/faculty/StudentsPage";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import AvailableCoursesPage from "./pages/student/AvailableCoursesPage";
 import EnrolledCoursesPage from "./pages/student/EnrolledCoursesPage";
-
 import CreateAssignmentPage from "./pages/faculty/Assignments/CreateAssignmentPage";
-
 import DashboardPage from "./pages/admin/DashboardPage";
 import StudentsPage from "./pages/admin/StudentsPage";
 import FacultyPage from "./pages/admin/FacultyPage";
@@ -20,14 +18,12 @@ import AdminCoursesPage from "./pages/admin/CoursesPage";
 import AssignStudentsPage from "./pages/admin/AssignStudentsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
-import ProfilePage from "@/pages/profile";
-import EditProfile from "@/pages/profile/EditProfile";
+import ProfilePage from "./pages/profile";
+import EditProfile from "./pages/profile/EditProfile";
 import ViewProfile from "./pages/profile/ViewProfile";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import UpdatePasswordPage from "./pages/auth/UpdatePasswordPage";
-// import AssignmentManager from "./pages/faculty/AssignmentManager";
 import SchedulePage from "./pages/admin/SchedulePage";
-
 import FacultyAttendancePage from "./pages/attendance/FacultyAttendancePage";
 import StudentAttendancePage from "./pages/attendance/StudentAttendancePage";
 import GradeSubmissionsPage from "./pages/faculty/Assignments/GradeSubmissionsPage";
@@ -45,16 +41,11 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import { useAuth } from "./hooks/useAuth";
 import Login from "./pages/auth/Login";
 import { AuthProvider } from "./context/AuthProvider";
-// import ExamTimetablePage from "./pages/attendance/ExamTimetablePage";
-
-const queryClient = new QueryClient();
-
 import { Outlet, Navigate } from "react-router-dom";
 import CourseList from "./components/Courses/CourseList";
 import ViewCourse from "./components/Courses/ViewCourse";
 
-
-
+const queryClient = new QueryClient();
 
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -106,220 +97,212 @@ const RoleProtectedRoute = ({
 
 const AppRoutes = () => (
   <>
-  <Routes>
-    {/* Public routes - no protection needed */}
-    <Route path="/login" element={<Login />} />
-    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-    <Route path="/changePassword" element={<UpdatePasswordPage />} />
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/changePassword" element={<UpdatePasswordPage />} />
 
-    {/* Protected routes - require authentication */}
-    <Route element={<ProtectedRoute />}>
-      {/* Default route with role-based routing */}
-      <Route index element={<DashboardSelector />} />
-      
-      {/* Admin routes */}
-      <Route path="/admin" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          <AdminDashboard />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/admin/dashboard" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          <DashboardPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/admin/students" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          <StudentsPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/admin/faculty" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          <FacultyPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/admin/courses" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          <AdminCoursesPage />
-          {/* <CourseList /> */}
-        </RoleProtectedRoute>
-      } />
-      <Route path="/admin/courses/:courseId" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          {/* <CourseDetailPage /> */}
-          <ViewCourse />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/admin/assign-students" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          <AssignStudentsPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/admin/schedule" element={
-        <RoleProtectedRoute allowedRoles={["ADMIN"]}>
-          <SchedulePage />
-        </RoleProtectedRoute>
-      } />
+      {/* Protected routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route index element={<DashboardSelector />} />
+        
+        {/* Admin routes */}
+        <Route path="/admin" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminDashboard />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/dashboard" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <DashboardPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/students" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <StudentsPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/faculty" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <FacultyPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/courses" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminCoursesPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/courses/:courseId" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <ViewCourse />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/assign-students" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <AssignStudentsPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/schedule" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <SchedulePage />
+          </RoleProtectedRoute>
+        } />
 
-      {/* Faculty routes */}
-      <Route path="/faculty/dashboard" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <FacultyDashboard />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/courses" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          {/* <FacultyCoursesPage /> */}
-          <CourseList />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/courses/:courseId" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          {/* <CourseDetailPage /> */}
-          <ViewCourse />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/students" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <FacultyStudentsPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/attendance" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <FacultyAttendancePage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/exams" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <ExamTimetablePage/>
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/attendance/view" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <PreviousAttendancePage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/assignments" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <AssignmentsPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/assignments/create" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <CreateAssignmentPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/assignments/id/:assignmentId" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <EditAssignmentPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/assignments/:assignmentId/edit" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <EditAssignmentPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/assignments/:assignmentId/grade" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <GradeSubmissionsPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/assignments/:assignmentId/grade/:studentId/:submissionId" element={
-        <RoleProtectedRoute allowedRoles={["FACULTY"]}>
-          <GradeStudentSubmissionPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/faculty/assignments/:assignmentId/review/:studentRollNumber/:submissionId" element={
+        {/* Faculty routes */}
+        <Route path="/faculty/dashboard" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <FacultyDashboard />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/courses" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <CourseList />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/courses/:courseId" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <ViewCourse />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/students" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <FacultyStudentsPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/attendance" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <FacultyAttendancePage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/exams" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <ExamTimetablePage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/attendance/view" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <PreviousAttendancePage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/assignments" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <AssignmentsPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/assignments/create" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <CreateAssignmentPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/assignments/id/:assignmentId" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <EditAssignmentPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/assignments/:assignmentId/edit" element={
+          <RoleProtectedRoute allowedRoles={["ADMIN"]}>
+            <EditAssignmentPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/assignments/:assignmentId/grade" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <GradeSubmissionsPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/assignments/:assignmentId/grade/:studentRollNumber/:submissionId" element={
+          <RoleProtectedRoute allowedRoles={["FACULTY"]}>
+            <GradeStudentSubmissionPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/faculty/assignments/:assignmentId/review/:studentRollNumber/:submissionId" element={
         <RoleProtectedRoute allowedRoles={["FACULTY"]}>
           <ReviewStudentSubmissionPage />
         </RoleProtectedRoute>
       } />
 
-      {/* Student routes */}
-      <Route path="/student/dashboard" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <StudentDashboard />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/courses" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          
-         <CourseList />
-         {/* <StudentCoursesPage/> */}
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/exams" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <ExamTimetablePage/>
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/courses/:courseId" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          {/* <CourseDetailPage /> */}
-          <ViewCourse />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/courses/:courseId/assignments" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <CourseAssignmentsPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/assignments/:assignmentId/submit" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <AssignmentSubmitPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/attendance" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <StudentAttendancePage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/enrolled-courses" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <EnrolledCoursesPage />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/student/available-courses" element={
-        <RoleProtectedRoute allowedRoles={["STUDENT"]}>
-          <AvailableCoursesPage />
-        </RoleProtectedRoute>
-      } />
+        {/* Student routes */}
+        <Route path="/student/dashboard" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <StudentDashboard />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/courses" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <CourseList />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/exams" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <ExamTimetablePage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/courses/:courseId" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <ViewCourse />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/courses/:courseId/assignments" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <CourseAssignmentsPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/assignments/:assignmentId/submit" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <AssignmentSubmitPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/attendance" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <StudentAttendancePage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/enrolled-courses" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <EnrolledCoursesPage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/student/available-courses" element={
+          <RoleProtectedRoute allowedRoles={["STUDENT"]}>
+            <AvailableCoursesPage />
+          </RoleProtectedRoute>
+        } />
 
-      {/* Shared routes - accessible to all authenticated users */}
-      <Route path="/exams/timetable" element={<ExamTimetablePage />} />
-      <Route path="/update-password" element={<UpdatePasswordPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/profile/edit" element={<EditProfile />} />
-      <Route path="/profile/view" element={<ViewProfile />} />
-      
-      {/* Catch-all route */}
-      <Route path="*" element={<NotFound />} />
-    </Route>
-  </Routes>
+        {/* Shared routes */}
+        <Route path="/exams/timetable" element={<ExamTimetablePage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/edit" element={<EditProfile />} />
+        <Route path="/profile/view" element={<ViewProfile />} />
+        
+        {/* Catch-all route */}
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   </>
 );
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner
-    // position="top-center"
-    theme="light"
-    toastOptions={{
-      classNames: {
-        error: "bg-red-100 text-red-800 border-l-4 border-red-600",
-        success: "bg-green-100 text-green-800 border-l-4 border-green-600",
-        info: "bg-blue-100 text-blue-800 border-l-4 border-blue-600",
-        warning:"bg-yellow-100 text-yellow-800 border-l-4 border-yellow-600"
-      },
-      style: {
-        fontSize: "14px",
-        fontFamily: "Inter, sans-serif",
-        padding: "16px",
-      },
-    }}
-  />
+          theme="light"
+          toastOptions={{
+            classNames: {
+              error: "bg-red-100 text-red-800 border-l-4 border-red-600",
+              success: "bg-green-100 text-green-800 border-l-4 border-green-600",
+              info: "bg-blue-100 text-blue-800 border-l-4 border-blue-600",
+              warning: "bg-yellow-100 text-yellow-800 border-l-4 border-yellow-600"
+            },
+            style: {
+              fontSize: "14px",
+              fontFamily: "Inter, sans-serif",
+              padding: "16px",
+            },
+          }}
+        />
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
