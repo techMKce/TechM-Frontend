@@ -29,6 +29,7 @@ interface Content {
 
 interface SectionContentProps {
   section: Section;
+  course : any;
 }
 
 function getYouTubeEmbedUrl(url: string) {
@@ -41,7 +42,7 @@ function getYouTubeEmbedUrl(url: string) {
     : url;
 }
 
-const SectionContent = ({ section }: SectionContentProps) => {
+const SectionContent = ({ section,course }: SectionContentProps) => {
   const { profile } = useAuth();
   const user: User = {
     role: profile.profile.role,
@@ -66,7 +67,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
           `/course/section/content/details?id=${section.section_id}`
         );
         setContents(response.data);
-        console.log("recevice contents: ", response.data);
+        // console.log("recevice contents: ", response.data);
       } catch (error) {
       } finally {
         setLoading(false);
@@ -136,7 +137,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
       formData.append("file", pdfFile);
       formData.append("sectionId", section.section_id.toString());
 
-      console.log("pdf file got", pdfFile);
+      // console.log("pdf file got", pdfFile);
       // if (pdfTitle) {
       //   formData.append("contentType", pdfTitle);
       // }
@@ -162,7 +163,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
     } catch (error) {
 
 
-      toast.error(`Failed to add ${contentType}. Please try again.`);
+      toast.error(`Failed to add ${pdfTitle}. Please try again.`);
 
     }
   };
@@ -303,9 +304,9 @@ const SectionContent = ({ section }: SectionContentProps) => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <h5 className="font-medium text-gray-800">
-                    {video.id || `Video ${index + 1}`}
+                    {`Video ${index + 1}`}
                   </h5>
-                  {(user.role === "FACULTY" || user.role === "ADMIN") && (
+                  {(user.role === "FACULTY" || user.role === "ADMIN")  &&(profile.profile.name === course.instructorName) && (
                     <button
                       onClick={() => handleRemoveContent(video.id, "VIDEO")}
                       className="text-gray-500 hover:text-gray-800"
@@ -357,9 +358,9 @@ const SectionContent = ({ section }: SectionContentProps) => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <h5 className="font-medium text-gray-800">
-                    {pdf.id || `PDF ${index + 1}`}
+                    {`PDF ${index + 1}`}
                   </h5>
-                  {(user.role === "FACULTY" || user.role === "ADMIN") && (
+                  {(user.role === "FACULTY" || user.role === "ADMIN") && (profile.profile.name === course.instructorName) &&(
                     <button
                       onClick={() => handleRemoveContent(pdf.id, "PDF")}
                       className="text-gray-500 hover:text-gray-800"

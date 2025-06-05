@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import Navbar from "@/components/StudentNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Calendar, Upload, ArrowLeft, X, Check, Download } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import api from '../../service/api';
 import { useAuth } from "@/hooks/useAuth";
+import { stat } from "node:fs";
 
 interface Assignment {
   title: string;
@@ -41,7 +42,7 @@ const AssignmentSubmitPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [isDueDateOver, setIsDueDateOver] = useState(false);
   const [rejected, setRejected] = useState(false);
-
+  const {state}=useLocation();
   useEffect(() => {
     const fetchAssignment = async () => {
       try {
@@ -251,6 +252,7 @@ const AssignmentSubmitPage = () => {
           <div className="flex items-center justify-between mb-6">
             <Link
               to={`/student/courses/${assignment.courseId}`}
+              state={{...state}}
               className="flex items-center text-primary hover:text-primary-dark text-lg font-semibold transition-all duration-200"
             >
               <ArrowLeft size={24} className="mr-2" />

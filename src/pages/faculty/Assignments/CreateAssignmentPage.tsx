@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Upload, Link as LinkIcon, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import api from "@/service/api";
+
 import { useAuth } from "@/hooks/useAuth";
 
 const CreateAssignmentPage = () => {
@@ -18,6 +19,7 @@ const CreateAssignmentPage = () => {
   const location = useLocation();
   const { course_id, courseTitle } = location.state || {};
   const[loader,setLoader]=useState(false);
+  const { state }= useLocation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",

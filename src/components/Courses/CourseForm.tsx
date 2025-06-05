@@ -3,6 +3,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { toast } from "sonner";
 
 type CourseFormData = {
+  courseCode:string;
   course_id: string;
   courseTitle: string;
   courseDescription: string;
@@ -41,6 +42,7 @@ const CourseForm = ({
 
 
   const [formData, setFormData] = useState<CourseFormData>({
+    courseCode:"",
     course_id: "",
     courseTitle: "",
     courseDescription: "",
@@ -57,6 +59,7 @@ const CourseForm = ({
   useEffect(() => {
     if (isEditMode && initialData) {
       setFormData({
+        courseCode: initialData.courseCode ||"",
         course_id: initialData.course_id || "",
         courseTitle: initialData.courseTitle || "",
         courseDescription: initialData.courseDescription || "",
@@ -103,6 +106,8 @@ const CourseForm = ({
       return;
     }
 
+    // console.log("form data: ", formData);
+
     onSave({
       ...formData,
       duration,
@@ -122,6 +127,19 @@ const CourseForm = ({
           className="space-y-5 max-h-[70vh] overflow-y-auto pr-2"
         >
           <div className="grid grid-cols-1 gap-4">
+             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Course Code <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="courseCode"
+                value={formData.courseCode}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                required
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Course Title <span className="text-red-500">*</span>
