@@ -844,6 +844,20 @@ function ViewCourse() {
               </div>
             </div>
           )}
+          {/* Scrolling Up Feature*/}
+          <div className="flex justify-end">
+                <button
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="fixed bottom-8 right-8 z-50 bg-gray-800 hover:bg-gray-900 text-white rounded-full p-3 shadow-lg transition-all"
+                title="Go to Top"
+                >
+                <img
+                  src="https://img.icons8.com/ios-filled/24/ffffff/up--v1.png"
+                  alt="Go to Top"
+                  className="w-6 h-6"
+                />
+                </button>
+              </div>
         </div>
       </div>
     </>
