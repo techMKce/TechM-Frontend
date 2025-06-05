@@ -596,7 +596,7 @@ const AssignmentSubmitPage = () => {
                             Drag & drop a file or click to browse
                           </p>
                           <p className="text-sm text-gray-500 mt-1">
-                            Supports: PDF, DOC, DOCX, ZIP (Max: 15MB)
+                            Supports: PDF (Max: 1MB)
                           </p>
                         </label>
                       </div>

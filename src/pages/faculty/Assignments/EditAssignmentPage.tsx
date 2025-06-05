@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import api from '@/service/api';
 import LoadingSpinner from "@/components/LoadingSpinner";
 import FacultyNavbar from "@/components/FacultyNavbar";
@@ -127,7 +128,10 @@ const EditAssignmentPage: React.FC = () => {
         title: "Success",
         description: "Assignment updated successfully",
       });
-      navigate(-1);
+      // Add 2-second delay before navigating back
+      setTimeout(() => {
+        navigate(-1);
+      }, 1000);
     } catch (error: any) {
       console.error("Error updating assignment:", error);
       toast({
@@ -149,19 +153,36 @@ const EditAssignmentPage: React.FC = () => {
   }
 
   if (!assignment) {
-    return <div className="text-center py-10">Assignment not found</div>;
+    return <div className="text-center py-10 text-lg text-gray-600">Assignment not found</div>;
   }
 
   return (
     <>
       <FacultyNavbar />
-      <div className="max-w-3xl mx-auto mt-10 p-4">
-        <Card>
-          <CardContent className="space-y-6 pt-6">
-            <h2 className="text-xl font-semibold">Edit Assignment</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="max-w-4xl mx-auto mt-12 p-6">
+        {/* Header Section with Back Button and Heading */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="text-gray-800 hover:bg-gray-200 p-2 rounded-full"
+              title="Go Back"
+            >
+              <ArrowLeft size={24} />
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-800">Edit Assignment</h1>
+          </div>
+        </div>
+
+        {/* Card Section */}
+        <Card className="border border-gray-300 shadow-lg">
+          <CardContent className="space-y-8 p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <Label htmlFor="courseId">Course ID</Label>
+                <Label htmlFor="courseId" className="text-lg font-medium text-gray-700">
+                  Course ID
+                </Label>
                 <Input
                   id="courseId"
                   name="courseId"
@@ -169,51 +190,66 @@ const EditAssignmentPage: React.FC = () => {
                   onChange={handleInputChange}
                   disabled
                   required
+                  className="mt-2 text-base border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <div>
-                <Label htmlFor="title">Title</Label>
+                <Label htmlFor="title" className="text-lg font-medium text-gray-700">
+                  Title
+                </Label>
                 <Input
                   id="title"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
                   required
+                  className="mt-2 text-base border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-lg font-medium text-gray-700">
+                  Description
+                </Label>
                 <Textarea
                   id="description"
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                   required
+                  className="mt-2 text-base min-h-[150px] border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <div>
-                <Label htmlFor="dueDate">Due Date</Label>
+                <Label htmlFor="dueDate" className="text-lg font-medium text-gray-700">
+                  Due Date
+                </Label>
                 <Input
                   id="dueDate"
                   name="dueDate"
                   type="datetime-local"
                   value={formData.dueDate}
                   onChange={handleInputChange}
+                  className="mt-2 text-base border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <div>
-                <Label htmlFor="resourceLink">Resource Link</Label>
+                <Label htmlFor="resourceLink" className="text-lg font-medium text-gray-700">
+                  Resource Link
+                </Label>
                 <Input
                   id="resourceLink"
                   name="resourceLink"
                   value={formData.resourceLink}
                   onChange={handleInputChange}
+                  className="mt-2 text-base border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <div>
-                <Label htmlFor="file">Replace File (optional)</Label>
+                <Label htmlFor="file" className="text-lg font-medium text-gray-700">
+                  Replace File (optional)
+                </Label>
                 {assignment.fileName && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-base text-gray-500 mt-2">
                     Current file: {assignment.fileName}
                   </p>
                 )}
@@ -222,11 +258,12 @@ const EditAssignmentPage: React.FC = () => {
                   name="file"
                   type="file"
                   onChange={handleFileChange}
+                  className="mt-2 text-base border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gray-800 hover:bg-gray-900"
+                className="w-full bg-gray-800 hover:bg-gray-900 text-lg py-6"
                 disabled={submitting}
               >
                 {submitting ? "Saving..." : "Save Changes"}
