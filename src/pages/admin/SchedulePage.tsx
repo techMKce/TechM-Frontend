@@ -125,11 +125,6 @@ const SchedulePage = () => {
       courseId: entry.courseId,
       name: entry.courseName,
     }));
-    // Adjusting the date format to match the expected input <==> Cause it get yesterDay Date So ,i Adjusted it.
-    // const duration = {
-    //   startDate: fromDate.toISOString().split("T")[0],
-    //   endDate: toDate.toISOString().split("T")[0],
-    // };
     const duration = {
   startDate: new Date(new Date(fromDate).setDate(fromDate.getDate() + 1)).toISOString().split("T")[0],
   endDate: new Date(new Date(toDate).setDate(toDate.getDate() + 1)).toISOString().split("T")[0],
@@ -139,21 +134,21 @@ const SchedulePage = () => {
     formData.append("courses", JSON.stringify(courseArray));
     formData.append("duration", JSON.stringify(duration));
 
-
-    toast.success(`Schedule data prepared for ${courseArray.length} course(s)`);
-
-
     try {
       const response = await api.post('/attendance/postexam', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-
-      toast.success('Upload successful:', response.data);
-      setGeneratedSchedule(response.data);
-      setShowSuccessMessage(true);
-      toast.success("Schedule uploaded successfully");
+      if(response.data=="Warning: Not all courses were scheduled.\nChoose a valid date range based on course counts.")
+        toast.error("Warning: Not all courses were scheduled .Choose a valid date range based on course counts.");
+      else{
+          toast.success(`Schedule data prepared for ${courseArray.length} course(s)`);
+          toast.success('Upload successful:', response.data);
+          setGeneratedSchedule(response.data);
+          setShowSuccessMessage(true);
+          toast.success("Schedule uploaded successfully");
+      }
     } catch (error) {
 
       toast.error("Failed to upload schedule");
