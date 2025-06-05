@@ -84,6 +84,25 @@ interface ConsolidatedRangeAttendance {
   percentage: number;
 }
 
+interface SingleFilters {
+  singleDate: string;
+  department: string;
+  course: string;
+  courseId: string;
+  batch: string;
+  semester: string;
+}
+
+interface GroupFilters {
+  fromDate: string;
+  toDate: string;
+  department: string;
+  course: string;
+  courseId: string;
+  batch: string;
+  semester: string;
+}
+
 const PreviousAttendancePage = () => {
   const { profile } = useAuth();
   const facultyId = profile.profile.id;
@@ -94,18 +113,20 @@ const PreviousAttendancePage = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [rangeAttendanceSummary, setRangeAttendanceSummary] = useState<RangeAttendanceSummary[]>([]);
   const [consolidatedRangeAttendance, setConsolidatedRangeAttendance] = useState<ConsolidatedRangeAttendance[]>([]);
-  const [singleFilters, setSingleFilters] = useState({
+  const [singleFilters, setSingleFilters] = useState<SingleFilters>({
     singleDate: "",
     department: "",
     course: "",
+    courseId: "",
     batch: "",
     semester: "",
   });
-  const [groupFilters, setGroupFilters] = useState({
+  const [groupFilters, setGroupFilters] = useState<GroupFilters>({
     fromDate: "",
     toDate: "",
     department: "",
     course: "",
+    courseId: "",
     batch: "",
     semester: "",
   });
@@ -153,24 +174,23 @@ const PreviousAttendancePage = () => {
         stdId: student.rollNum,
         stdName: student.name,
         rollNum: student.rollNum,
-        deptId: student.program,
         deptName: student.program,
         batch: student.year,
-        sem: student.semester || "1", // Use the semester directly from student data
+        sem: student.semester,
       }));
       setAllStudents(allStudentsData);
 
       // Get unique values for filters
-      const uniqueBatches = [...new Set(allStudentsData.map(s => s.batch).filter(Boolean))];
-      const uniqueDepartments = [...new Set(allStudentsData.map(s => s.deptName).filter(Boolean))];
-      const uniqueSemesters = [...new Set(allStudentsData.map(s => s.sem).filter(Boolean))];
+      const uniqueBatches = [...new Set(allStudentsData.map(s => s.batch).filter(Boolean))] as string[];
+      const uniqueDepartments = [...new Set(allStudentsData.map(s => s.deptName).filter(Boolean))] as string[];
+      const uniqueSemesters = [...new Set(allStudentsData.map(s => s.sem).filter(Boolean))] as string[];
 
       setBatches(uniqueBatches);
       setDepartments(uniqueDepartments);
       setSemesters(uniqueSemesters);
     } catch (error) {
       console.error("Error fetching faculty courses:", error);
-      // toast.error("Failed to load faculty courses");
+      toast.error("Failed to load faculty courses");
     }
   }, [facultyId]);
 
@@ -180,6 +200,7 @@ const PreviousAttendancePage = () => {
         singleDate: "",
         department: "",
         course: "",
+        courseId: "",
         batch: "",
         semester: "",
       });
@@ -190,6 +211,7 @@ const PreviousAttendancePage = () => {
         toDate: "",
         department: "",
         course: "",
+        courseId: "",
         batch: "",
         semester: "",
       });
@@ -225,9 +247,9 @@ const PreviousAttendancePage = () => {
         assignment.assignedRollNums.includes(student.rollNum)
       );
 
-      const uniqueBatches = [...new Set(assignedStudents.map(s => s.batch).filter(Boolean))];
-      const uniqueDepartments = [...new Set(assignedStudents.map(s => s.deptName).filter(Boolean))];
-      const uniqueSemesters = [...new Set(assignedStudents.map(s => s.sem).filter(Boolean))];
+      const uniqueBatches = [...new Set(assignedStudents.map(s => s.batch).filter(Boolean))] as string[];
+      const uniqueDepartments = [...new Set(assignedStudents.map(s => s.deptName).filter(Boolean))] as string[];
+      const uniqueSemesters = [...new Set(assignedStudents.map(s => s.sem).filter(Boolean))] as string[];
 
       setBatches(uniqueBatches);
       setDepartments(uniqueDepartments);
@@ -239,15 +261,18 @@ const PreviousAttendancePage = () => {
   }, [allStudents, courses, facultyAssignments, facultyId]);
 
   const fetchSingleDateAttendance = useCallback(async () => {
-    if (!singleFilters.course || !singleFilters.singleDate) return;
+    if (!singleFilters.courseId || !singleFilters.singleDate) return;
     
     setIsLoading(true);
     try {
-      const course = courses.find(c => c.courseName === singleFilters.course);
-      if (!course) return;
+      console.log('Fetching single date attendance with:', {
+        facultyId,
+        courseId: singleFilters.courseId,
+        date: singleFilters.singleDate
+      });
 
       const response = await api.get(
-        `/attendance/getfacultybydate?facultyid=${facultyId}&courseid=${course.courseId}&date=${singleFilters.singleDate}`
+        `/attendance/getfacultybydate?facultyid=${facultyId}&courseid=${singleFilters.courseId}&date=${singleFilters.singleDate}`
       );
       
       if (response.data && Array.isArray(response.data)) {
@@ -263,18 +288,22 @@ const PreviousAttendancePage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [singleFilters.course, singleFilters.singleDate, courses, facultyId]);
+  }, [singleFilters.courseId, singleFilters.singleDate, facultyId]);
 
   const fetchDateRangeAttendance = useCallback(async () => {
-    if (!groupFilters.course || !groupFilters.fromDate || !groupFilters.toDate) return;
+    if (!groupFilters.courseId || !groupFilters.fromDate || !groupFilters.toDate) return;
     
     setIsLoading(true);
     try {
-      const course = courses.find(c => c.courseName === groupFilters.course);
-      if (!course) return;
+      console.log('Fetching date range attendance with:', {
+        facultyId,
+        courseId: groupFilters.courseId,
+        fromDate: groupFilters.fromDate,
+        toDate: groupFilters.toDate
+      });
 
       const response = await api.get(
-        `/attendance/getfacultybydates?facultyid=${facultyId}&courseid=${course.courseId}&stdate=${groupFilters.fromDate}&endate=${groupFilters.toDate}`
+        `/attendance/getfacultybydates?facultyid=${facultyId}&courseid=${groupFilters.courseId}&stdate=${groupFilters.fromDate}&endate=${groupFilters.toDate}`
       );
       
       if (response.data && Array.isArray(response.data)) {
@@ -322,30 +351,34 @@ const PreviousAttendancePage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [groupFilters.course, groupFilters.fromDate, groupFilters.toDate, courses, facultyId]);
+  }, [groupFilters.courseId, groupFilters.fromDate, groupFilters.toDate, facultyId]);
 
   useEffect(() => {
     fetchFacultyCourses();
   }, [fetchFacultyCourses]);
 
   useEffect(() => {
-    if (attendanceMode === "single" && singleFilters.singleDate && singleFilters.course) {
+    if (attendanceMode === "single" && singleFilters.singleDate && singleFilters.courseId) {
       fetchSingleDateAttendance();
     }
-  }, [attendanceMode, singleFilters.singleDate, singleFilters.course, fetchSingleDateAttendance]);
+  }, [attendanceMode, singleFilters.singleDate, singleFilters.courseId, fetchSingleDateAttendance]);
 
   useEffect(() => {
-    if (attendanceMode === "group" && groupFilters.fromDate && groupFilters.toDate && groupFilters.course) {
+    if (attendanceMode === "group" && groupFilters.fromDate && groupFilters.toDate && groupFilters.courseId) {
       fetchDateRangeAttendance();
     }
-  }, [attendanceMode, groupFilters.fromDate, groupFilters.toDate, groupFilters.course, fetchDateRangeAttendance]);
+  }, [attendanceMode, groupFilters.fromDate, groupFilters.toDate, groupFilters.courseId, fetchDateRangeAttendance]);
 
   const handleSelectChange = useCallback((name: string, value: string) => {
     if (name === "course") {
+      const selectedCourse = courses.find(c => c.courseId === value);
+      const courseName = selectedCourse ? selectedCourse.courseName : "";
+      
       if (attendanceMode === "single") {
         setSingleFilters(prev => ({
           ...prev,
-          course: value,
+          course: courseName,
+          courseId: value,
           department: "",
           batch: "",
           semester: "",
@@ -353,13 +386,14 @@ const PreviousAttendancePage = () => {
       } else {
         setGroupFilters(prev => ({
           ...prev,
-          course: value,
+          course: courseName,
+          courseId: value,
           department: "",
           batch: "",
           semester: "",
         }));
       }
-      fetchStudentsForCourse(value);
+      fetchStudentsForCourse(courseName);
     } else {
       if (attendanceMode === "single") {
         setSingleFilters(prev => ({ ...prev, [name]: value }));
@@ -367,7 +401,7 @@ const PreviousAttendancePage = () => {
         setGroupFilters(prev => ({ ...prev, [name]: value }));
       }
     }
-  }, [attendanceMode, fetchStudentsForCourse]);
+  }, [attendanceMode, fetchStudentsForCourse, courses]);
 
   const downloadSingleDayPDF = useCallback(async (session: string) => {
     if (!singleFilters.course || !singleFilters.singleDate) {
@@ -694,7 +728,7 @@ const PreviousAttendancePage = () => {
               <div className="space-y-2">
                 <Label htmlFor="course">Course</Label>
                 <Select
-                  value={attendanceMode === "single" ? singleFilters.course : groupFilters.course}
+                  value={attendanceMode === "single" ? singleFilters.courseId : groupFilters.courseId}
                   onValueChange={(value) => handleSelectChange("course", value)}
                 >
                   <SelectTrigger>
@@ -714,7 +748,7 @@ const PreviousAttendancePage = () => {
                 <Select
                   value={attendanceMode === "single" ? singleFilters.batch : groupFilters.batch}
                   onValueChange={(value) => handleSelectChange("batch", value)}
-                  disabled={!singleFilters.course && !groupFilters.course}
+                  disabled={!singleFilters.courseId && !groupFilters.courseId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select batch" />
@@ -733,7 +767,7 @@ const PreviousAttendancePage = () => {
                 <Select
                   value={attendanceMode === "single" ? singleFilters.department : groupFilters.department}
                   onValueChange={(value) => handleSelectChange("department", value)}
-                  disabled={!singleFilters.course && !groupFilters.course}
+                  disabled={!singleFilters.courseId && !groupFilters.courseId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
@@ -752,7 +786,7 @@ const PreviousAttendancePage = () => {
                 <Select
                   value={attendanceMode === "single" ? singleFilters.semester : groupFilters.semester}
                   onValueChange={(value) => handleSelectChange("semester", value)}
-                  disabled={!singleFilters.course && !groupFilters.course}
+                  disabled={!singleFilters.courseId && !groupFilters.courseId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select semester" />
