@@ -58,9 +58,7 @@ const StudentAttendancePage = () => {
         sem: studentOverall.sem,
         percentage: Math.round(studentOverall.percentage)
       });
-    } else {
-
-    }
+    } 
 
     // Fetch course-wise attendance
     const courseRes = await api.get(`/attendance/getstudentbyid`, { 
