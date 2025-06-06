@@ -187,6 +187,7 @@ const AssignmentSubmitPage = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast({
+        variant: "default",
         title: "Success",
         description: "Assignment submitted successfully",
       });
@@ -298,6 +299,7 @@ const AssignmentSubmitPage = () => {
               setGrade(null);
               setFeedback(null);
               toast({
+                variant: "default",
                 title: "Success",
                 description: "Assignment unsubmitted successfully",
               });
