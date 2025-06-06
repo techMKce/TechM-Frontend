@@ -85,13 +85,13 @@ const FacultyDashboard = () => {
       // Fetch all courses (both active and inactive)
       const coursesResponse = await api.get('/course/details');
       const allCourses: Course[] = coursesResponse.data || [];
-      setAllCoursesData(allCourses);
-
+      
       // Filter courses for current faculty
       const facultyCourses = allCourses.filter(
         (course) => course.instructorName === profile?.profile?.name
       );
       setCourses(facultyCourses);
+      setAllCoursesData(facultyCourses); // Update allCoursesData with faculty courses only
 
       // Get active courses
       const facultyActiveCourses = facultyCourses.filter(course => course.isActive);
@@ -150,7 +150,6 @@ const FacultyDashboard = () => {
         department: student.department,
       }));
       setStudentsData(formattedStudents);
-
 
       // Update count based on actual returned students
       setStats(prev => ({
@@ -276,7 +275,7 @@ const FacultyDashboard = () => {
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button>Add Course</Button>
+                {/* <Button>Add Course</Button> */}
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -417,7 +416,7 @@ const FacultyDashboard = () => {
         <Dialog open={isCoursesModalOpen} onOpenChange={setIsCoursesModalOpen}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>All Courses</DialogTitle>
+              <DialogTitle>Your Courses</DialogTitle>
               <DialogDescription>
                 List of all your courses ({allCoursesData.length})
               </DialogDescription>

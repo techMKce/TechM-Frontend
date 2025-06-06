@@ -97,7 +97,7 @@ const CoursesPage = () => {
                   <TableHead>Course ID</TableHead>
                   <TableHead>Course Name</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -113,13 +113,13 @@ const CoursesPage = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(course.id)}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button> */}
                     </TableCell>
                   </TableRow>
                 ))}
