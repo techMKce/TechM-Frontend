@@ -16,7 +16,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const token = localStorage.getItem("auth_token");
     
         if (!token) {
-          setIsLoading(false); // No token means not logged in
+          setIsLoading(false);
           setIsAuthenticated(false);
           return;
         }
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
     
   
-    const signIn = async (loginData : LoginRequest) => {
+    const signIn = async (loginData: LoginRequest) => {
       try {
         const credentials: LoginRequest = loginData;
         const authData = await authService.login(credentials);
@@ -51,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
+          variant: "success", // or "default" if you want to use your theme
+          className: "bg-green-500 text-white", // green background with white text
         });
         
       } catch (error: any) {
@@ -58,12 +60,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           variant: "destructive",
           title: "Login failed",
           description: error.response?.data?.message || "An error occurred during login",
+          className: "bg-red-500 text-white", // red background with white text
         });
         throw error;
       }
     };
   
-    const signUp = async (signupData : SignupRequest) => {
+    const signUp = async (signupData: SignupRequest) => {
       try {
         const userData: SignupRequest = signupData;
         const authData = await authService.signup(userData);
@@ -74,12 +77,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({
           title: "Welcome to CCEM!",
           description: "Your account has been created successfully.",
+          variant: "success", // or "default" if you want to use your theme
+          className: "bg-green-500 text-white", // green background with white text
         });
       } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Sign up failed",
           description: error.response?.data?.message || "An error occurred during sign up",
+          className: "bg-red-500 text-white", // red background with white text
         });
         throw error;
       }
@@ -90,11 +96,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await authService.logout();
         setProfile(null);
         setIsAuthenticated(false);
+        // Optional: Add a toast for successful sign out if you want
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully.",
+          className: "bg-blue-500 text-white", // blue background for informational message
+        });
       } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Sign out failed",
           description: error.response?.data?.message || "An error occurred during sign out",
+          className: "bg-red-500 text-white", // red background with white text
         });
         throw error;
       }
@@ -113,5 +126,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       </AuthContext.Provider>
     );
   };
-  
-  

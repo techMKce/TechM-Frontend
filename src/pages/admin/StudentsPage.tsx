@@ -6,11 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AdminNavbar from "@/components/AdminNavbar";
-import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { Upload, Plus, Eye, Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { toast } from "sonner";
 import { Oval } from 'react-loader-spinner';
 import * as XLSX from 'xlsx';
 import api from "@/service/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Student {
   id: string;
@@ -32,6 +39,10 @@ const StudentsPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 15;
+
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [formData, setFormData] = useState({
     id: "",
@@ -42,7 +53,16 @@ const StudentsPage = () => {
     semester: ""
   });
 
+  const [errors, setErrors] = useState({
+    email: "",
+    semester: ""
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Generate year options for the select (current year -25 to current year +25 - 50 years total)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 50 }, (_, i) => currentYear - 25 + i);
 
   useEffect(() => {
     fetchStudents();
@@ -54,16 +74,41 @@ const StudentsPage = () => {
       const response = await api.get('/auth/students/all');
       setStudents(response.data);
     } catch (error) {
-      // console.error("Failed to fetch students:", error);
       toast.error("Failed to fetch students");
     } finally {
       setIsFetching(false);
     }
   };
 
+  // Pagination logic
+  const indexOfLastStudent = currentPage * studentsPerPage;
+  const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
+  const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
+  const totalPages = Math.ceil(students.length / studentsPerPage);
+
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const validateSemester = (semester: string) => {
+    const num = parseInt(semester);
+    return !isNaN(num) && num >= 1 && num <= 8;
+  };
+
   const handleSubmit = async () => {
     if (!formData.id || !formData.name || !formData.email || !formData.department || !formData.year || !formData.semester) {
       toast.error("Please fill all fields");
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setErrors({ ...errors, email: "Please enter a valid email address" });
+      return;
+    }
+
+    if (!validateSemester(formData.semester)) {
+      setErrors({ ...errors, semester: "Semester must be between 1 and 8" });
       return;
     }
 
@@ -78,7 +123,6 @@ const StudentsPage = () => {
       setIsAddDialogOpen(false);
       toast.success("Student added successfully");
     } catch (error) {
-      // console.error(error);
       toast.error("Failed to add student");
     } finally {
       setIsAdding(false);
@@ -90,6 +134,16 @@ const StudentsPage = () => {
       if (!selectedStudent) return;
       setIsEditing(true);
 
+      if (!validateEmail(formData.email)) {
+        setErrors({ ...errors, email: "Please enter a valid email address" });
+        return;
+      }
+
+      if (!validateSemester(formData.semester)) {
+        setErrors({ ...errors, semester: "Semester must be between 1 and 8" });
+        return;
+      }
+
       await api.put(`/auth/update/${selectedStudent.id}`, formData);
       toast.success("Student updated successfully");
 
@@ -98,7 +152,6 @@ const StudentsPage = () => {
       setFormData({ id: "", name: "", email: "", department: "", year: "", semester: "" });
       setIsEditDialogOpen(false);
     } catch (error) {
-      // console.error("Error updating Student:", error);
       toast.error("Error updating Student");
     } finally {
       setIsEditing(false);
@@ -111,6 +164,10 @@ const StudentsPage = () => {
       await api.delete(`/auth/delete/${id}`);
       toast.success("Student deleted successfully");
       await fetchStudents();
+      // Reset to first page if the last student on the current page was deleted
+      if (currentStudents.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     } catch (error) {
       toast.error("Failed to delete student");
     } finally {
@@ -134,6 +191,25 @@ const StudentsPage = () => {
       semester: student.semester
     });
     setIsEditDialogOpen(true);
+  };
+
+  const handleAddDialogOpen = (open: boolean) => {
+    setIsAddDialogOpen(open);
+    if (open) {
+      // Reset form when dialog opens
+      setFormData({
+        id: "",
+        name: "",
+        email: "",
+        department: "",
+        year: "",
+        semester: ""
+      });
+      setErrors({
+        email: "",
+        semester: ""
+      });
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,7 +331,6 @@ const StudentsPage = () => {
           semester: studentData.semester
         });
       } catch (error) {
-        // console.error("Failed to register student because trying to register the existing data");
         toast.error(`Upload failed because you are trying to upload the existing data`);
       }
     }
@@ -263,6 +338,9 @@ const StudentsPage = () => {
     if (newStudents.length > 0) {
       setStudents(prev => [...prev, ...newStudents]);
       toast.success(`Successfully added ${newStudents.length} students`);
+      // Go to the last page where the new students would be
+      const newTotalPages = Math.ceil((students.length + newStudents.length) / studentsPerPage);
+      setCurrentPage(newTotalPages);
     }
     setIsUploading(false);
   };
@@ -272,6 +350,13 @@ const StudentsPage = () => {
       fileInputRef.current.value = '';
     }
   };
+
+  // Pagination controls
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToLastPage = () => setCurrentPage(totalPages);
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -293,7 +378,7 @@ const StudentsPage = () => {
           </div>
 
           <div className="flex gap-4 mb-6">
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
@@ -330,9 +415,13 @@ const StudentsPage = () => {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        setErrors({ ...errors, email: validateEmail(e.target.value) ? "" : "Please enter a valid email" });
+                      }}
                       className="col-span-3"
                     />
+                    {errors.email && <p className="col-span-4 text-right text-sm text-red-500">{errors.email}</p>}
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="department" className="text-right">Department</Label>
@@ -345,21 +434,37 @@ const StudentsPage = () => {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="year" className="text-right">Batch</Label>
-                    <Input
-                      id="year"
+                    <Select
                       value={formData.year}
-                      onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                      className="col-span-3"
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, year: value })}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select batch year" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto">
+                        {yearOptions.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="semester" className="text-right">Semester</Label>
                     <Input
                       id="semester"
+                      type="number"
+                      min="1"
+                      max="8"
                       value={formData.semester}
-                      onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, semester: e.target.value });
+                        setErrors({ ...errors, semester: validateSemester(e.target.value) ? "" : "Semester must be between 1 and 8" });
+                      }}
                       className="col-span-3"
                     />
+                    {errors.semester && <p className="col-span-4 text-right text-sm text-red-500">{errors.semester}</p>}
                   </div>
                 </div>
                 <DialogFooter>
@@ -406,8 +511,15 @@ const StudentsPage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Students List</CardTitle>
-              <CardDescription>All registered students in the system</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Students List</CardTitle>
+                  <CardDescription>All registered students in the system</CardDescription>
+                </div>
+                <div className="text-sm text-gray-500">
+                  Showing {indexOfFirstStudent + 1}-{Math.min(indexOfLastStudent, students.length)} of {students.length} students
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -425,16 +537,16 @@ const StudentsPage = () => {
                 </TableHeader>
 
                 <TableBody>
-                  {students.length === 0 ? (
+                  {currentStudents.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-8">
                         No students found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    students.map((student, index) => (
+                    currentStudents.map((student, index) => (
                       <TableRow key={student.id}>
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{indexOfFirstStudent + index + 1}</TableCell>
                         <TableCell>{student.id}</TableCell>
                         <TableCell>{student.name}</TableCell>
                         <TableCell>{student.email}</TableCell>
@@ -487,6 +599,73 @@ const StudentsPage = () => {
                   )}
                 </TableBody>
               </Table>
+
+              {/* Pagination controls */}
+              {students.length > studentsPerPage && (
+                <div className="flex items-center justify-between px-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToFirstPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      // Show pages around current page
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => paginate(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToLastPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -522,7 +701,7 @@ const StudentsPage = () => {
                   <Input
                     id="edit-id"
                     value={formData.id}
-                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                    disabled
                     className="col-span-3"
                   />
                 </div>
@@ -541,9 +720,13 @@ const StudentsPage = () => {
                     id="edit-email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      setErrors({ ...errors, email: validateEmail(e.target.value) ? "" : "Please enter a valid email" });
+                    }}
                     className="col-span-3"
                   />
+                  {errors.email && <p className="col-span-4 text-right text-sm text-red-500">{errors.email}</p>}
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-department" className="text-right">Department</Label>
@@ -556,21 +739,37 @@ const StudentsPage = () => {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-year" className="text-right">Batch</Label>
-                  <Input
-                    id="edit-year"
+                  <Select
                     value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                    className="col-span-3"
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, year: value })}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select batch year" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto">
+                      {yearOptions.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-semester" className="text-right">Semester</Label>
                   <Input
                     id="edit-semester"
+                    type="number"
+                    min="1"
+                    max="8"
                     value={formData.semester}
-                    onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, semester: e.target.value });
+                      setErrors({ ...errors, semester: validateSemester(e.target.value) ? "" : "Semester must be between 1 and 8" });
+                    }}
                     className="col-span-3"
                   />
+                  {errors.semester && <p className="col-span-4 text-right text-sm text-red-500">{errors.semester}</p>}
                 </div>
               </div>
               <DialogFooter>
