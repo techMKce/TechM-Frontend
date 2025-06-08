@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AdminNavbar from "@/components/AdminNavbar";
 import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Oval } from 'react-loader-spinner';
 import * as XLSX from 'xlsx';
 import api from "@/service/api";
@@ -55,7 +55,7 @@ const StudentsPage = () => {
       setStudents(response.data);
     } catch (error) {
       console.error("Failed to fetch students:", error);
-      toast.error("Failed to fetch students");
+      toast({ title: "Failed to fetch students", variant: "destructive" });
     } finally {
       setIsFetching(false);
     }
@@ -63,7 +63,7 @@ const StudentsPage = () => {
 
   const handleSubmit = async () => {
     if (!formData.id || !formData.name || !formData.email || !formData.department || !formData.year || !formData.semester) {
-      toast.error("Please fill all fields");
+      toast({ title: "Please fill all fields", variant: "warning" });
       return;
     }
 
@@ -76,10 +76,10 @@ const StudentsPage = () => {
       await fetchStudents();
       setFormData({ id: "", name: "", email: "", department: "", year: "", semester: "" });
       setIsAddDialogOpen(false);
-      toast.success("Student added successfully");
+      toast({ title: "Student added successfully", variant: "default" });
     } catch (error) {
       console.error(error);
-      toast.error("Failed to add student");
+      toast({ title: "Failed to add student", variant: "destructive" });
     } finally {
       setIsAdding(false);
     }
@@ -91,7 +91,7 @@ const StudentsPage = () => {
       setIsEditing(true);
 
       await api.put(`/auth/update/${selectedStudent.id}`, formData);
-      toast.success("Student updated successfully");
+      toast({ title: "Student updated successfully", variant: "default" });
 
       await fetchStudents();
       setSelectedStudent(null);
@@ -99,7 +99,7 @@ const StudentsPage = () => {
       setIsEditDialogOpen(false);
     } catch (error) {
       console.error("Error updating Student:", error);
-      toast.error("Error updating Student");
+      toast({ title: "Error updating Student", variant: "destructive" });
     } finally {
       setIsEditing(false);
     }
@@ -109,10 +109,10 @@ const StudentsPage = () => {
     try {
       setIsDeleting(true);
       await api.delete(`/auth/delete/${id}`);
-      toast.success("Student deleted successfully");
+      toast({ title: "Student deleted successfully", variant: "default" });
       await fetchStudents();
     } catch (error) {
-      toast.error("Failed to delete student");
+      toast({ title: "Failed to delete student", variant: "destructive" });
     } finally {
       setIsDeleting(false);
     }
@@ -144,7 +144,7 @@ const StudentsPage = () => {
     const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
     if (!isCSV && !isExcel) {
-      toast.error("Please select a valid CSV or Excel (.xlsx) file");
+      toast({ title: "Please select a valid CSV or Excel (.xlsx) file", variant: "warning" });
       return;
     }
 
@@ -187,7 +187,7 @@ const StudentsPage = () => {
       const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
-        toast.error("Excel file is empty");
+        toast({ title: "Excel file is empty", variant: "warning" });
         setIsUploading(false);
         return;
       }
@@ -206,7 +206,7 @@ const StudentsPage = () => {
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
     if (missingHeaders.length > 0) {
-      toast.error(`Missing required columns: ${missingHeaders.join(', ')}`);
+      toast({ title: `Missing required columns: ${missingHeaders.join(', ')}`, variant: "warning" });
       setIsUploading(false);
       return;
     }
@@ -218,7 +218,7 @@ const StudentsPage = () => {
       if (!row || row.length === 0) continue;
 
       if (row.length !== headers.length) {
-        toast.error(`Row ${i + 2} has incorrect number of columns`);
+        toast({ title: `Row ${i + 2} has incorrect number of columns`, variant: "warning" });
         setIsUploading(false);
         return;
       }
@@ -229,7 +229,7 @@ const StudentsPage = () => {
       });
 
       if (!studentData.id || !studentData.name || !studentData.email || !studentData.department || !studentData.year || !studentData.semester) {
-        toast.error(`Row ${i + 2} has missing required data`);
+        toast({ title: `Row ${i + 2} has missing required data`, variant: "warning" });
         setIsUploading(false);
         return;
       }
@@ -256,13 +256,13 @@ const StudentsPage = () => {
         });
       } catch (error) {
         console.error("Failed to register student because trying to register the existing data");
-        toast.error(`Upload failed because you are trying to upload the existing data`);
+        toast({ title: `Upload failed because you are trying to upload the existing data`, variant: "destructive" });
       }
     }
 
     if (newStudents.length > 0) {
       setStudents(prev => [...prev, ...newStudents]);
-      toast.success(`Successfully added ${newStudents.length} students`);
+      toast({ title: `Successfully added ${newStudents.length} students`, variant: "default" });
     }
     setIsUploading(false);
   };

@@ -36,6 +36,7 @@ interface SubmittedFile {
 
 const AssignmentSubmitPage = () => {
   const { profile } = useAuth();
+  const [loader,setLoader]=useState(false);
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const [studentName] = useState(profile.profile.name);
   const [studentRollNumber] = useState(profile.profile.id);
@@ -183,6 +184,7 @@ const AssignmentSubmitPage = () => {
     }
 
     try {
+      setLoader(true);
       const response = await api.post("/submissions", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -207,6 +209,8 @@ const AssignmentSubmitPage = () => {
           err?.response?.data?.message || "Failed to submit assignment",
       });
 
+    }finally{
+      setLoader(false);
     }
   };
 
@@ -284,6 +288,8 @@ const AssignmentSubmitPage = () => {
         <Button
           onClick={async () => {
             try {
+              await setLoader(true);
+              console.log(loader);
               await api.delete("/submissions", {
                 data: {
                   assignmentId,
@@ -297,6 +303,7 @@ const AssignmentSubmitPage = () => {
               setIsGraded(false);
               setGrade(null);
               setFeedback(null);
+              setLoader(false);
               toast({
                 title: "Success",
                 description: "Assignment unsubmitted successfully",
@@ -312,10 +319,13 @@ const AssignmentSubmitPage = () => {
               });
               console.error("Unsubmit error:", err);
             }
+            finally{
+              setLoader(false);
+            }
           }}
           className="bg-red-600 text-white hover:bg-red-700"
         >
-          Unsubmit
+          {(loader)?"unSubmitting":"UnSubmit"} {loader}
         </Button>
       ),
       duration: 10000, // 10 seconds for confirmation
@@ -783,7 +793,7 @@ const AssignmentSubmitPage = () => {
                         className="w-full bg-primary hover:bg-primary-dark rounded-lg hover:scale-105 transition-all duration-200"
                         disabled={files.length === 0 || isDueDateOver}
                       >
-                        Submit Assignment
+                        Submit Assignment {(loader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin" alt="preloader"/>:""}
                       </Button>
                     </div>
                   </>

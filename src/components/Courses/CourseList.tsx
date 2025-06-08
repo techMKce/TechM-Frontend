@@ -6,8 +6,7 @@ import { TrashIcon } from "@heroicons/react/24/outline";
 import api from "@/service/api";
 import FacultyNavbar from "../FacultyNavbar";
 import StudentNavbar from "../StudentNavbar";
-import axios from "axios";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 export type Course = {
   courseCode: string;
   course_id: number;
@@ -84,7 +83,7 @@ const CourseList: React.FC = () => {
         const response = await api.get(`course-enrollment/by-student/${profile.profile.id}`);
         setEnrolledCourses(response.data);
       } catch (error) {
-        toast.error("Error fetching enrolled courses:", error);
+        toast({title:`Error fetching enrolled courses:${error}`,variant:'destructive'});
       }
     };
 
@@ -210,7 +209,7 @@ const CourseList: React.FC = () => {
         ]);
       }
 
-      toast.success("Course added successfully!");
+      toast({title:"Course added successfully!",variant:'default'});
     } catch (err: any) {
       setError(
         err.response?.data?.message || err.message || "Failed to add course"
@@ -230,7 +229,7 @@ const CourseList: React.FC = () => {
          
       } catch (error) {
 
-            toast.error("Failed to Delete the Course");
+            toast({title:"Failed to Delete the Course",variant:'destructive'});
         window.location.reload();
       }
     }

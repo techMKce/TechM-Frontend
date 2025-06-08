@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AdminNavbar from "@/components/AdminNavbar";
 import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Oval } from 'react-loader-spinner';
 import * as XLSX from 'xlsx';
 import api from "@/service/api";
@@ -57,7 +57,7 @@ const FacultyPage = () => {
 
       setFaculties(facultyData);
     } catch (error: any) {
-      toast.error("Failed to fetch faculty data");
+      toast({ title: "Failed to fetch faculty data", variant: "destructive" });
     } finally {
       setIsFetching(false);
     }
@@ -65,7 +65,7 @@ const FacultyPage = () => {
 
   const handleSubmit = async () => {
     if (!formData.id || !formData.name || !formData.email || !formData.department) {
-      toast.warning("Please fill all fields");
+      toast({ title: "Please fill all fields", variant: "warning" });
       return;
     }
 
@@ -73,7 +73,7 @@ const FacultyPage = () => {
       (f) => f.id === formData.id || f.email === formData.email
     );
     if (alreadyExists) {
-      toast.warning("Faculty with the same ID or Email already exists");
+      toast({ title: "Faculty with the same ID or Email already exists", variant: "warning" });
       return;
     }
 
@@ -83,14 +83,13 @@ const FacultyPage = () => {
         params: { for: "FACULTY" }
       });
 
-
       await getFaculties();
       setFormData({ id: "", name: "", email: "", department: "" });
       setIsAddDialogOpen(false);
-      toast.success("Faculty added successfully");
+      toast({ title: "Faculty added successfully", variant: "default" });
     } catch (error) {
       console.error(error);
-      toast.error("Failed to add faculty");
+      toast({ title: "Failed to add faculty", variant: "destructive" });
     } finally {
       setIsAdding(false);
     }
@@ -103,14 +102,14 @@ const FacultyPage = () => {
       setIsEditing(true);
 
       await api.put(`/auth/update/${selectedFaculty.id}`, formData);
-      toast.success("Faculty updated successfully");
+      toast({ title: "Faculty updated successfully", variant: "default" });
 
       await getFaculties();
       setSelectedFaculty(null);
       setFormData({ id: "", name: "", email: "", department: "" });
       setIsEditDialogOpen(false);
     } catch (error) {
-      toast.error("Error updating faculty");
+      toast({ title: "Error updating faculty", variant: "destructive" });
     } finally {
       setIsEditing(false);
     }
@@ -120,10 +119,10 @@ const FacultyPage = () => {
     try {
       setIsDeleting(true);
       await api.delete(`/auth/delete/${id}`);
-      toast.success("Faculty deleted successfully");
+      toast({ title: "Faculty deleted successfully", variant: "default" });
       await getFaculties();
     } catch (error) {
-      toast.error("Failed to delete faculty");
+      toast({ title: "Failed to delete faculty", variant: "destructive" });
     } finally {
       setIsDeleting(false);
     }
@@ -153,7 +152,7 @@ const FacultyPage = () => {
     const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
     if (!isCSV && !isExcel) {
-      toast.warning("Please select a valid CSV or Excel (.xlsx) file");
+      toast({ title: "Please select a valid CSV or Excel (.xlsx) file", variant: "warning" });
       return;
     }
 
@@ -196,8 +195,7 @@ const FacultyPage = () => {
       const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
-
-        toast.error("Excel file is empty");
+        toast({ title: "Excel file is empty", variant: "destructive" });
         setIsUploading(false);
         return;
       }
@@ -228,7 +226,7 @@ const FacultyPage = () => {
       const results = await Promise.allSettled(signupPromises);
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          toast.error(`Faculty ${facultiesToSignup[index].email} failed:`, result.reason);
+          toast({ title: `Faculty ${facultiesToSignup[index].email} failed: ${result.reason}`, variant: "destructive" });
         }
       });
 
@@ -236,19 +234,15 @@ const FacultyPage = () => {
       const failureCount = results.length - successCount;
 
       if (failureCount > 0) {
-
-        toast.warning("Upload failed because you are trying to upload the existing data");
-
+        toast({ title: "Upload failed because you are trying to upload the existing data", variant: "warning" });
       } else {
-        toast.success("All faculty signed up successfully.");
+        toast({ title: "All faculty signed up successfully.", variant: "default" });
       }
     } catch (error) {
-      toast.error("Bulk signup failed.");
-
+      toast({ title: "Bulk signup failed.", variant: "destructive" });
       console.error("Bulk signup error:", error);
     } finally {
       setIsUploading(false);
-
     }
   };
 
@@ -257,7 +251,7 @@ const FacultyPage = () => {
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
     if (missingHeaders.length > 0) {
-      toast.error(`Missing required columns: ${missingHeaders.join(', ')}`);
+      toast({ title: `Missing required columns: ${missingHeaders.join(', ')}`, variant: "destructive" });
       setIsUploading(false);
       return;
     }
@@ -269,7 +263,7 @@ const FacultyPage = () => {
       if (!row || row.length === 0) continue;
 
       if (row.length !== headers.length) {
-        toast.error(`Row ${i + 2} has incorrect number of columns`);
+        toast({ title: `Row ${i + 2} has incorrect number of columns`, variant: "destructive" });
         setIsUploading(false);
         return;
       }
@@ -280,7 +274,7 @@ const FacultyPage = () => {
       });
 
       if (!facultyData.id || !facultyData.name || !facultyData.email || !facultyData.department) {
-        toast.error(`Row ${i + 1} has missing required data`);
+        toast({ title: `Row ${i + 1} has missing required data`, variant: "warning" });
         setIsUploading(false);
         return;
       }

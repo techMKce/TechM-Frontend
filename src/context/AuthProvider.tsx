@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AuthContext } from "./AuthContext";
 import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { LoginRequest, LoginResponse, SignupRequest } from "@/types";
 import authService from "@/service/authService";
 
@@ -9,7 +9,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [profile, setProfile] = useState<LoginResponse | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const { toast } = useToast();
   
     useEffect(() => {
       const checkAuthStatus = async () => {

@@ -14,8 +14,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 import api from "../../service/api";
-import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
+import { toast } from "@/hooks/use-toast";
 
 
 interface Course {
@@ -92,15 +91,15 @@ const SchedulePage = () => {
   const handleGenerate = async () => {
     if (selectedCourses.length === 0) {
 
-      toast.error("Please select at least one course");
+      toast({ title: "Please select at least one course", variant: "destructive" });
       return;
     }
     if (!fromDate || !toDate) {
-      toast.error("Please select both from and to dates");
+      toast({ title: "Please select both from and to dates", variant: "warning" });
       return;
     }
     if (fromDate >= toDate) {
-      toast.error("From date must be before to date");
+      toast({ title: "From date must be before to date", variant: "destructive" });
 
       return;
     }
@@ -141,17 +140,17 @@ const SchedulePage = () => {
         }
       });
       if(response.data=="Warning: Not all courses were scheduled.\nChoose a valid date range based on course counts.")
-        toast.error("Warning: Not all courses were scheduled .Choose a valid date range based on course counts.");
+        toast({ title: "Warning: Not all courses were scheduled. Choose a valid date range based on course counts.", variant: "warning" });
       else{
-          toast.success(`Schedule data prepared for ${courseArray.length} course(s)`);
-          toast.success('Upload successful:', response.data);
+          toast({ title: `Schedule data prepared for ${courseArray.length} course(s)`, variant: "default" });
+          toast({ title: `Upload successful: ${response.data}`, variant: "default" });
           setGeneratedSchedule(response.data);
           setShowSuccessMessage(true);
-          toast.success("Schedule uploaded successfully");
+          toast({ title: "Schedule uploaded successfully", variant: "default" });
       }
     } catch (error) {
 
-      toast.error("Failed to upload schedule");
+      toast({ title: "Failed to upload schedule", variant: "destructive" });
 
     } finally {
       setIsGenerating(false);
@@ -160,7 +159,6 @@ const SchedulePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Toaster position="top-right" reverseOrder={false} />
       <AdminNavbar currentPage="/admin/schedule" />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">

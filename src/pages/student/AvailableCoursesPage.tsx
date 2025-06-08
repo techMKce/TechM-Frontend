@@ -3,7 +3,7 @@ import StudentNavbar from "@/components/StudentNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface Course {
   id: string;
@@ -58,7 +58,7 @@ const AvailableCoursesPage = () => {
     );
 
     if (alreadyEnrolled) {
-      toast.warning("You are already enrolled in this course");
+      toast({title:"You are already enrolled in this course",variant:'info'});
       return;
     }
 
@@ -73,7 +73,7 @@ const AvailableCoursesPage = () => {
     localStorage.setItem('enrollments', JSON.stringify(updatedEnrollments));
     
     loadAvailableCourses();
-    toast.success("Successfully enrolled in the course!");
+    toast({title:"Successfully enrolled in the course!"});
   };
 
   return (

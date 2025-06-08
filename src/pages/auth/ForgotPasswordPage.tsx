@@ -11,7 +11,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Mail } from "lucide-react";
 import api from "@/service/api";
 
@@ -23,7 +23,7 @@ const ForgotPassword = () => {
 
   const handleProceed = async () => {
     if (!email) {
-      toast.error("Please enter your email");
+      toast({ title: "Please enter your email", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -31,9 +31,9 @@ const ForgotPassword = () => {
     const response = await api.post("/auth/forgotPassword", { email });
     if (response.data == true) {
       setSent(true);
-      toast.success("Password reset link sent (mocked)");
+      toast({ title: "Password reset link sent (mocked)", variant: "default" });
     } else {
-      toast.error("No student found with that email");
+      toast({ title: "No student found with that email", variant: "destructive" });
     }
     setLoading(false);
   };

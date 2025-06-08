@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import { Calendar, FileText, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/service/api";
@@ -128,8 +128,7 @@ const FacultyAttendancePage = () => {
       // Update filter options based on assigned students
       updateFilterOptions(facultyAssignments, allStudentsData);
     } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Failed to load faculty data");
+      toast({title:"Failed to load faculty data",variant:'destructive'});
     }
   };
 
@@ -190,28 +189,28 @@ const FacultyAttendancePage = () => {
     setStudents([]);
     setIsFormSubmitted(false);
     setAbsenteeCount(0);
-    toast.info("All filters have been reset");
+    toast({title:"All filters have been reset",variant:'info'});
   };
 
   const validateForm = () => {
     if (!formData.course) {
-      toast.error("Please select a course");
+      toast({title:"Please select a course",variant:'warning'});
       return false;
     }
     if (!formData.batch) {
-      toast.error("Please select a batch");
+      toast({title:"Please select a batch",variant:'warning'});
       return false;
     }
     if (!formData.department) {
-      toast.error("Please select a department");
+      toast({title:"Please select a department",variant:'warning'});
       return false;
     }
     if (!formData.semester) {
-      toast.error("Please select a semester");
+      toast({title:"Please select a semester",variant:'warning'});
       return false;
     }
     if (!formData.date) {
-      toast.error("Please select a date");
+      toast({title:"Please select a date",variant:'warning'});
       return false;
     }
     return true;
@@ -223,7 +222,7 @@ const FacultyAttendancePage = () => {
     try {
       const assignment = facultyAssignments.find(a => a.courseId === formData.course);
       if (!assignment) {
-        toast.error("No students assigned for this course");
+        toast({title:"No students assigned for this course",variant:'info'});
         return;
       }
 
@@ -235,7 +234,7 @@ const FacultyAttendancePage = () => {
       );
 
       if (filteredStudents.length === 0) {
-        toast.error("No students match the selected filters");
+        toast({title:"No students match the selected filters",variant:'info'});
         return;
       }
 
@@ -246,17 +245,16 @@ const FacultyAttendancePage = () => {
 
       setStudents(studentsWithAttendance);
       setShowAttendanceTable(true);
-      toast.success("Student list generated successfully");
+      toast({title:"Student list generated successfully",variant:'default'});
     } catch (error) {
-      console.error("Error fetching students:", error);
-      toast.error("Failed to load student list");
+      toast({title:"Failed to load student list",variant:'destructive'});
     }
   };
 
   const handleSubmitAttendance = async () => {
     if (!validateForm()) return;
     if (students.length === 0) {
-      toast.error("No students to mark attendance for");
+      toast({title:"No students to mark attendance for",variant:'info'});
       return;
     }
 
@@ -282,10 +280,9 @@ const FacultyAttendancePage = () => {
       const absentees = students.filter(s => !s.isPresent).length;
       setAbsenteeCount(absentees);
       setIsFormSubmitted(true);
-      toast.success("Attendance marked successfully");
+      toast({title:"Attendance marked successfully"});
     } catch (error) {
-      console.error("Error submitting attendance:", error);
-      toast.error("Failed to submit attendance");
+      toast({title:"Failed to submit attendance",variant:'destructive'});
     } finally {
       setLoading(false);
     }

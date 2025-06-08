@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { User, GraduationCap, Briefcase, ArrowLeft, Camera } from "lucide-react";
 import StudentNavbar from "@/components/StudentNavbar";
 import FacultyNavbar from "@/components/FacultyNavbar";
@@ -95,7 +95,7 @@ export default function EditProfile() {
       setFormData(mapped);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
-      toast.error("Failed to load profile data. Please try again later.");
+      toast({title:"Failed to load profile data. Please try again later.",variant:'destructive'});
       if (error.response?.status === 403) {
         navigate('/login');
       }
@@ -227,10 +227,10 @@ export default function EditProfile() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       const imageUrl = URL.createObjectURL(file);
       setFormData({ ...formData, image: imageUrl });
-      toast.success("Profile picture updated!");
+      toast({title:"Profile picture updated!"});
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to update profile picture.");
+      toast({title:"Failed to update profile picture.",variant:'destructive'});
     } finally {
       setIsUploading(false);
     }
@@ -247,7 +247,7 @@ export default function EditProfile() {
 
   const handleSave = async () => {
     if (!profile) {
-      toast.error("Authentication required. Please login again.");
+      toast({title:"Authentication required. Please login again.",variant:'warning'});
       navigate('/login');
       return;
     }
@@ -259,19 +259,19 @@ export default function EditProfile() {
       : `/profile/faculty/${id}`;
 
     try {
-      toast.info("Updating profile...");
+      toast({title:"Updating profile...",variant:'info'});
       const response = await profileApi.put(
         endpoint,
         cleanFormData(mapFrontendToBackend(formData))
       );
 
       if (response.status === 200) {
-        toast.success("Profile updated successfully");
+        toast({title:"Profile updated successfully"});
         navigate('/profile');
       }
     } catch (error) {
       console.error("Failed to update profile:", error);
-      toast.error("Failed to update profile. Please try again.");
+      toast({title:"Failed to update profile. Please try again.",variant:'destructive'});
     } finally {
       setIsSubmitting(false);
     }

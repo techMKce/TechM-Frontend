@@ -20,8 +20,7 @@ import api from "@/service/api";
 import StudentNavbar from "../StudentNavbar";
 import FacultyNavbar from "../FacultyNavbar";
 import { isAsyncFunction } from "node:util/types";
-// import { toast } from "@/components/ui/sonner";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Section } from "lucide-react";
 
 function ViewCourse() {
@@ -188,9 +187,9 @@ function ViewCourse() {
       setIsEditing(false);
       setCourse(updatedCourse);
       console.log("updated course: ", updatedCourse);
-      toast.success("Edit Successfully");
+      toast({title:"Edit Successfully"});
     } catch (error: any) {
-      toast.error("Failed to update course. Please try again.");
+      toast({title:"Failed to update course. Please try again.",variant:'destructive'});
     } finally {
       // This shows the state value AT THE TIME OF RENDER
 
@@ -280,7 +279,7 @@ function ViewCourse() {
         updatedAt: null,
         course: { course_id: null },
       });
-      toast.success("Section Edit Successfully");
+      toast({title:"Section Edit Successfully"});
       setError(null);
     } catch (err) {
       setError(
@@ -305,9 +304,9 @@ function ViewCourse() {
         );
       } catch (error) {
         if (error) {
-          toast.error("Failed to delete section");
+          toast({title:"Failed to delete section",variant:'destructive'});
         } else {
-          toast.error("An unexpected error occurred");
+          toast({title:"An unexpected error occurred",variant:'destructive'});
         }
       }
     }
@@ -321,13 +320,13 @@ function ViewCourse() {
     });
     if (response.status === 200) {
       setIsEnrolled(true);
-      toast.success("Enrolled Successfully", {
+      toast({title:"Enrolled Successfully", 
         description: `You have successfully enrolled in ${course.courseTitle}.`,
       });
     } else {
-      toast.error("Enrollment Failed", {
+      toast({title:"Enrollment Failed",
         description: "An error occurred during enrollment",
-      });
+      variant:'destructive'});
     }
     setLoading(false);
   };

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "@/service/api";
 
@@ -19,17 +19,17 @@ const ChangePassword = () => {
 
   const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
-      toast.error("Please fill in all fields");
+      toast({ title: "Please fill in all fields", variant: "destructive" });
       return;
     }
 
     if (newPassword.length < 6) {
-      toast.error("Password must be at least 8 characters long");
+      toast({ title: "Password must be at least 8 characters long", variant: "destructive" });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast({ title: "Passwords do not match", variant: "destructive" });
       return;
     }
 
@@ -39,10 +39,10 @@ const ChangePassword = () => {
     });
 
     if (response.data === false) {
-      toast.error("Failed to update password. Please try again.");
+      toast({ title: "Failed to update password. Please try again.", variant: "destructive" });
       return;
     }
-    toast.success("Password updated successfully");
+    toast({ title: "Password updated successfully", variant: "default" });
     navigate("/login");
   };
 

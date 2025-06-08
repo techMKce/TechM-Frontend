@@ -493,7 +493,7 @@ const PreviousAttendancePage = () => {
       record.status === 1 ? "Present" : "Absent"
     ]);
 
-    autoTable(doc, {
+    const autoTableResult = autoTable(doc, {
       head: headers,
       body: tableData,
       startY: currentY,
@@ -513,7 +513,7 @@ const PreviousAttendancePage = () => {
     const presentCount = sessionRecords.filter(r => r.status === 1).length;
     const absentCount = totalStudents - presentCount;
 
-    currentY = doc.lastAutoTable.finalY + 15;
+    currentY = (autoTableResult as any).finalY + 15;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text(`Summary:`, 14, currentY);
