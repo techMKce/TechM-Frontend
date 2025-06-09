@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 import api from "../../service/api";
 import { useAuth } from '../../hooks/useAuth';
@@ -103,8 +103,10 @@ const FacultyDashboard = () => {
         activeCourses: facultyActiveCourses.length
       }));
     } catch (error) {
-      // console.error("Error loading courses:", error);
-      toast.error("Failed to load courses data");
+
+      console.error("Error loading courses:", error);
+      toast({ title: "Failed to load courses data", variant: "destructive" });
+
     } finally {
       setIsLoading(false);
     }
@@ -125,8 +127,10 @@ const FacultyDashboard = () => {
         totalStudents: studentCount
       }));
     } catch (error) {
-      // console.error("Error fetching student count:", error);
-      toast.error("Failed to load student count");
+
+      console.error("Error fetching student count:", error);
+      toast({ title: "Failed to load student count", variant: "destructive" });
+
     }
   };
 
@@ -157,8 +161,10 @@ const FacultyDashboard = () => {
         totalStudents: students.length
       }));
     } catch (error) {
-      // console.error("Error fetching students:", error);
-      toast.error("Failed to load students data");
+
+      console.error("Error fetching students:", error);
+      toast({ title: "Failed to load students data", variant: "destructive" });
+
     }
   };
 
@@ -176,8 +182,9 @@ const FacultyDashboard = () => {
       );
       setActiveCoursesData(activeCourses);
     } catch (error) {
-      // console.error("Error fetching active courses:", error);
-      toast.error("Failed to load active courses");
+
+      toast({ title: "Failed to load active courses", variant: "destructive" });
+
     }
   };
 
@@ -188,7 +195,7 @@ const FacultyDashboard = () => {
 
   const handleSubmit = async () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.warning("Please fill all fields");
+      toast({ title: "Please fill all fields", variant: "warning" });
       return;
     }
 
@@ -203,14 +210,15 @@ const FacultyDashboard = () => {
 
       const response = await api.post('/course/create', newCourse);
       if (response.data) {
-        toast.success("Course created successfully");
+        toast({ title: "Course created successfully", variant: "default" });
         loadCourses();
         setFormData({ courseId: "", name: "", description: "" });
         setIsAddDialogOpen(false);
       }
     } catch (error) {
-      // console.error("Error creating course:", error);
-      toast.error("Failed to create course");
+
+      toast({ title: "Failed to create course", variant: "destructive" });
+
     }
   };
 
@@ -226,7 +234,7 @@ const FacultyDashboard = () => {
 
   const handleUpdate = async () => {
     if (!editingCourse || !formData.courseId || !formData.name || !formData.description) {
-      toast.error("Please fill all fields");
+      toast({ title: "Please fill all fields", variant: "warning" });
       return;
     }
 
@@ -240,13 +248,15 @@ const FacultyDashboard = () => {
 
       const response = await api.put(`/course/update/${editingCourse.course_id}`, updatedCourse);
       if (response.data) {
-        toast.success("Course updated successfully");
+        toast({ title: "Course updated successfully", variant: "default" });
         loadCourses();
         setEditingCourse(null);
         setIsEditDialogOpen(false);
       }
     } catch (error) {
-      toast.error("Failed to update course");
+
+      toast({ title: "Failed to update course", variant: "destructive" });
+
     }
   };
 
@@ -329,7 +339,8 @@ const FacultyDashboard = () => {
                     <Input
                       id="editCourseId"
                       value={formData.courseId}
-                      onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+                      disabled
+                      // onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
                       placeholder="e.g., CS101"
                     />
                   </div>

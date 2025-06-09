@@ -11,7 +11,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Mail } from "lucide-react";
 import api from "@/service/api";
 
@@ -27,7 +27,7 @@ const ForgotPassword = () => {
     setError(null);
     
     if (!email) {
-      toast.error("Please enter your email");
+      toast({ title: "Please enter your email", variant: "destructive" });
       return;
     }
     
@@ -40,36 +40,33 @@ const ForgotPassword = () => {
     
     setLoading(true);
 
+
     try {
       const response = await api.post("/auth/forgotPassword", { email });
       
       // Check response status properly
       if (response.status === 200) {
         setSent(true);
-        toast.success("Password reset link sent!");
-      } else {
-        // Handle other success codes if needed
-        setSent(true);
-        toast.success("Password reset link sent!");
+        toast({ title: "Password reset link sent!!", variant: "default" });
       }
     } catch (error: any) {
       console.error("Forgot password error:", error);
       
       if (error?.response?.status === 404) {
         setError("No account found with that email. Please check and try again.");
-        toast.error("No account found with that email. Please check and try again.");
+        toast({ title: "No student found with that email", variant: "destructive" });
       } else if (error?.response?.status === 400) {
         setError("Invalid email format. Please check and try again.");
-        toast.error("Invalid email format. Please check and try again.");
+        toast({ title: "Invalid email format. Please check and try again.", variant: "destructive" });
       } else if (error?.response?.status === 429) {
         setError("Too many requests. Please try again later.");
-        toast.error("Too many requests. Please try again later.");
+        toast({ title: "Too many requests. Please try again later.", variant: "destructive" });
       } else if (error?.response?.status >= 500) {
         setError("Server error. Please try again later.");
-        toast.error("Server error. Please try again later.");
+        toast({ title: "Server error. Please try again later.", variant: "destructive" });
       } else {
         setError("Something went wrong. Please try again later.");
-        toast.error("Something went wrong. Please try again later.");
+        toast({ title: "Something went wrong. Please try again later.", variant: "destructive" });
       }
       
       setSent(false);

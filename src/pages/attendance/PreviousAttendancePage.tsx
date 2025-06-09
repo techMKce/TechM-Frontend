@@ -495,6 +495,7 @@ const PreviousAttendancePage = () => {
 
   doc.save(`attendance-${singleFilters.singleDate}-${session}.pdf`);
 }, [singleFilters, attendanceRecords]);
+
 const downloadRangePDF = useCallback(async () => {
   if (!groupFilters.course || !groupFilters.fromDate || !groupFilters.toDate) {
     toast.error("Please select all required filters");
@@ -505,6 +506,7 @@ const downloadRangePDF = useCallback(async () => {
     toast.error("No attendance data available to download");
     return;
   }
+
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -580,6 +582,7 @@ const downloadRangePDF = useCallback(async () => {
   });
 
   doc.save(`attendance-summary-${groupFilters.fromDate}-to-${groupFilters.toDate}.pdf`);
+
 }, [groupFilters, consolidatedRangeAttendance]);
 
   const singleDayFN = useMemo(() => 

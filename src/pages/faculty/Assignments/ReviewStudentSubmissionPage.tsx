@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { FileText, Calendar, Download, Eye, Pencil, Save, X } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import axios from "axios";
 import api from "@/service/api";
 
@@ -47,12 +47,13 @@ const ReviewStudentSubmissionPage = () => {
   const [isViewerOpen, setIsViewerOpen] = useState(false); // Track viewer state
   const [viewerUrl, setViewerUrl] = useState<string | null>(null); // Store file URL
   const viewerRef = useRef<HTMLDivElement | null>(null); // Ref for viewer container
-  const {state}=useLocation()
+  const {state}=useLocation();
   useEffect(() => {
+    
     const fetchData = async () => {
       if (!submissionId || !assignmentId || !studentRollNumber) {
-        toast.error("Invalid submission, assignment, or student ID.");
-        navigate(`/faculty/assignments/${assignmentId || "unknown"}/grade`);
+        toast({title:"Invalid submission, assignment, or student ID.",variant:'destructive'});
+        navigate(`/faculty/assignments/${assignmentId || "unknown"}/grade`,{state:state});
         setLoading(false);
         return;
       }
@@ -78,8 +79,8 @@ const ReviewStudentSubmissionPage = () => {
             },
           });
         } else {
-          toast.error("Failed to load submission details.");
-          navigate(`/faculty/assignments/${assignmentId}/grade`);
+          toast({title:"Failed to load submission details.",variant:'destructive'});
+          navigate(`/faculty/assignments/${assignmentId}/grade`,{state:state});
           return;
         }
 
@@ -96,19 +97,19 @@ const ReviewStudentSubmissionPage = () => {
           setGrade(grading.grade);
           setFeedback(grading.feedback);
         } else {
-          toast.info("No grading data found for this submission.");
-          navigate(`/faculty/assignments/${assignmentId}/grade`);
+          toast({title:"No grading data found for this submission.",variant:'info'});
+          navigate(`/faculty/assignments/${assignmentId}/grade`,{state:state});
         }
       } catch (err) {
-        toast.error("Error loading submission or grading data.");
-        navigate(`/faculty/assignments/${assignmentId}/grade`);
+        toast({title:"Error loading submission or grading data.",variant:'destructive'});
+        navigate(`/faculty/assignments/${assignmentId}/grade`,{state:state});
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [submissionId, assignmentId, studentRollNumber, navigate]);
+  }, [submissionId, assignmentId, studentRollNumber]);
 
   useEffect(() => {
     // Cleanup viewer URL on component unmount
@@ -121,7 +122,7 @@ const ReviewStudentSubmissionPage = () => {
 
   const handleDeleteGrade = async () => {
     if (!submission || !assignmentId || !submissionId) {
-      toast.info("Submission data or assignment ID not available");
+      toast({title:"Submission data or assignment ID not available",variant:'info'});
       return;
     }
 
@@ -139,27 +140,27 @@ const ReviewStudentSubmissionPage = () => {
       });
 
       if (response.status === 200) {
-        toast.success("Grade deleted. You can now edit and resubmit.");
+        toast({title:"Grade deleted. You can now edit and resubmit."});
         setGradingData(null);
         setIsEditing(true);
         setGrade("");
         setFeedback("");
       } else {
-        toast.error(response.data.message || "Failed to delete grade");
+        toast({title:response.data.message || "Failed to delete grade",variant:'destructive'});
       }
     } catch (error) {
-      toast.error("Network error: Could not delete grade");
+      toast({title:"Network error: Could not delete grade",variant:'destructive'});
     }
   };
 
   const handleSubmitGrade = async () => {
     if (!grade) {
-      toast.warning("Please select a grade");
+      toast({title:"Please select a grade",variant:'warning'});
       return;
     }
 
     if (!submission || !assignmentId) {
-      toast.error("Submission or assignment data missing");
+      toast({title:"Submission or assignment data missing",variant:'warning'});
       return;
     }
 
@@ -174,15 +175,15 @@ const ReviewStudentSubmissionPage = () => {
       const response = await api.post("/gradings", requestBody);
 
       if (response.status === 200) {
-        toast.success("Grade updated successfully.");
+        toast({title:"Grade updated successfully."});
         setGradingData({ grade, feedback });
         setIsEditing(false);
-        navigate(`/faculty/assignments/${assignmentId}/grade`);
+        navigate(`/faculty/assignments/${assignmentId}/grade`,{state:state});
       } else {
-        toast.error(response.data.message || "Failed to submit grade");
+        toast({title:response.data.message || "Failed to submit grade",variant:'destructive'});
       }
     } catch (error) {
-      toast.error("Network error: Could not submit grade");
+      toast({title:"Network error: Could not submit grade",variant:'destructive'});
     }
   };
 
@@ -196,7 +197,7 @@ const ReviewStudentSubmissionPage = () => {
 
   const handleDownloadDocument = async () => {
     if (!submissionId) {
-      toast.warning("Submission ID not available");
+      toast({title:"Submission ID not available",variant:'warning'});
       return;
     }
 
@@ -207,9 +208,9 @@ const ReviewStudentSubmissionPage = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.info("Document downloaded successfully.");
+      toast({title:"Document downloaded successfully."});
     } catch (err) {
-      toast.error("Failed to download document.");
+      toast({title:"Failed to download document.",variant:'destructive'});
     }
   };
 
@@ -225,7 +226,7 @@ const ReviewStudentSubmissionPage = () => {
     }
 
     if (!submissionId) {
-      toast.warning("Submission ID not available");
+      toast({title:"Submission ID not available",variant:'warning'});
       return;
     }
 
@@ -267,9 +268,9 @@ const ReviewStudentSubmissionPage = () => {
       const fileUrl = window.URL.createObjectURL(blob);
       setViewerUrl(fileUrl);
       setIsViewerOpen(true);
-      toast.info("Document opened for viewing.");
+      toast({title:"Document opened for viewing.",variant:'info'});
     } catch (err) {
-      toast.error("Failed to view document. Try downloading instead.");
+      toast({title:"Failed to view document. Try downloading instead.",variant:'destructive'});
     }
   };
 
@@ -289,13 +290,13 @@ const ReviewStudentSubmissionPage = () => {
   if (!submission) {
     return null; // RouteGuard in App.tsx handles redirect
   }
-
+  console.log(state);
   return (
     <>
       <Navbar />
       <div className="page-container max-w-4xl mx-auto max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link to={`/faculty/assignments/${assignmentId}/grade`} state={{course:state}} className="text-black hover:text-grey">
+          <Link to={`/faculty/assignments/${assignmentId}/grade`} state={{...state}} className="text-black hover:text-grey">
             ← Back to All Submissions
           </Link>
 
@@ -311,7 +312,7 @@ const ReviewStudentSubmissionPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-secondary">Name</p>
+                  <p className="text-sm ">Name</p>
                   <p className="font-medium">{submission.studentName}</p>
                 </div>
                 <div>

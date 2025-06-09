@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { Users, GraduationCap } from "lucide-react";
 import api from "../../service/api";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 interface Student {
   id: string;
   rollNumber: string;
@@ -62,8 +62,9 @@ const StudentsPage = () => {
     try{
       courseAndFacultyId=await api.get(`/faculty-student-assigning/admin/faculty/${profile.profile.id}`).then((response) => response.data);
     } catch (error) {
-      toast.error("Failed to Fetch Student Assignments",{
+      toast({title:"Failed to Fetch Student Assignments",
         description: "Please try again later & check internet Connection",
+        variant:'destructive'
       })
     }
     const courses = JSON.parse(localStorage.getItem('courses') || '[]');

@@ -1,11 +1,10 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useLocation } from "react-router-dom";
 import api from "@/service/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Edit, Trash, ClipboardCheck } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-
+import { toast } from "@/hooks/use-toast";
 interface Assignment {
   assignmentId: string;
   courseId: string;
@@ -39,7 +38,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({
   const [submissionStatus, setSubmissionStatus] = useState<Record<string, boolean>>({});
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {state}=useLocation();
 
   const MAX_DESCRIPTION_LENGTH = 200;
 
@@ -99,7 +98,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({
       });
       return;
     }
-    navigate(`/student/assignments/${assignmentId}/submit`);
+    navigate(`/student/assignments/${assignmentId}/submit`,{state:state});
   };
 
   const handleGrade = (assignmentId: string) => {
@@ -111,7 +110,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({
       });
       return;
     }
-    navigate(`/faculty/assignments/${assignmentId}/grade`);
+    navigate(`/faculty/assignments/${assignmentId}/grade`,{state:state});
   };
 
   const handleEditAssignment = (assignmentId: string) => {
@@ -123,7 +122,7 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({
       });
       return;
     }
-    navigate(`/faculty/assignments/${assignmentId}/edit`);
+    navigate(`/faculty/assignments/${assignmentId}/edit`,{state:state});
   };
 
   const handleDeleteAssignment = (id: string) => {
@@ -285,34 +284,31 @@ const DisplayAssignments: React.FC<DisplayAssignmentsProps> = ({
                   )}
                 </div>
 
-                {/* File & Action */}
-                <div className="flex items-center justify-between flex-wrap gap-4 mb-7">
-                  <div className="flex items-center space-x-6">
-                    {assignment.fileName && (
-                      <p className="text-base text-gray-600">
-                        <span className="text-lg font-semibold text-gray-600">
-                          File:{" "}
-                        </span>
-                        {assignment.fileName}
-                      </p>
-                    )}
-                  </div>
-                  <div className="action-buttons flex space-x-4 shrink-0">
-                    {profile?.profile?.role === "STUDENT" && (
-                      <button
-                        className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 text-base whitespace-nowrap shrink-0"
-                        onClick={() => handleSubmit(assignment.assignmentId)}
-                        disabled={deletingId === assignment.assignmentId}
-                      >
-                        {submissionStatus[assignment.assignmentId]
-                          ? "View Assignment"
-                          : "Submit Assignment"}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                {/* File Info */}
+                {assignment.fileName && (
+                  <p className="text-base text-gray-600">
+                    <span className="text-lg font-semibold text-gray-600">
+                      File:{" "}
+                    </span>
+                    {assignment.fileName}
+                  </p>
+                )}
 
-                {/* Grade Button */}
+                {/* Student Submit Button */}
+                {profile?.profile?.role === "STUDENT" && (
+                  <button
+                    className="absolute bottom-4 right-4 flex items-center space-x-2 px-6 py-3 bg-black text-white rounded-lg shadow-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 z-10 text-base"
+                    onClick={() => handleSubmit(assignment.assignmentId)}
+                    disabled={deletingId === assignment.assignmentId}
+                    title="Submit Assignment"
+                  >
+                    {submissionStatus[assignment.assignmentId]
+                      ? "View Assignment"
+                      : "Submit Assignment"}
+                  </button>
+                )}
+
+                {/* Faculty Grade Button */}
                 {profile?.profile?.role === "FACULTY" && (
                   <button
                     className="absolute bottom-4 right-4 flex items-center space-x-2 px-6 py-3 bg-black text-white rounded-lg shadow-lg hover:bg-gray-800 hover:scale-105 transition-all duration-200 z-10 text-base"

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AdminNavbar from "@/components/AdminNavbar";
 import { Upload, Plus, Eye, Edit, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import * as XLSX from 'xlsx';
 
 interface Student {
@@ -50,7 +50,7 @@ const StudentsPage = () => {
 
   const handleSubmit = () => {
     if (!formData.rollNumber || !formData.name || !formData.email || !formData.department || !formData.year) {
-      toast.error("Please fill all fields");
+      toast({title:"Please fill all fields",variant:'warning'});
       return;
     }
 
@@ -65,7 +65,7 @@ const StudentsPage = () => {
     updateStudentsStorage(updatedStudents);
     setFormData({ rollNumber: "", name: "", email: "", department: "", year: "" });
     setIsAddDialogOpen(false);
-    toast.success("Student added successfully");
+    toast({title:"Student added successfully"});
   };
 
   const handleEdit = () => {
@@ -81,14 +81,14 @@ const StudentsPage = () => {
     setIsEditDialogOpen(false);
     setSelectedStudent(null);
     setFormData({ rollNumber: "", name: "", email: "", department: "", year: "" });
-    toast.success("Student updated successfully");
+    toast({title:"Student updated successfully"});
   };
 
   const handleDelete = (studentId: string) => {
     const updatedStudents = students.filter(student => student.id !== studentId);
     setStudents(updatedStudents);
     updateStudentsStorage(updatedStudents);
-    toast.success("Student deleted successfully");
+    toast({title:"Student deleted successfully"});
   };
 
   const handleView = (student: Student) => {
@@ -120,7 +120,7 @@ const StudentsPage = () => {
     const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
     if (!isCSV && !isExcel) {
-      toast.error("Please select a valid CSV or Excel (.xlsx) file");
+      toast({title:"Please select a valid CSV or Excel (.xlsx) file",variant:'warning'});
       return;
     }
 
@@ -165,7 +165,7 @@ const StudentsPage = () => {
       const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
-        toast.error("Excel file is empty");
+        toast({title:"Excel file is empty",variant:'warning'});
         return;
       }
 
@@ -184,7 +184,7 @@ const StudentsPage = () => {
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
     if (missingHeaders.length > 0) {
-      toast.error(`Missing required columns: ${missingHeaders.join(', ')}`);
+      toast({title:`Missing required columns: ${missingHeaders.join(', ')}`,variant:'destructive'});
       return;
     }
 
@@ -195,7 +195,7 @@ const StudentsPage = () => {
       if (!row || row.length === 0) continue;
 
       if (row.length !== headers.length) {
-        toast.error(`Row ${i + 2} has incorrect number of columns`);
+        toast({title:`Row ${i + 2} has incorrect number of columns`,variant:'destructive'});
         return;
       }
 
@@ -205,7 +205,7 @@ const StudentsPage = () => {
       });
 
       if (!studentData.rollnumber || !studentData.name || !studentData.email || !studentData.department || !studentData.year) {
-        toast.error(`Row ${i + 2} has missing required data`);
+        toast({title:`Row ${i + 2} has missing required data`,variant:'destructive'});
         return;
       }
 
@@ -224,7 +224,7 @@ const StudentsPage = () => {
       const updatedStudents = [...students, ...newStudents];
       setStudents(updatedStudents);
       updateStudentsStorage(updatedStudents);
-      toast.success(`Successfully added ${newStudents.length} students`);
+      toast({title:`Successfully added ${newStudents.length} students`});
     }
   };
 

@@ -1,10 +1,13 @@
+
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+
 import Navbar from "@/components/FacultyNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Clock, User, Search, Download } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import api from "@/service/api";
 
 interface StudentSubmission {
@@ -28,14 +31,14 @@ const GradeSubmissionsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [facultyName] = useState("Dr. Jane Smith");
+  // const [facultyName] = useState("Dr. Jane Smith");
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!assignmentId) {
-      toast.error("Invalid assignment ID.");
+      toast({ title: "Invalid assignment ID.", variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -57,7 +60,7 @@ const GradeSubmissionsPage = () => {
         if (assignmentRes.data.assignment) {
           setAssignment(assignmentRes.data.assignment);
         } else {
-          toast.error("Failed to load assignment details.");
+          toast({ title: "Failed to load assignment details.", variant: "destructive" });
         }
 
         const submissionsData = Array.isArray(submissionRes.data.submissions)
@@ -81,7 +84,7 @@ const GradeSubmissionsPage = () => {
 
         setSubmissions(mergedSubmissions);
       } catch (err) {
-        toast.error("Failed to fetch assignment, submissions, or gradings.");
+        toast({ title: "Failed to fetch assignment, submissions, or gradings.", variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -109,7 +112,7 @@ const GradeSubmissionsPage = () => {
 
   const handleDownloadCSV = async () => {
     if (!assignmentId) {
-      toast.error("Invalid assignment ID.");
+      toast({ title: "Invalid assignment ID.", variant: "destructive" });
       return;
     }
 
@@ -138,19 +141,21 @@ const GradeSubmissionsPage = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success("CSV report downloaded successfully.");
+
+      window.URL.revokeObjectURL(url); // Clean up
+      toast({ title: "CSV report downloaded successfully.", variant: "default" });
+
     } catch (err: any) {
       if (err.response?.data) {
         try {
           const text = await err.response.data.text();
           const errorObj = JSON.parse(text);
-          toast.error(errorObj.message || "Failed to download CSV report.");
+          toast({ title: errorObj.message || "Failed to download CSV report.", variant: "destructive" });
         } catch {
-          toast.error("Failed to download CSV report.");
+          toast({ title: "Failed to download CSV report.", variant: "destructive" });
         }
       } else {
-        toast.error("Failed to download CSV report.");
+        toast({ title: "Failed to download CSV report.", variant: "destructive" });
       }
     } finally {
       setIsDownloading(false);
@@ -297,18 +302,29 @@ const GradeSubmissionsPage = () => {
                           }
                           className={`text-sm flex items-center gap-1 h-10 px-4 text-white ${
                             student.grade
-                              ? "bg-black hover:bg-gray-800"
-                              : "bg-green-500 hover:bg-green-600"
-                          }`}
-                        >
-                          <FileText size={14} />
-                          {student.grade ? "Review" : "Grade"}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+                              ? `/faculty/assignments/${assignmentId}/review/${student.studentRollNumber}/${student.id}`
+                              : `/faculty/assignments/${assignmentId}/grade/${student.studentRollNumber}/${student.id}`,
+                              {state:state}
+                          )
+                        }
+                        className="text-sm flex items-center gap-1 bg-black hover:bg-black"
+                      >
+                        <FileText size={14} />
+                        {student.grade ? "Review" : "Grade"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredSubmissions.length === 0 && (
+            <div className="text-center py-8">
+              <FileText size={36} className="mx-auto text-secondary opacity-40" />
+              <p className="mt-2 ">No submissions found</p>
+
             </div>
 
             {filteredSubmissions.length === 0 && (

@@ -8,7 +8,7 @@ import {
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Upload, X, File as FileIcon } from "lucide-react";
 
 interface Section {
@@ -92,8 +92,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
 
   const handleUploadVideo = async () => {
     if (!videoUrl) {
-      toast.error("Please enter a video URL");
-      setLoader(false);
+      toast({title:"Please enter a video URL",variant:'warning'});
       return;
     }
 
@@ -105,7 +104,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       // if (videoTitle) {
       //   formData.append("contentType", videoTitle);
       // }
-
+        setLoader(true);
       await api.post("/course/section/content/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -123,9 +122,12 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       setVideoUrl("");
       setVideoTitle("");
 
-      toast.success("Video added successfully");
+      toast({title:"Video added successfully",variant:'default'});
     } catch (error) {
-      toast.error("Failed to add video. Please try again.");
+
+      console.error("Error adding video:", error);
+      toast({title:"Failed to add video. Please try again.",variant:'destructive'});
+
     }
     finally{
       setLoader(false);
@@ -134,7 +136,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
 
   const handleUploadPdf = async () => {
     if (!pdfFile) {
-      toast.error("Please upload a PDF file");
+      toast({title:"Please upload a PDF file",variant:'warning'});
       setLoader(false);
       return;
     }
@@ -166,12 +168,12 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       setPdfFile(null);
       setPdfTitle("");
 
-      toast.success("PDF added successfully");
+      toast({title:"PDF added successfully",variant:'default'});
     } catch (error) {
 
 
 
-      toast.error(`Failed to add ${pdfTitle}. Please try again.`);
+      toast({title:`Failed to add ${pdfTitle}. Please try again.`,variant:'destructive'});
 
 
     }
@@ -231,9 +233,12 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       // console.log("blog url in handleViewPdf: ", blobUrl);
 
       setPdfViewerUrl(fileUrl);
-      toast.info("Document opened for viewing.");
+      toast({title:"Document opened for viewing.",variant:'info'});
     } catch (error) {
-      toast.error("Failed to load PDF. Please try again.");
+
+      console.error("Error loading PDF:", error);
+      toast({title:"Failed to load PDF. Please try again.",variant:'destructive'});
+
 
       // Fallback option
       window.open(
@@ -271,11 +276,11 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       });
 
       setContents((prev) => prev.filter((c) => c.id !== contentId));
-      toast.success(`${contentType} deleted successfully`);
+      toast({title:`${contentType} deleted successfully`,variant:'default'});
     } catch (error: any) {
 
 
-      toast.error(`Failed to delete ${contentType}`);
+      toast({title:`Failed to delete ${contentType}`,variant:'destructive'});
 
     }
   };
@@ -437,7 +442,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
                 </button>
                 <button
                   type="button"
-                  onClick={()=>{setLoader(true);handleUploadVideo()}}
+                  onClick={()=>{handleUploadVideo()}}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700"
                 >
                   Add Video {(loader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin inline-block"/>:""}
@@ -482,7 +487,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
                     }
                   } else {
 
-                    toast.warning("Please upload a PDF file only");
+                    toast({title:"Please upload a PDF file only",variant:'warning'});
 
                   }
                 }}
@@ -498,7 +503,7 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
                     if (file) {
                       if (file.type !== "application/pdf") {
 
-                        toast.warning("Please upload a PDF file only");
+                        toast({title:"Please upload a PDF file only",variant:'warning'});
 
                         return;
                       }

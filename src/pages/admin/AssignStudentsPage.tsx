@@ -17,7 +17,7 @@ import {
 } from "../../components/ui/select";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Badge } from "../../components/ui/badge";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import api from "../../service/api";
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 
@@ -96,7 +96,8 @@ const AssignStudentsPage = () => {
         ]);
 
         if (deptResponse.status !== 200 || courseResponse.status !== 200) {
-          toast.error("Failed to load initial data");
+          toast({title:"Failed to load initial data",variant:'destructive'});
+          setLoader(false);
           return;
         }
 
@@ -116,9 +117,10 @@ const AssignStudentsPage = () => {
         );
         setCourses(coursesData.filter((course) => course.isEnabled));
       } catch (error) {
-        toast.error("Error loading initial data");
+        toast({title:"Error loading initial data",variant:'destructive'});
       } finally {
         setLoading((prev) => ({ ...prev, initial: false }));
+        setLoader(false);
       }
     };
 
@@ -141,7 +143,8 @@ const AssignStudentsPage = () => {
         }
 
         if (response.status !== 200) {
-          toast.error("Failed to load faculty");
+          toast({title:"Failed to load faculty",variant:'destructive'});
+          setLoader(false);
           return;
         }
 
@@ -154,9 +157,10 @@ const AssignStudentsPage = () => {
         }));
         setFaculty(facultyData);
       } catch (error) {
-        toast.error("Error loading faculty data");
+        toast({title:"Error loading faculty data",variant:'destructive'});
       } finally {
         setLoading((prev) => ({ ...prev, faculty: false }));
+        setLoader(false);
       }
     };
 
@@ -195,8 +199,13 @@ const AssignStudentsPage = () => {
           api.get("/profile/student"),
         ]);
 
-        if (enrollmentResponse.status !== 200 || studentsResponse.status !== 200) {
-          toast.error("Failed to load student data");
+        if (
+          enrollmentResponse.status !== 200 ||
+          studentsResponse.status !== 200
+        ) {
+          toast({title:"Failed to load student data",variant:'destructive'});
+          setLoader(false);
+
           return;
         }
 
@@ -225,9 +234,10 @@ const AssignStudentsPage = () => {
 
         await fetchCourseAssignments(selectedCourse.id);
       } catch (error) {
-        toast.error("Error loading enrolled students");
+        toast({title:"Error loading enrolled students",variant:'destructive'});
       } finally {
         setLoading((prev) => ({ ...prev, students: false }));
+        setLoader(false);
       }
     };
 
@@ -282,8 +292,8 @@ const AssignStudentsPage = () => {
 
   const handleAssignStudents = async () => {
     if (!selectedCourse || selectedUsers.length === 0 || !selectedFaculty) {
-      toast.error(
-        "Please select a course, at least one student, and a faculty member"
+      toast({title:
+        "Please select a course, at least one student, and a faculty member",variant:'warning'}
       );
       setLoader(false);
       return;
@@ -294,9 +304,10 @@ const AssignStudentsPage = () => {
       isStudentAssigned(studentId)
     );
 
+
     if (alreadyAssignedStudents.length > 0) {
-      toast.error(
-        `Cannot assign ${alreadyAssignedStudents.length} student(s) as they are already assigned to faculty`
+      toast({title:
+        "One or more selected students are already assigned to a faculty for this course",variant:'warning'}
       );
       setLoader(false);
       return;
@@ -304,6 +315,7 @@ const AssignStudentsPage = () => {
 
     try {
       setLoading((prev) => ({ ...prev, assignment: true }));
+      setLoader(true);
       const response = await api.post(
         "faculty-student-assigning/admin/assign",
         {
@@ -314,7 +326,8 @@ const AssignStudentsPage = () => {
       );
 
       if (response.status !== 200) {
-        toast.error("Failed to assign students to faculty");
+        toast({title:"Failed to assign students to faculty",variant:'destructive'});
+        setLoader(false);
         return;
       }
 
@@ -345,23 +358,24 @@ const AssignStudentsPage = () => {
 
       setSelectedUsers([]);
       setSelectAll(false);
-      toast.success(`Successfully assigned ${selectedUsers.length} students`);
+      toast({title:`Successfully assigned ${selectedUsers.length} students`});
+
     } catch (error: any) {
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data || "";
 
         if (status === 409) {
-          toast.error(
-            "One or more students are already assigned to another faculty for this course"
+          toast({title:
+            "One or more students are already assigned to another faculty for this course",variant:'warning'}
           );
         } else if (status === 400) {
-          toast.error(message || "Bad request");
+          toast({title:message || "Bad request",variant:'destructive'});
         } else {
-          toast.error("Failed to assign students. Please try again.");
+          toast({title:"Failed to assign students,might Already Enrolled!, Please try again.",variant:'destructive'});
         }
       } else {
-        toast.error("An unexpected error occurred. Please try again.");
+        toast({title:"An unexpected error occurred. Please try again.",variant:'destructive'});
       }
     } finally {
       setLoading((prev) => ({ ...prev, assignment: false }));
@@ -653,7 +667,6 @@ const AssignStudentsPage = () => {
               <div className="mt-4 pt-4 border-t">
                 <Button
                   onClick={() => {
-                    setLoader(true);
                     handleAssignStudents();
                   }}
                   className="w-full"

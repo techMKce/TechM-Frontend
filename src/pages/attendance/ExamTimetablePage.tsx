@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import Navbar from "@/components/StudentNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Download, FileText } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import api from "../../service/api";
@@ -44,7 +43,7 @@ const ExamTimetablePage = () => {
         setExamData(formattedData);
         setIsLoading(false);
       } catch (error) {
-        toast.error("Failed to load exam timetable");
+        toast({ title: "Failed to load exam timetable", variant: "destructive" });
         setIsLoading(false);
       }
     };
@@ -107,7 +106,7 @@ const ExamTimetablePage = () => {
 
   const generatePDF = async () => {
   if (examData.length === 0) {
-    toast.info("No exam data available to download");
+    toast({ title: "No exam data available to download", variant: "info" });
     return;
   }
 
@@ -118,7 +117,9 @@ const ExamTimetablePage = () => {
 
     // === Load & Add Logo ===
     try {
-      const logoUrl = "/Karpagam_Logo-removebg-preview.png";
+      setLoader(true);
+      const logoUrl = "/public/Karpagam_Logo-removebg-preview.png";
+
       const response = await fetch(logoUrl);
       const blob = await response.blob();
       const base64Image = await new Promise<string>((resolve) => {
@@ -201,11 +202,14 @@ const ExamTimetablePage = () => {
       margin: { left: 14, right: 14 },
     });
 
-    doc.save("Exam-Timetable.pdf");
-    toast.success("Exam timetable downloaded successfully");
-    setLoader(false);
+
+    doc.save("exam-timetable.pdf");
+    toast({ title: "Exam timetable downloaded successfully", variant: "default" });
   } catch (error) {
-    toast.error("Failed to generate PDF");
+    toast({ title: "Failed to generate PDF", variant: "destructive" });
+        
+
+  } finally {
     setLoader(false);
   }
 };
@@ -232,7 +236,7 @@ const ExamTimetablePage = () => {
               <CardDescription>Download full exam schedule as PDF</CardDescription>
             </div>
             <Button
-              onClick={()=>{setLoader(true);generatePDF()}}
+              onClick={()=>{generatePDF()}}
               disabled={isLoading || examData.length === 0}
               className="bg-primary hover:bg-primary-dark flex items-center gap-2"
               size="sm"

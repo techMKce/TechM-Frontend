@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Upload, Link as LinkIcon, AlertCircle } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import api from "@/service/api";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -18,7 +18,7 @@ const CreateAssignmentPage = () => {
   const { profile } = useAuth();
   const location = useLocation();
   const { course_id, courseTitle } = location.state || {};
-  const[loader,setLoader]=useState(false);
+  const [loader,setLoader]=useState(false);
   const { state }= useLocation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -58,7 +58,7 @@ const CreateAssignmentPage = () => {
     );
 
     if (validFiles.length < droppedFiles.length) {
-      toast.warning("Some files were rejected. Only PDF, DOC, DOCX, PPT, PPTX, ZIP files up to 10MB are allowed.");
+      toast({title:"Some files were rejected. Only PDF, DOC, DOCX, PPT, PPTX, ZIP files up to 10MB are allowed.",variant:'warning'});
     }
 
     setFiles((prev) => [...prev, ...validFiles]);
@@ -81,50 +81,72 @@ const CreateAssignmentPage = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!formData.title || !formData.courseId || !formData.dueTimestamp || !formData.description || files.length === 0) {
-      toast.warning("Please fill all required fields and upload at least one file.");
-      return;
+  if (
+    !formData.title ||
+    !formData.courseId ||
+    !formData.dueTimestamp ||
+    !formData.description ||
+    files.length === 0
+  ) {
+    toast({
+      title: "Please fill all required fields and upload at least one file.",
+      variant: "warning",
+    });
+    return;
+  }
+
+  if (formData.title.trim().length === 0 || formData.description.trim().length === 0) {
+    toast({
+      title: "Title and Description cannot be empty.",
+      variant: "warning",
+    });
+    return; // ✅ This is necessary to stop form submission
+  }
+
+  const formattedDueDate = formData.dueTimestamp
+    ? new Date(formData.dueTimestamp).toLocaleString("sv-SE").replace(" ", "T")
+    : "";
+
+  try {
+    const formPayload = new FormData();
+    formPayload.append("title", formData.title);
+    formPayload.append("courseId", formData.courseId);
+    formPayload.append("courseName", formData.courseTitle);
+    formPayload.append("courseFaculty", profile.profile.name);
+    formPayload.append("dueDate", formattedDueDate);
+    formPayload.append("description", formData.description);
+    formPayload.append("resourceLink", formData.resourceLink);
+    console.log(formData);
+    files.forEach((file) => {
+      formPayload.append("file", file);
+    });
+
+    setLoader(true); // ✅ loader is shown only after validations pass
+
+    const response = await api.post("/assignments", formPayload, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      toast({ title: "Assignment created successfully!" });
+      navigate(-1);
+    } else {
+      throw new Error("Unexpected response status: " + response.status);
     }
+  } catch (error) {
+    toast({
+      title: "Something went wrong while creating the assignment.",
+      variant: "warning",
+    });
+  } finally {
+    setLoader(false); // ✅ hides the loader after API call
+  }
+};
 
-    const formattedDueDate = formData.dueTimestamp
-      ? new Date(formData.dueTimestamp).toLocaleString("sv-SE").replace(" ", "T")
-      : "";
-
-    try {
-      const formPayload = new FormData();
-      formPayload.append("title", formData.title);
-      formPayload.append("courseId", formData.courseId);
-      formPayload.append("courseName", formData.courseTitle);
-      formPayload.append("courseFaculty", profile.profile.name);
-      formPayload.append("dueDate", formattedDueDate);
-      formPayload.append("description", formData.description);
-      formPayload.append("resourceLink", formData.resourceLink);
-
-      files.forEach((file) => {
-        formPayload.append("file", file);
-      });
-
-      const response = await api.post("/assignments", formPayload, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      if (response.status >= 200 && response.status < 300) {
-        toast.success("Assignment created successfully!");
-        navigate(-1);
-      } else {
-        throw new Error("Unexpected response status: " + response.status);
-      }
-    } catch (error) {
-      toast.error("Something went wrong while creating the assignment.");
-    }
-    finally{
-      setLoader(false);
-    }
-  };
 
   return (
     <>
@@ -298,11 +320,11 @@ const CreateAssignmentPage = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => navigate("/faculty/assignments")}
+                    onClick={() => navigate(`/faculty/courses/${course_id}`,{state:state})}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="bg-primary hover:bg-primary-dark" onClick={()=>setLoader(true)}>
+                  <Button type="submit" className="bg-primary hover:bg-primary-dark">
                     Create Assignment
                     {(loader)?<img src="/preloader1.png" alt="loader" className="w-5 h-5 animate-spin"/>:""}
                   </Button>

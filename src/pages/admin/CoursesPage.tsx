@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Trash2 } from "lucide-react";
 import api from "@/service/api";
 
@@ -40,8 +40,9 @@ const CoursesPage = () => {
         }));
         setCourses(data);
       } catch (error) {
-        // console.error('Error fetching courses:', error);
-        toast.error('Failed to load courses');
+        console.error('Error fetching courses:', error);
+        toast({title:'Failed to load courses',variant:'destructive'});
+
       }
     };
     fetchCourses();
@@ -51,7 +52,7 @@ const CoursesPage = () => {
     const response = await api.put(`/course/toggle/${courseId}`);
 
     if (response.status !== 200) {
-      toast.error('Failed to update course status');
+      toast({title:'Failed to update course status',variant:'destructive'});
       return;
     }
 
@@ -59,20 +60,20 @@ const CoursesPage = () => {
       course.id === courseId ? { ...course, isEnabled: !course.isEnabled } : course
     );
     setCourses(updatedCourses);
-    toast.success(`Course ${!courses.find(c => c.id === courseId)?.isEnabled ? 'enabled' : 'disabled'} successfully`);
+    toast({title:`Course ${!courses.find(c => c.id === courseId)?.isEnabled ? 'enabled' : 'disabled'} successfully`});
   };
 
   const handleDelete = async (courseId: string) => {
     const response = await api.delete(`/course/delete`, { params: { course_id: courseId } });
 
     if (response.status !== 200) {
-      toast.error('Failed to delete course');
+      toast({title:'Failed to delete course',variant:'destructive'});
       return;
     }
 
     const updatedCourses = courses.filter(course => course.id !== courseId);
     setCourses(updatedCourses);
-    toast.success("Course deleted successfully");
+    toast({title:"Course deleted successfully"});
   };
 
   return (

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AlertCircleIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,9 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+
+import { toast } from "@/hooks/use-toast";
+
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+
 
 const Login = () => {
   const { signIn } = useAuth();
@@ -27,7 +31,7 @@ const Login = () => {
     setError(null);
     
     if (!email || !password) {
-      toast.error("Please fill all fields");
+      toast({title:`Please fill all fields !`,variant:'warning'});
       return;
     }
 

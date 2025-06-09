@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 type CourseFormData = {
   courseCode:string;
@@ -97,12 +97,12 @@ const CourseForm = ({
     const credit = Number(formData.credit);
 
     if (isNaN(duration) || duration <= 0) {
-      toast.warning("Please enter a valid duration (must be positive number)");
+      toast({title:"Please enter a valid duration (must be positive number)",variant:'warning'});
       return;
     }
 
     if (isNaN(credit) || credit <= 0) {
-      toast.warning("Please enter valid credits (must be positive number)");
+      toast({title:"Please enter valid credits (must be positive number)",variant:'warning'});
       return;
     }
 

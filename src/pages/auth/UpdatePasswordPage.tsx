@@ -3,8 +3,10 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
+
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "@/service/api";
 
@@ -39,24 +41,28 @@ const ChangePassword = () => {
     setError(null);
 
     if (!newPassword || !confirmPassword) {
-      toast.error("Please fill in all fields");
+      toast({ title: "Please fill in all fields", variant: "destructive" });
       return;
     }
+
 
     const passwordError = validatePassword(newPassword);
     if (passwordError) {
       setError(passwordError);
-      toast.error(passwordError);
+      toast({ title: passwordError, variant: "destructive" });
       return;
     }
 
     if (newPassword !== confirmPassword) {
+
       setError("Passwords do not match");
-      toast.error("Passwords do not match");
+      toast({ title: "Passwords do not match", variant: "destructive" });
+
       return;
     }
 
     setLoading(true);
+
 
     try {
       const response = await api.post("/auth/updatePassword", {
@@ -65,11 +71,11 @@ const ChangePassword = () => {
       });
 
       if (response.status === 200) {
-        toast.success("Password updated successfully");
+        toast({ title: "Password updated successfully", variant: "default" });
         navigate("/student/login");
       } else {
         setError("Failed to update password. Please try again.");
-        toast.error("Failed to update password. Please try again.");
+        toast({ title: "Failed to update password. Please try again.", variant: "destructive" });
       }
     } catch (error: any) {
       console.error("Change password error:", error);
