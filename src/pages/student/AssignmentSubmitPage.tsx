@@ -98,7 +98,7 @@ const AssignmentSubmitPage = () => {
           err?.response?.data?.message ||
           "Failed to check submission and grading status",
       });
-      console.error("Submission/grading error:", err);
+      // console.error("Submission/grading error:", err);
     }
   };
 
@@ -125,7 +125,7 @@ const AssignmentSubmitPage = () => {
           title: "Error",
           description: "Error fetching assignment",
         });
-        console.error("Fetch assignment error:", err);
+        // console.error("Fetch assignment error:", err);
 
       } finally {
         setLoading(false);
@@ -189,6 +189,7 @@ const AssignmentSubmitPage = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast({
+        variant: "default",
         title: "Success",
         description: "Assignment submitted successfully",
       });
@@ -241,7 +242,7 @@ const AssignmentSubmitPage = () => {
       setPreviewUrl(url);
       setIsPreviewOpen(true);
     } catch (err: any) {
-      console.error("Preview error:", err);
+      // console.error("Preview error:", err);
       toast({
         variant: "destructive",
         title: "Error",
@@ -305,6 +306,7 @@ const AssignmentSubmitPage = () => {
               setFeedback(null);
               setLoader(false);
               toast({
+                variant: "default",
                 title: "Success",
                 description: "Assignment unsubmitted successfully",
               });
@@ -317,7 +319,7 @@ const AssignmentSubmitPage = () => {
                   err?.response?.data?.message ||
                   "Failed to unsubmit assignment",
               });
-              console.error("Unsubmit error:", err);
+              // console.error("Unsubmit error:", err);
             }
             finally{
               setLoader(false);
@@ -379,7 +381,7 @@ const AssignmentSubmitPage = () => {
         description: "Document downloaded successfully",
       });
     } catch (err: any) {
-      console.error("Download error:", err);
+      // console.error("Download error:", err);
       toast({
         variant: "destructive",
         title: "Error",

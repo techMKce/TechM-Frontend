@@ -189,7 +189,7 @@ const PreviousAttendancePage = () => {
       setDepartments(uniqueDepartments);
       setSemesters(uniqueSemesters);
     } catch (error) {
-      console.error("Error fetching faculty courses:", error);
+      // console.error("Error fetching faculty courses:", error);
       toast.error("Failed to load faculty courses");
     }
   }, [facultyId]);
@@ -255,7 +255,7 @@ const PreviousAttendancePage = () => {
       setDepartments(uniqueDepartments);
       setSemesters(uniqueSemesters);
     } catch (error) {
-      console.error("Error fetching students:", error);
+      // console.error("Error fetching students:", error);
       toast.error("Failed to load student list");
     }
   }, [allStudents, courses, facultyAssignments, facultyId]);
@@ -265,11 +265,7 @@ const PreviousAttendancePage = () => {
     
     setIsLoading(true);
     try {
-      console.log('Fetching single date attendance with:', {
-        facultyId,
-        courseId: singleFilters.courseId,
-        date: singleFilters.singleDate
-      });
+  
 
       const response = await api.get(
         `/attendance/getfacultybydate?facultyid=${facultyId}&courseid=${singleFilters.courseId}&date=${singleFilters.singleDate}`
@@ -282,7 +278,7 @@ const PreviousAttendancePage = () => {
         toast.error("No attendance data found for this date");
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
+      // console.error("Error fetching attendance:", error);
       toast.error("Failed to load attendance records");
       setAttendanceRecords([]);
     } finally {
@@ -295,12 +291,7 @@ const PreviousAttendancePage = () => {
     
     setIsLoading(true);
     try {
-      console.log('Fetching date range attendance with:', {
-        facultyId,
-        courseId: groupFilters.courseId,
-        fromDate: groupFilters.fromDate,
-        toDate: groupFilters.toDate
-      });
+
 
       const response = await api.get(
         `/attendance/getfacultybydates?facultyid=${facultyId}&courseid=${groupFilters.courseId}&stdate=${groupFilters.fromDate}&endate=${groupFilters.toDate}`
@@ -344,7 +335,7 @@ const PreviousAttendancePage = () => {
         toast.error("No attendance data found for this date range");
       }
     } catch (error) {
-      console.error("Error fetching attendance:", error);
+      // console.error("Error fetching attendance:", error);
       toast.error("Failed to load attendance records");
       setRangeAttendanceSummary([]);
       setConsolidatedRangeAttendance([]);
@@ -409,8 +400,8 @@ const PreviousAttendancePage = () => {
     return;
   }
 
-  const sessionRecords = attendanceRecords.filter(record => 
-    record.session.toLowerCase() === session.toLowerCase()
+  const sessionRecords = attendanceRecords.filter(
+    record => record.session.toLowerCase() === session.toLowerCase()
   );
 
   if (sessionRecords.length === 0) {
@@ -418,126 +409,91 @@ const PreviousAttendancePage = () => {
     return;
   }
 
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let currentY = 10;
+
   try {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let currentY = 15;
-    
-    // Add logo
-    try {
-      const logoUrl = "/public/Karpagam_Logo-removebg-preview.png";
-      const response = await fetch(logoUrl);
-      const blob = await response.blob();
-      const base64Image = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-
-      const logoWidth = 60;
-      const logoHeight = 20;
-      const logoX = (pageWidth - logoWidth) / 2;
-      
-      doc.addImage(base64Image, "PNG", logoX, currentY, logoWidth, logoHeight);
-      currentY += logoHeight + 10;
-    } catch (logoError) {
-      console.error("Logo load error:", logoError);
-    }
-
-    // Add header text
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, {
-      align: "center",
-    });
-    currentY += 15;
-
-    // Add session title
-    doc.setFontSize(14);
-    doc.text(`${session.toUpperCase()} Session Attendance`, pageWidth / 2, currentY, { 
-      align: "center" 
-    });
-    currentY += 10;
-    
-    // Add divider line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(14, currentY, pageWidth - 14, currentY);
-    currentY += 15;
-    
-    // Add filter information
-    doc.setFontSize(12);
-    doc.text(`Course: ${singleFilters.course}`, 14, currentY);
-    currentY += 10;
-    doc.text(`Date: ${singleFilters.singleDate}`, 14, currentY);
-    currentY += 10;
-    
-    if (singleFilters.department) {
-      doc.text(`Department: ${singleFilters.department}`, 14, currentY);
-      currentY += 10;
-    }
-    if (singleFilters.batch) {
-      doc.text(`Batch: ${singleFilters.batch}`, 14, currentY);
-      currentY += 10;
-    }
-    if (singleFilters.semester) {
-      doc.text(`Semester: ${singleFilters.semester}`, 14, currentY);
-      currentY += 15;
-    } else {
-      currentY += 5;
-    }
-
-    // Add attendance table
-    const headers = [["Roll Number", "Name", "Status"]];
-    const tableData = sessionRecords.map(record => [
-      record.stdId,
-      record.stdName,
-      record.status === 1 ? "Present" : "Absent"
-    ]);
-
-    const autoTableResult: any = autoTable(doc, {
-      head: headers,
-      body: tableData,
-      startY: currentY,
-      styles: { 
-        fontSize: 10,
-        cellPadding: 3 
-      },
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold'
-      },
-      margin: { left: 14, right: 14 }
+    const logoUrl = "/Karpagam_Logo-removebg-preview.png";
+    const response = await fetch(logoUrl);
+    const blob = await response.blob();
+    const base64Image = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
     });
 
-    // Get final Y position after table with fallback
-    currentY = (autoTableResult && typeof autoTableResult.finalY === "number"
-      ? autoTableResult.finalY
-      : (currentY + sessionRecords.length * 10)) + 15;
-
-    // Add summary section
-    const totalStudents = sessionRecords.length;
-    const presentCount = sessionRecords.filter(r => r.status === 1).length;
-    const absentCount = totalStudents - presentCount;
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Summary:`, 14, currentY);
-    currentY += 8;
-    doc.setFont("helvetica", "normal");
-    doc.text(`Total Students: ${totalStudents}`, 14, currentY);
-    currentY += 8;
-    doc.text(`Present: ${presentCount}`, 14, currentY);
-    currentY += 8;
-    doc.text(`Absent: ${absentCount}`, 14, currentY);
-
-    // Save the PDF
-    doc.save(`attendance-${singleFilters.singleDate}-${session}.pdf`);
-
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    toast.error("Failed to generate attendance PDF");
+    doc.addImage(base64Image, "PNG", 60, currentY, 85, 16);
+    currentY += 22;
+  } catch {
+    currentY += 22;
   }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, { align: "center" });
+  currentY += 7;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text("Coimbatore - 641021, Tamil Nadu, India", pageWidth / 2, currentY, { align: "center" });
+  currentY += 13;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text(`${session.toUpperCase()} SESSION ATTENDANCE`, pageWidth / 2, currentY, { align: "center" });
+  currentY += 12;
+
+  // Course Info
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(`Course: ${singleFilters.course}`, 14, currentY); currentY += 6;
+  doc.text(`Date: ${singleFilters.singleDate}`, 14, currentY); currentY += 6;
+  if (singleFilters.department) { doc.text(`Department: ${singleFilters.department}`, 14, currentY); currentY += 6; }
+  if (singleFilters.batch) { doc.text(`Batch: ${singleFilters.batch}`, 14, currentY); currentY += 6; }
+  if (singleFilters.semester) { doc.text(`Semester: ${singleFilters.semester}`, 14, currentY); currentY += 8; }
+
+  const headers = [["Roll Number", "Name", "Status"]];
+  const tableData = sessionRecords.map(record => [
+    record.stdId,
+    record.stdName,
+    record.status === 1 ? "Present" : "Absent"
+  ]);
+
+  autoTable(doc, {
+    head: headers,
+    body: tableData,
+    startY: currentY,
+    theme: "grid",
+    headStyles: {
+      fillColor: [22, 78, 99],
+      textColor: 255,
+      fontSize: 11,
+      halign: "center"
+    },
+    bodyStyles: {
+      fontSize: 10,
+      valign: "middle",
+      halign: "center"
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  const total = sessionRecords.length;
+  const present = sessionRecords.filter(r => r.status === 1).length;
+  const absent = total - present;
+
+  currentY = doc.lastAutoTable.finalY + 10;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Summary:", 14, currentY); currentY += 6;
+  doc.setFont("helvetica", "normal");
+  doc.text(`Total Students: ${total}`, 14, currentY); currentY += 6;
+  doc.text(`Present: ${present}`, 14, currentY); currentY += 6;
+  doc.text(`Absent: ${absent}`, 14, currentY);
+
+  doc.save(`attendance-${singleFilters.singleDate}-${session}.pdf`);
 }, [singleFilters, attendanceRecords]);
 
 const downloadRangePDF = useCallback(async () => {
@@ -551,110 +507,82 @@ const downloadRangePDF = useCallback(async () => {
     return;
   }
 
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let currentY = 10;
+
   try {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let currentY = 15;
-
-    // Add logo
-    try {
-      const logoUrl = "/public/Karpagam_Logo-removebg-preview.png";
-      const response = await fetch(logoUrl);
-      const blob = await response.blob();
-      const base64Image = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-
-      const logoWidth = 60;
-      const logoHeight = 20;
-      const logoX = (pageWidth - logoWidth) / 2;
-      
-      doc.addImage(base64Image, "PNG", logoX, currentY, logoWidth, logoHeight);
-      currentY += logoHeight + 10;
-    } catch (logoError) {
-      console.error("Logo load error:", logoError);
-    }
-    
-    // Add header text
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, {
-      align: "center",
-    });
-    currentY += 15;
-
-    // Add title
-    doc.setFontSize(14);
-    doc.text("Attendance Summary Report", pageWidth / 2, currentY, { 
-      align: "center" 
-    });
-    currentY += 10;
-    
-    // Add divider line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(14, currentY, pageWidth - 14, currentY);
-    currentY += 15;
-    
-    // Add filter information
-    doc.setFontSize(12);
-    doc.text(`Course: ${groupFilters.course}`, 14, currentY);
-    currentY += 10;
-    doc.text(`Date Range: ${groupFilters.fromDate} to ${groupFilters.toDate}`, 14, currentY);
-    currentY += 10;
-    
-    if (groupFilters.department) {
-      doc.text(`Department: ${groupFilters.department}`, 14, currentY);
-      currentY += 10;
-    }
-    if (groupFilters.batch) {
-      doc.text(`Batch: ${groupFilters.batch}`, 14, currentY);
-      currentY += 10;
-    }
-    if (groupFilters.semester) {
-      doc.text(`Semester: ${groupFilters.semester}`, 14, currentY);
-      currentY += 15;
-    } else {
-      currentY += 5;
-    }
-
-    // Add attendance table
-    const headers = [["Roll Number", "Name", "Conducted", "Attended", "Percentage"]];
-    const tableData = consolidatedRangeAttendance.map(record => [
-      record.stdId,
-      record.stdName,
-      record.totalConducted.toString(),
-      record.totalAttended.toString(),
-      `${record.percentage.toFixed(1)}%`
-    ]);
-
-    autoTable(doc, {
-      head: headers,
-      body: tableData,
-      startY: currentY,
-      styles: { 
-        fontSize: 10,
-        cellPadding: 3
-      },
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold'
-      },
-      columnStyles: {
-        4: { cellWidth: 'auto' }
-      },
-      margin: { left: 14, right: 14 }
+    const logoUrl = "/Karpagam_Logo-removebg-preview.png";
+    const response = await fetch(logoUrl);
+    const blob = await response.blob();
+    const base64Image = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
     });
 
-    // Save the PDF
-    doc.save(`attendance-summary-${groupFilters.fromDate}-to-${groupFilters.toDate}.pdf`);
-
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    toast.error("Failed to generate attendance summary PDF");
+    doc.addImage(base64Image, "PNG", 60, currentY, 85, 16);
+    currentY += 22;
+  } catch {
+    currentY += 22;
   }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, currentY, { align: "center" });
+  currentY += 7;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text("Coimbatore - 641021, Tamil Nadu, India", pageWidth / 2, currentY, { align: "center" });
+  currentY += 13;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("ATTENDANCE SUMMARY REPORT", pageWidth / 2, currentY, { align: "center" });
+  currentY += 12;
+
+  // Info
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(`Course: ${groupFilters.course}`, 14, currentY); currentY += 6;
+  doc.text(`Date Range: ${groupFilters.fromDate} to ${groupFilters.toDate}`, 14, currentY); currentY += 6;
+  if (groupFilters.department) { doc.text(`Department: ${groupFilters.department}`, 14, currentY); currentY += 6; }
+  if (groupFilters.batch) { doc.text(`Batch: ${groupFilters.batch}`, 14, currentY); currentY += 6; }
+  if (groupFilters.semester) { doc.text(`Semester: ${groupFilters.semester}`, 14, currentY); currentY += 8; }
+
+  const headers = [["Roll Number", "Name", "Conducted", "Attended", "Percentage"]];
+  const tableData = consolidatedRangeAttendance.map(record => [
+    record.stdId,
+    record.stdName,
+    `${record.totalConducted}`,
+    `${record.totalAttended}`,
+    `${record.percentage.toFixed(1)}%`
+  ]);
+
+  autoTable(doc, {
+    head: headers,
+    body: tableData,
+    startY: currentY,
+    theme: "grid",
+    headStyles: {
+      fillColor: [22, 78, 99],
+      textColor: 255,
+      fontSize: 11,
+      halign: "center"
+    },
+    bodyStyles: {
+      fontSize: 10,
+      valign: "middle",
+      halign: "center"
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  doc.save(`attendance-summary-${groupFilters.fromDate}-to-${groupFilters.toDate}.pdf`);
+
 }, [groupFilters, consolidatedRangeAttendance]);
 
   const singleDayFN = useMemo(() => 

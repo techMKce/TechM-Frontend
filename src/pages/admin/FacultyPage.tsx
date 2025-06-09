@@ -30,6 +30,10 @@ const FacultyPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const facultiesPerPage = 15;
+
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
   const [formData, setFormData] = useState({
     id: "",
@@ -38,11 +42,26 @@ const FacultyPage = () => {
     department: ""
   });
 
+  const [emailError, setEmailError] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getFaculties();
   }, []);
+
+  // Reset form when add dialog opens
+  useEffect(() => {
+    if (isAddDialogOpen) {
+      setFormData({
+        id: "",
+        name: "",
+        email: "",
+        department: ""
+      });
+      setEmailError("");
+    }
+  }, [isAddDialogOpen]);
 
   const getFaculties = async () => {
     try {
@@ -63,9 +82,19 @@ const FacultyPage = () => {
     }
   };
 
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleSubmit = async () => {
     if (!formData.id || !formData.name || !formData.email || !formData.department) {
       toast({ title: "Please fill all fields", variant: "warning" });
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setEmailError("Please enter a valid email address");
       return;
     }
 
@@ -84,29 +113,36 @@ const FacultyPage = () => {
       });
 
       await getFaculties();
-      setFormData({ id: "", name: "", email: "", department: "" });
       setIsAddDialogOpen(false);
       toast({ title: "Faculty added successfully", variant: "default" });
     } catch (error) {
-      console.error(error);
       toast({ title: "Failed to add faculty", variant: "destructive" });
+
     } finally {
       setIsAdding(false);
     }
-
   };
 
   const handleEdit = async () => {
     try {
       if (!selectedFaculty) return;
       setIsEditing(true);
+      
+      if (!validateEmail(formData.email)) {
+        setEmailError("Please enter a valid email address");
+        return;
+      }
 
-      await api.put(`/auth/update/${selectedFaculty.id}`, formData);
+     await api.put(`/auth/update/${selectedFaculty.id}`, {
+        name: formData.name,
+        email: formData.email,
+        department: formData.department
+      });
       toast({ title: "Faculty updated successfully", variant: "default" });
+
 
       await getFaculties();
       setSelectedFaculty(null);
-      setFormData({ id: "", name: "", email: "", department: "" });
       setIsEditDialogOpen(false);
     } catch (error) {
       toast({ title: "Error updating faculty", variant: "destructive" });
@@ -121,6 +157,10 @@ const FacultyPage = () => {
       await api.delete(`/auth/delete/${id}`);
       toast({ title: "Faculty deleted successfully", variant: "default" });
       await getFaculties();
+      // Reset to first page if current page becomes empty
+      if (faculties.length % facultiesPerPage === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     } catch (error) {
       toast({ title: "Failed to delete faculty", variant: "destructive" });
     } finally {
@@ -141,7 +181,18 @@ const FacultyPage = () => {
       email: faculty.email,
       department: faculty.department,
     });
+    setEmailError("");
     setIsEditDialogOpen(true);
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    setFormData({ ...formData, email });
+    if (email && !validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,7 +246,9 @@ const FacultyPage = () => {
       const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
+
         toast({ title: "Excel file is empty", variant: "destructive" });
+
         setIsUploading(false);
         return;
       }
@@ -234,13 +287,15 @@ const FacultyPage = () => {
       const failureCount = results.length - successCount;
 
       if (failureCount > 0) {
+
         toast({ title: "Upload failed because you are trying to upload the existing data", variant: "warning" });
       } else {
         toast({ title: "All faculty signed up successfully.", variant: "default" });
       }
     } catch (error) {
+
       toast({ title: "Bulk signup failed.", variant: "destructive" });
-      console.error("Bulk signup error:", error);
+
     } finally {
       setIsUploading(false);
     }
@@ -279,6 +334,12 @@ const FacultyPage = () => {
         return;
       }
 
+      if (!validateEmail(facultyData.email)) {
+        toast.error(`Row ${i + 1} has invalid email address`);
+        setIsUploading(false);
+        return;
+      }
+
       newFaculties.push({
         id: facultyData.id,
         name: facultyData.name,
@@ -299,16 +360,22 @@ const FacultyPage = () => {
     }
   };
 
+  // Pagination logic
+  const indexOfLastFaculty = currentPage * facultiesPerPage;
+  const indexOfFirstFaculty = indexOfLastFaculty - facultiesPerPage;
+  const currentFaculties = faculties.slice(indexOfFirstFaculty, indexOfLastFaculty);
+  const totalPages = Math.ceil(faculties.length / facultiesPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar currentPage="/admin/faculty" />
-
 
       {/* Full page loader for initial fetch */}
       {isFetching && (
         <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
           <Oval height={80} width={80} color="#4F46E5" />
-
         </div>
       )}
 
@@ -358,9 +425,12 @@ const FacultyPage = () => {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={handleEmailChange}
                       className="col-span-3"
                     />
+                    {emailError && (
+                      <p className="col-span-3 col-start-2 text-sm text-red-500">{emailError}</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="department" className="text-right">Department</Label>
@@ -433,16 +503,16 @@ const FacultyPage = () => {
                 </TableHeader>
 
                 <TableBody>
-                  {faculties.length === 0 ? (
+                  {currentFaculties.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8">
                         No faculty members found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    faculties.map((faculty, index) => (
+                    currentFaculties.map((faculty, index) => (
                       <TableRow key={faculty.id}>
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{indexOfFirstFaculty + index + 1}</TableCell>
                         <TableCell>{faculty.id}</TableCell>
                         <TableCell>{faculty.name}</TableCell>
                         <TableCell>{faculty.email}</TableCell>
@@ -493,6 +563,40 @@ const FacultyPage = () => {
                   )}
                 </TableBody>
               </Table>
+
+              {/* Pagination */}
+              {faculties.length > facultiesPerPage && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                      <Button
+                        key={number}
+                        variant={currentPage === number ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => paginate(number)}
+                      >
+                        {number}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -526,8 +630,8 @@ const FacultyPage = () => {
                   <Input
                     id="edit-id"
                     value={formData.id}
-                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                    className="col-span-3"
+                    readOnly
+                    className="col-span-3 bg-gray-100"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -545,9 +649,12 @@ const FacultyPage = () => {
                     id="edit-email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={handleEmailChange}
                     className="col-span-3"
                   />
+                  {emailError && (
+                    <p className="col-span-3 col-start-2 text-sm text-red-500">{emailError}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-department" className="text-right">Department</Label>

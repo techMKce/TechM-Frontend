@@ -103,8 +103,9 @@ export default function ViewProfile() {
           throw new Error("No profile data received");
         }
       } catch (err) {
-        // console.error("Profile fetch error:", err);
+
         toast({title:"Failed to load profile data",variant:'destructive'});
+
         handleFetchError(err);
       } finally {
         setIsLoading(false);

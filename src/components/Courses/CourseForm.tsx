@@ -106,7 +106,6 @@ const CourseForm = ({
       return;
     }
 
-    // console.log("form data: ", formData);
 
     onSave({
       ...formData,

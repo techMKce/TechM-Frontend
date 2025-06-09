@@ -128,7 +128,9 @@ const FacultyAttendancePage = () => {
       // Update filter options based on assigned students
       updateFilterOptions(facultyAssignments, allStudentsData);
     } catch (error) {
+
       toast({title:"Failed to load faculty data",variant:'destructive'});
+
     }
   };
 
@@ -247,6 +249,7 @@ const FacultyAttendancePage = () => {
       setShowAttendanceTable(true);
       toast({title:"Student list generated successfully",variant:'default'});
     } catch (error) {
+
       toast({title:"Failed to load student list",variant:'destructive'});
     }
   };
@@ -282,7 +285,9 @@ const FacultyAttendancePage = () => {
       setIsFormSubmitted(true);
       toast({title:"Attendance marked successfully"});
     } catch (error) {
+
       toast({title:"Failed to submit attendance",variant:'destructive'});
+
     } finally {
       setLoading(false);
     }

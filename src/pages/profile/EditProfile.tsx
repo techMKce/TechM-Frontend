@@ -20,6 +20,7 @@ export default function EditProfile() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const isStudent = profile?.profile.role === 'STUDENT';
   const NavbarComponent = isStudent ? StudentNavbar : FacultyNavbar;
 
@@ -27,6 +28,7 @@ export default function EditProfile() {
   type Gender = typeof genderOptions[number];
   const firstGraduateOptions = ["yes", "no"] as const;
   const sslcBoardOptions = ["cbse", "state", "icse"] as const;
+  const bloodGroupOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
 
   const [formData, setFormData] = useState({
     image: "",
@@ -82,6 +84,107 @@ export default function EditProfile() {
     fetchUserProfile();
   }, [profile, navigate]);
 
+  const validateField = (name: string, value: string) => {
+    let error = '';
+    
+    switch (name) {
+      case 'phoneNum':
+        if (value && !/^[0-9]{10}$/.test(value)) {
+          error = 'Please enter a valid 10-digit mobile number';
+        }
+        break;
+      case 'email':
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+      case 'adharNum':
+        if (value && !/^[0-9]{12}$/.test(value)) {
+          error = 'Aadhar number must be exactly 12 digits';
+        }
+        break;
+      case 'sslcPercentage':
+      case 'hscPercentage':
+      case 'cgpa':
+        if (value && !/^[0-9.]*$/.test(value)) {
+          error = 'Please enter a valid number';
+        } else if (value && parseFloat(value) > 100) {
+          error = 'Percentage cannot be more than 100';
+        }
+        break;
+      case 'sslcStartYear':
+      case 'sslcEndYear':
+      case 'hscStartYear':
+      case 'hscEndYear':
+      case 'startYear':
+      case 'expectedGraduation':
+        if (value && !/^[0-9]{4}$/.test(value)) {
+          error = 'Please enter a valid 4-digit year (YYYY)';
+        } else if (value && parseInt(value) > new Date().getFullYear()) {
+          error = 'Year cannot be in the future';
+        }
+        break;
+      case 'githubProfile':
+      case 'linkedInProfile':
+        if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
+          error = 'Please enter a valid URL starting with http:// or https://';
+        }
+        break;
+      case 'bloodGroup':
+        if (value && !/^(A|B|AB|O)[+-]$/.test(value)) {
+          error = 'Please enter a valid blood group (e.g., A+, B-, AB+, O-)';
+        }
+        break;
+      default:
+        break;
+    }
+
+    return error;
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    let isValid = true;
+
+    // Required fields validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+      isValid = false;
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    if (isStudent && !formData.rollNumber.trim()) {
+      newErrors.rollNumber = 'Roll number is required';
+      isValid = false;
+    }
+
+    if (!isStudent && !formData.staffId.trim()) {
+      newErrors.staffId = 'Faculty ID is required';
+      isValid = false;
+    }
+
+    // Optional fields validation
+    Object.keys(formData).forEach(key => {
+      if (key in newErrors) return; // Skip already validated required fields
+      
+      const error = validateField(key, formData[key]);
+      if (error) {
+        newErrors[key] = error;
+        isValid = false;
+      }
+    });
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const id = profile?.profile.id;
 
   const fetchUserProfile = async () => {
@@ -94,8 +197,9 @@ export default function EditProfile() {
       const mapped = mapBackendToFrontend(response.data);
       setFormData(mapped);
     } catch (error) {
-      console.error("Failed to fetch user profile:", error);
+
       toast({title:"Failed to load profile data. Please try again later.",variant:'destructive'});
+
       if (error.response?.status === 403) {
         navigate('/login');
       }
@@ -229,8 +333,9 @@ export default function EditProfile() {
       setFormData({ ...formData, image: imageUrl });
       toast({title:"Profile picture updated!"});
     } catch (error) {
-      console.error("Error uploading image:", error);
+
       toast({title:"Failed to update profile picture.",variant:'destructive'});
+
     } finally {
       setIsUploading(false);
     }
@@ -242,13 +347,35 @@ export default function EditProfile() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Validate the field as user types
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+    
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
   };
 
   const handleSave = async () => {
     if (!profile) {
       toast({title:"Authentication required. Please login again.",variant:'warning'});
       navigate('/login');
+      return;
+    }
+
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form before submitting.");
       return;
     }
 
@@ -270,8 +397,9 @@ export default function EditProfile() {
         navigate('/profile');
       }
     } catch (error) {
-      console.error("Failed to update profile:", error);
+
       toast({title:"Failed to update profile. Please try again.",variant:'destructive'});
+
     } finally {
       setIsSubmitting(false);
     }
@@ -356,9 +484,11 @@ export default function EditProfile() {
               id="name"
               value={formData.name || ""}
               onChange={handleChange}
+              onBlur={handleBlur}
               name="name"
               {...getInputProps('name')}
             />
+            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
           </div>
 
           {isStudent ? (
@@ -368,9 +498,11 @@ export default function EditProfile() {
                 id="rollNumber"
                 value={formData.rollNumber || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="rollNumber"
                 {...getInputProps('rollNumber')}
               />
+              {errors.rollNumber && <p className="text-sm text-red-500">{errors.rollNumber}</p>}
             </div>
           ) : (
             <div className="space-y-2">
@@ -379,9 +511,11 @@ export default function EditProfile() {
                 id="staffId"
                 value={formData.staffId || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="staffId"
                 {...getInputProps('staffId')}
               />
+              {errors.staffId && <p className="text-sm text-red-500">{errors.staffId}</p>}
             </div>
           )}
 
@@ -392,9 +526,11 @@ export default function EditProfile() {
               type="email"
               value={formData.email || ""}
               onChange={handleChange}
+              onBlur={handleBlur}
               name="email"
               {...getInputProps('email')}
             />
+            {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
           </div>
 
           {isStudent && (
@@ -447,9 +583,11 @@ export default function EditProfile() {
                   id="department"
                   value={formData.department || ""}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   name="department"
                   {...getInputProps('department')}
                 />
+                {errors.department && <p className="text-sm text-red-500">{errors.department}</p>}
               </div>
 
               <div className="space-y-2">
@@ -471,8 +609,12 @@ export default function EditProfile() {
               id="phoneNum"
               value={formData.phoneNum || ""}
               onChange={handleChange}
+              onBlur={handleBlur}
               name="phoneNum"
+              placeholder="10-digit number"
+              maxLength={10}
             />
+            {errors.phoneNum && <p className="text-sm text-red-500">{errors.phoneNum}</p>}
           </div>
 
           <div className="space-y-2">
@@ -504,12 +646,22 @@ export default function EditProfile() {
 
           <div className="space-y-2">
             <Label htmlFor="bloodGroup">Blood Group</Label>
-            <Input
+            <select
               id="bloodGroup"
               value={formData.bloodGroup || ""}
               onChange={handleChange}
+              onBlur={handleBlur}
               name="bloodGroup"
-            />
+              className="border p-2 rounded w-full"
+            >
+              <option value="">Select blood group</option>
+              {bloodGroupOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.bloodGroup && <p className="text-sm text-red-500">{errors.bloodGroup}</p>}
           </div>
 
           <div className="space-y-2">
@@ -518,8 +670,12 @@ export default function EditProfile() {
               id="adharNum"
               value={formData.adharNum || ""}
               onChange={handleChange}
+              onBlur={handleBlur}
               name="adharNum"
+              placeholder="12-digit number"
+              maxLength={12}
             />
+            {errors.adharNum && <p className="text-sm text-red-500">{errors.adharNum}</p>}
           </div>
 
           <div className="space-y-2">
@@ -559,7 +715,7 @@ export default function EditProfile() {
           <h3 className="text-lg font-semibold">College Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="institutionName">Institution *</Label>
+              <Label htmlFor="institutionName">Institution</Label>
               <Input
                 id="institutionName"
                 value={formData.institutionName || ""}
@@ -569,7 +725,7 @@ export default function EditProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="degree">Degree *</Label>
+              <Label htmlFor="degree">Degree</Label>
               <Input
                 id="degree"
                 value={formData.degree || ""}
@@ -579,7 +735,7 @@ export default function EditProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="program">Program *</Label>
+              <Label htmlFor="program">Program</Label>
               <Input
                 id="program"
                 value={formData.program || ""}
@@ -589,33 +745,43 @@ export default function EditProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startYear">Start Year *</Label>
+              <Label htmlFor="startYear">Start Year</Label>
               <Input
                 id="startYear"
                 value={formData.startYear || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="startYear"
+                placeholder="YYYY"
+                maxLength={4}
               />
+              {errors.startYear && <p className="text-sm text-red-500">{errors.startYear}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="expectedGraduation">Expected Graduation Year *</Label>
+              <Label htmlFor="expectedGraduation">Expected Graduation Year</Label>
               <Input
                 id="expectedGraduation"
                 value={formData.expectedGraduation || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="expectedGraduation"
+                placeholder="YYYY"
+                maxLength={4}
               />
+              {errors.expectedGraduation && <p className="text-sm text-red-500">{errors.expectedGraduation}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cgpa">CGPA or Percentage *</Label>
+              <Label htmlFor="cgpa">CGPA or Percentage</Label>
               <Input
                 id="cgpa"
                 value={formData.cgpa || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="cgpa"
               />
+              {errors.cgpa && <p className="text-sm text-red-500">{errors.cgpa}</p>}
             </div>
 
             <div className="space-y-2">
@@ -624,8 +790,11 @@ export default function EditProfile() {
                 id="githubProfile"
                 value={formData.githubProfile || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="githubProfile"
+                placeholder="https://github.com/username"
               />
+              {errors.githubProfile && <p className="text-sm text-red-500">{errors.githubProfile}</p>}
             </div>
 
             <div className="space-y-2">
@@ -634,8 +803,11 @@ export default function EditProfile() {
                 id="linkedInProfile"
                 value={formData.linkedInProfile || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="linkedInProfile"
+                placeholder="https://linkedin.com/in/username"
               />
+              {errors.linkedInProfile && <p className="text-sm text-red-500">{errors.linkedInProfile}</p>}
             </div>
           </div>
         </div>
@@ -659,8 +831,12 @@ export default function EditProfile() {
                 id="sslcStartYear"
                 value={formData.sslcStartYear || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="sslcStartYear"
+                placeholder="YYYY"
+                maxLength={4}
               />
+              {errors.sslcStartYear && <p className="text-sm text-red-500">{errors.sslcStartYear}</p>}
             </div>
 
             <div className="space-y-2">
@@ -669,8 +845,12 @@ export default function EditProfile() {
                 id="sslcEndYear"
                 value={formData.sslcEndYear || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="sslcEndYear"
+                placeholder="YYYY"
+                maxLength={4}
               />
+              {errors.sslcEndYear && <p className="text-sm text-red-500">{errors.sslcEndYear}</p>}
             </div>
 
             <div className="space-y-2">
@@ -679,8 +859,10 @@ export default function EditProfile() {
                 id="sslcPercentage"
                 value={formData.sslcPercentage || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="sslcPercentage"
               />
+              {errors.sslcPercentage && <p className="text-sm text-red-500">{errors.sslcPercentage}</p>}
             </div>
 
             <div className="space-y-2">
@@ -722,8 +904,12 @@ export default function EditProfile() {
                 id="hscStartYear"
                 value={formData.hscStartYear || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="hscStartYear"
+                placeholder="YYYY"
+                maxLength={4}
               />
+              {errors.hscStartYear && <p className="text-sm text-red-500">{errors.hscStartYear}</p>}
             </div>
 
             <div className="space-y-2">
@@ -732,8 +918,12 @@ export default function EditProfile() {
                 id="hscEndYear"
                 value={formData.hscEndYear || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="hscEndYear"
+                placeholder="YYYY"
+                maxLength={4}
               />
+              {errors.hscEndYear && <p className="text-sm text-red-500">{errors.hscEndYear}</p>}
             </div>
 
             <div className="space-y-2">
@@ -742,8 +932,10 @@ export default function EditProfile() {
                 id="hscPercentage"
                 value={formData.hscPercentage || ""}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 name="hscPercentage"
               />
+              {errors.hscPercentage && <p className="text-sm text-red-500">{errors.hscPercentage}</p>}
             </div>
 
             <div className="space-y-2">
@@ -808,8 +1000,10 @@ export default function EditProfile() {
               type="date"
               value={formData.startYear || ""}
               onChange={handleChange}
+              onBlur={handleBlur}
               name="startYear"
             />
+            {errors.startYear && <p className="text-sm text-red-500">{errors.startYear}</p>}
           </div>
 
           <div className="space-y-2">
@@ -819,8 +1013,10 @@ export default function EditProfile() {
               type="date"
               value={formData.endYear || ""}
               onChange={handleChange}
+              onBlur={handleBlur}
               name="endYear"
             />
+            {errors.endYear && <p className="text-sm text-red-500">{errors.endYear}</p>}
           </div>
         </div>
 

@@ -124,8 +124,10 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
 
       toast({title:"Video added successfully",variant:'default'});
     } catch (error) {
+
       console.error("Error adding video:", error);
       toast({title:"Failed to add video. Please try again.",variant:'destructive'});
+
     }
     finally{
       setLoader(false);
@@ -233,8 +235,10 @@ const SectionContent = ({ section,course }: SectionContentProps) => {
       setPdfViewerUrl(fileUrl);
       toast({title:"Document opened for viewing.",variant:'info'});
     } catch (error) {
+
       console.error("Error loading PDF:", error);
       toast({title:"Failed to load PDF. Please try again.",variant:'destructive'});
+
 
       // Fallback option
       window.open(

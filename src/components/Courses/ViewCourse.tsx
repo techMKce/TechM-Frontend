@@ -186,8 +186,10 @@ function ViewCourse() {
 
       setIsEditing(false);
       setCourse(updatedCourse);
+
       console.log("updated course: ", updatedCourse);
       toast({title:"Edit Successfully"});
+
     } catch (error: any) {
       toast({title:"Failed to update course. Please try again.",variant:'destructive'});
     } finally {

@@ -11,11 +11,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
-import { User, LogOut, Home, BookOpen, ListTodoIcon, Book } from "lucide-react";
+import { User, LogOut, Home, BookOpen, ListTodoIcon } from "lucide-react";
 
 
 import { useAuth } from "@/hooks/useAuth";
 import profileApi from "@/service/api"; // Import the same API instance used in index.tsx
+import toast from "react-hot-toast";
 
 interface FacultyNavbarProps {
   currentPage?: string;
@@ -37,7 +38,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
         const response = await profileApi.get(`/profile/faculty/${profile.profile.id}`);
         setCurrentUser(response.data);
       } catch (error) {
-        console.error("Failed to fetch faculty data:", error);
+        toast.error("Failed to load faculty profile. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -63,7 +64,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
     { label: "Dashboard", path: "/faculty/dashboard", icon: Home },
     { label: "Courses", path: "/faculty/courses", icon: BookOpen },
     { label: "Attendance", path: "/faculty/attendance", icon: ListTodoIcon },
-    {label: "Exams", path: "/faculty/exams", icon: Book }
+    {label: "Exams", path: "/faculty/exams", icon: BookOpen }
   ];
 
 

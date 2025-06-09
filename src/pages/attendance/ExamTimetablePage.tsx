@@ -111,12 +111,15 @@ const ExamTimetablePage = () => {
   }
 
   try {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    // === Add Institution Logo & Header ===
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // === Load & Add Logo ===
     try {
       setLoader(true);
       const logoUrl = "/public/Karpagam_Logo-removebg-preview.png";
+
       const response = await fetch(logoUrl);
       const blob = await response.blob();
       const base64Image = await new Promise<string>((resolve) => {
@@ -125,39 +128,43 @@ const ExamTimetablePage = () => {
         reader.readAsDataURL(blob);
       });
 
-      // Add logo image (centered horizontally)
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const logoWidth = 60;
-      const logoHeight = 20;
-      const logoX = (pageWidth - logoWidth) / 2;
-      const logoY = 10;
-
-      doc.addImage(base64Image, "PNG", logoX, logoY, logoWidth, logoHeight);
-
-      // Institution Name below the logo
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, logoY + logoHeight + 8, {
-        align: "center",
-      });
-    } catch (logoError) {
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("KARPAGAM INSTITUTIONS", doc.internal.pageSize.getWidth() / 2, 30, {
-        align: "center",
-      });
+      doc.addImage(base64Image, "PNG", 60, 10, 85, 16);
+    } catch (e) {
+      // If logo fails, skip
     }
 
-    // === Add Document Title ===
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(60, 60, 60);
-    doc.text("Exam Timetable", doc.internal.pageSize.getWidth() / 2, 50, {
-      align: "center",
-    });
+    // === College Name ===
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("KARPAGAM INSTITUTIONS", pageWidth / 2, 35, { align: "center" });
 
-    // === Prepare Table Data ===
+    // === Address or Additional Info ===
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Coimbatore - 641021, Tamil Nadu, India", pageWidth / 2, 42, { align: "center" });
+
+    // === Title ===
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text("EXAMINATION TIMETABLE", pageWidth / 2, 55, { align: "center" });
+
+    // === Generated Date ===
+    const generatedDate = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    doc.setFontSize(10);
+    
+    
+
+    // === Student Name (optional if available) ===
+    if (profile?.profile?.name) {
+      doc.text(`Name: ${profile.profile.name}`, 14, 70);
+      doc.text(`ID: ${profile.profile.id || "-"}`, 14, 76);
+    }
+
+    // === Table Data Formatting ===
     const headers = [["Date", "Session", "Time", "Course ID", "Course Name"]];
     const tableData = examData.map((exam) => [
       formatDate(exam.Date),
@@ -167,36 +174,46 @@ const ExamTimetablePage = () => {
       exam["Course Name"],
     ]);
 
-    // === Generate Table ===
     autoTable(doc, {
+      startY: profile?.profile?.name ? 82 : 76,
       head: headers,
       body: tableData,
-      startY: 60,
-      margin: { left: 14, right: 14 },
-      styles: {
-        fontSize: 10,
-        cellPadding: 3,
-        valign: "middle",
-        textColor: [40, 40, 40],
-      },
+      theme: "grid",
       headStyles: {
-        fillColor: [41, 128, 185],
+        fillColor: [22, 78, 99], // dark cyan
         textColor: 255,
-        fontStyle: "bold",
+        fontSize: 11,
+        halign: "center",
+      },
+      bodyStyles: {
+        fontSize: 10,
+        valign: "middle",
       },
       alternateRowStyles: {
         fillColor: [245, 245, 245],
       },
+      columnStyles: {
+        0: {halign: "left", cellWidth: 30 },
+        1: { halign: "left",cellWidth: 30 },
+        2: { halign: "left",cellWidth: 25 },
+        3: { halign: "center", cellWidth: 35 },
+        4: { halign: "left",cellWidth: 60 },
+      },
+      margin: { left: 14, right: 14 },
     });
 
-    // === Save PDF ===
+
     doc.save("exam-timetable.pdf");
     toast({ title: "Exam timetable downloaded successfully", variant: "default" });
-    setLoader(false);
   } catch (error) {
     toast({ title: "Failed to generate PDF", variant: "destructive" });
+        
+
+  } finally {
+    setLoader(false);
   }
 };
+
 
 
   const todayExams = getTodayExams();

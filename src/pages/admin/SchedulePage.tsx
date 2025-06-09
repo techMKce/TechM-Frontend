@@ -198,7 +198,7 @@ const SchedulePage = () => {
                         <label htmlFor={course.id} className="flex-1 cursor-pointer text-sm">
                           <div className="font-medium text-gray-900">
                             <span className="text-blue-600 font-semibold">
-                              {course.courseId}
+                              {course.id}
                             </span>{" "}
                             - {course.name}
                           </div>
