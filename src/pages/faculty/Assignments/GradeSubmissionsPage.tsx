@@ -285,7 +285,7 @@ const GradeSubmissionsPage = () => {
                             student.grade
                               ? `/faculty/assignments/${assignmentId}/review/${student.studentRollNumber}/${student.id}`
                               : `/faculty/assignments/${assignmentId}/grade/${student.studentRollNumber}/${student.id}`,
-                              {state:{course:state}}
+                              {state:state}
                           )
                         }
                         className="text-sm flex items-center gap-1 bg-black hover:bg-black"

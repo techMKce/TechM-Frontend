@@ -174,7 +174,7 @@ const GradeStudentSubmissionPage = () => {
         );
         setGradingData({ grade, feedback });
         setIsEditing(false);
-        navigate(`/faculty/assignments/${assignmentId}/grade`);
+        navigate(`/faculty/assignments/${assignmentId}/grade`,{state:state});
       } else {
         toast({title:response.data?.message || "Failed to submit grade"});
       }
@@ -360,7 +360,7 @@ const GradeStudentSubmissionPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm  ">Name</p>
+                  <p className="text-sm text-black">Name</p>
                   <p className="font-medium">{submission.studentName}</p>
                 </div>
                 <div>

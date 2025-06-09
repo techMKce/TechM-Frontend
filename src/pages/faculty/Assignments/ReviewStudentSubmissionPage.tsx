@@ -47,8 +47,9 @@ const ReviewStudentSubmissionPage = () => {
   const [isViewerOpen, setIsViewerOpen] = useState(false); // Track viewer state
   const [viewerUrl, setViewerUrl] = useState<string | null>(null); // Store file URL
   const viewerRef = useRef<HTMLDivElement | null>(null); // Ref for viewer container
-  const {state}=useLocation()
+  const {state}=useLocation();
   useEffect(() => {
+    
     const fetchData = async () => {
       if (!submissionId || !assignmentId || !studentRollNumber) {
         toast({title:"Invalid submission, assignment, or student ID.",variant:'destructive'});
@@ -108,7 +109,7 @@ const ReviewStudentSubmissionPage = () => {
     };
 
     fetchData();
-  }, [submissionId, assignmentId, studentRollNumber, navigate]);
+  }, [submissionId, assignmentId, studentRollNumber]);
 
   useEffect(() => {
     // Cleanup viewer URL on component unmount
@@ -289,13 +290,13 @@ const ReviewStudentSubmissionPage = () => {
   if (!submission) {
     return null; // RouteGuard in App.tsx handles redirect
   }
-
+  console.log(state);
   return (
     <>
       <Navbar />
       <div className="page-container max-w-4xl mx-auto max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link to={`/faculty/assignments/${assignmentId}/grade`} state={{course:state}} className="text-black hover:text-grey">
+          <Link to={`/faculty/assignments/${assignmentId}/grade`} state={{...state}} className="text-black hover:text-grey">
             ← Back to All Submissions
           </Link>
 
@@ -311,7 +312,7 @@ const ReviewStudentSubmissionPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-secondary">Name</p>
+                  <p className="text-sm ">Name</p>
                   <p className="font-medium">{submission.studentName}</p>
                 </div>
                 <div>

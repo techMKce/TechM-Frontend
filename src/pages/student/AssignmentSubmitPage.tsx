@@ -53,7 +53,7 @@ const AssignmentSubmitPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [isDueDateOver, setIsDueDateOver] = useState(false);
   const [rejected, setRejected] = useState(false);
-
+  const [downloader,setDownloader]=useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewable, setIsPreviewable] = useState(false);
@@ -353,6 +353,7 @@ const AssignmentSubmitPage = () => {
     }
 
     try {
+      setDownloader(true);
       const response = await api.get("/assignments/download", {
         params: { assignmentId },
         responseType: "blob",
@@ -372,6 +373,7 @@ const AssignmentSubmitPage = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      setDownloader(false);
       toast({
         title: "Success",
         description: "Document downloaded successfully",
@@ -507,7 +509,7 @@ const AssignmentSubmitPage = () => {
                           className="flex items-center space-x-1 text-base text-white"
                         >
                           <Download size={20} />
-                          <span>Download</span>
+                          <span>Download {(downloader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin inline-block" alt="loader"/>:""}</span>
                         </Button>
                       </div>
                     </div>

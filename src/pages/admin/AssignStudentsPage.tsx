@@ -332,7 +332,7 @@ const AssignStudentsPage = () => {
         } else if (status === 400) {
           toast({title:message || "Bad request",variant:'destructive'});
         } else {
-          toast({title:"Failed to assign students. Please try again.",variant:'destructive'});
+          toast({title:"Failed to assign students,might Already Enrolled!, Please try again.",variant:'destructive'});
         }
       } else {
         toast({title:"An unexpected error occurred. Please try again.",variant:'destructive'});
