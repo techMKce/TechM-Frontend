@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Download, RefreshCw } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import api from "@/service/api";
@@ -190,7 +190,7 @@ const PreviousAttendancePage = () => {
       setSemesters(uniqueSemesters);
     } catch (error) {
       // console.error("Error fetching faculty courses:", error);
-      toast.error("Failed to load faculty courses");
+      toast({title:"Failed to load faculty courses",variant:'destructive'});
     }
   }, [facultyId]);
 
@@ -218,7 +218,7 @@ const PreviousAttendancePage = () => {
       setRangeAttendanceSummary([]);
       setConsolidatedRangeAttendance([]);
     }
-    toast.info("All filters have been reset");
+    toast({title:"All filters have been reset",variant:'info'});
   }, [attendanceMode]);
 
   const fetchStudentsForCourse = useCallback(async (courseName: string) => {
@@ -256,7 +256,7 @@ const PreviousAttendancePage = () => {
       setSemesters(uniqueSemesters);
     } catch (error) {
       // console.error("Error fetching students:", error);
-      toast.error("Failed to load student list");
+      toast({title:"Failed to load student list",variant:'destructive'});
     }
   }, [allStudents, courses, facultyAssignments, facultyId]);
 
@@ -275,11 +275,11 @@ const PreviousAttendancePage = () => {
         setAttendanceRecords(response.data);
       } else {
         setAttendanceRecords([]);
-        toast.error("No attendance data found for this date");
+        toast({title:"No attendance data found for this date",variant:'warning'});
       }
     } catch (error) {
       // console.error("Error fetching attendance:", error);
-      toast.error("Failed to load attendance records");
+      toast({title:"Failed to load attendance records",variant:'destructive'});
       setAttendanceRecords([]);
     } finally {
       setIsLoading(false);
@@ -332,11 +332,11 @@ const PreviousAttendancePage = () => {
       } else {
         setRangeAttendanceSummary([]);
         setConsolidatedRangeAttendance([]);
-        toast.error("No attendance data found for this date range");
+        toast({title:"No attendance data found for this date range",variant:'warning'});
       }
     } catch (error) {
       // console.error("Error fetching attendance:", error);
-      toast.error("Failed to load attendance records");
+      toast({title:"Failed to load attendance records",variant:'destructive'});
       setRangeAttendanceSummary([]);
       setConsolidatedRangeAttendance([]);
     } finally {
@@ -396,7 +396,7 @@ const PreviousAttendancePage = () => {
 
   const downloadSingleDayPDF = useCallback(async (session: string) => {
   if (!singleFilters.course || !singleFilters.singleDate) {
-    toast.error("Please select all required filters");
+    toast({title:"Please select all required filters",variant:'warning'});
     return;
   }
 
@@ -405,7 +405,7 @@ const PreviousAttendancePage = () => {
   );
 
   if (sessionRecords.length === 0) {
-    toast.error(`No records found for ${session} session`);
+    toast({title:`No records found for ${session} session`,variant:"warning"});
     return;
   }
 
@@ -457,8 +457,8 @@ const PreviousAttendancePage = () => {
     record.stdName,
     record.status === 1 ? "Present" : "Absent"
   ]);
-
-  autoTable(doc, {
+  
+  const autoTableResult = autoTable(doc, {
     head: headers,
     body: tableData,
     startY: currentY,
@@ -484,7 +484,7 @@ const PreviousAttendancePage = () => {
   const present = sessionRecords.filter(r => r.status === 1).length;
   const absent = total - present;
 
-  currentY = doc.lastAutoTable.finalY + 10;
+  currentY = (autoTableResult as any).finalY + 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text("Summary:", 14, currentY); currentY += 6;
@@ -498,12 +498,12 @@ const PreviousAttendancePage = () => {
 
 const downloadRangePDF = useCallback(async () => {
   if (!groupFilters.course || !groupFilters.fromDate || !groupFilters.toDate) {
-    toast.error("Please select all required filters");
+    toast({title:"Please select all required filters",variant:"warning"});
     return;
   }
 
   if (consolidatedRangeAttendance.length === 0) {
-    toast.error("No attendance data available to download");
+    toast({title:"No attendance data available to download",variant:'warning'});
     return;
   }
 

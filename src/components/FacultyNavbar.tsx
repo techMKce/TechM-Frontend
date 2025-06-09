@@ -16,7 +16,7 @@ import { User, LogOut, Home, BookOpen, ListTodoIcon } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 import profileApi from "@/service/api"; // Import the same API instance used in index.tsx
-import toast from "react-hot-toast";
+import { toast } from "@/hooks/use-toast";
 
 interface FacultyNavbarProps {
   currentPage?: string;
@@ -38,7 +38,7 @@ const FacultyNavbar = ({ currentPage }: FacultyNavbarProps) => {
         const response = await profileApi.get(`/profile/faculty/${profile.profile.id}`);
         setCurrentUser(response.data);
       } catch (error) {
-        toast.error("Failed to load faculty profile. Please try again later.");
+        toast({title:"Failed to load faculty profile. Please try again later.",variant:'destructive'});
       } finally {
         setLoading(false);
       }
