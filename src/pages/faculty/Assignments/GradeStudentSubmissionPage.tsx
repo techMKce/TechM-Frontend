@@ -328,7 +328,7 @@ const GradeStudentSubmissionPage = () => {
     return (
       <div className="page-container max-w-4xl mx-auto">
         <p>Error: Submission not found.</p>
-        <Link to={`/faculty/assignments/${assignmentId}/grade`} state={{course:state}} className="text-accent hover:text-accent-dark">
+        <Link to={`/faculty/assignments/${assignmentId}/grade`} state={state} className="text-accent hover:text-accent-dark">
           ← Back to All Submissions
         </Link>
       </div>
