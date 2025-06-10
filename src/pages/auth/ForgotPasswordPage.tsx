@@ -34,7 +34,7 @@ const ForgotPassword = () => {
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
+      toast({title:"Please enter a valid email address",variant:'warning'});
       return;
     }
     

@@ -206,6 +206,7 @@ const CreateAssignmentPage = () => {
                       dateFormat="yyyy-MM-dd HH:mm"
                       placeholderText="Select due date and time"
                       className="pl-10 py-2 px-3 border border-gray-300 rounded-md w-full"
+                      minDate={new Date()} // ✅ Restrict to today and future
                       required
                     />
                   </div>

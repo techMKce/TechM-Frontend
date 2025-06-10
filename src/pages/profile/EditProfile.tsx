@@ -375,7 +375,7 @@ export default function EditProfile() {
     }
 
     if (!validateForm()) {
-      toast({title:"Please fix the errors in the form before submitting.",variant:'destructive'});
+      toast({title:"Please fix the errors in the form before submitting.",variant:'warning'});
       return;
     }
 
