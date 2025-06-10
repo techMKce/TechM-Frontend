@@ -40,7 +40,7 @@ const CourseForm = ({
     departments.length > 0 ? departments : defaultDepartments;
   const { profile } = useAuth();
 
-
+  const [loader,setLoader]=useState(false);
   const [formData, setFormData] = useState<CourseFormData>({
     courseCode:"",
     course_id: "",
@@ -105,13 +105,13 @@ const CourseForm = ({
       toast({title:"Please enter valid credits (must be positive number)",variant:'warning'});
       return;
     }
-
-
+    setLoader(true);
     onSave({
       ...formData,
       duration,
       credit,
     });
+    setLoader(false);
   };
 
   return (
@@ -243,7 +243,7 @@ const CourseForm = ({
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
             >
-              {isEditMode ? "Save Changes" : "Create Course"}
+              {isEditMode ? "Save Changes" : "Create Course"} {(loader)?<img src='/preloader1.png'  className="w-4 h-4 animate-spin" alt="spinner"/>:""}
             </button>
           </div>
         </form>

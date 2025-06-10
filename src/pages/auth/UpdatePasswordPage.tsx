@@ -82,19 +82,20 @@ const ChangePassword = () => {
       
       if (error?.response?.status === 404) {
         setError("User not found. Please check your email.");
-        toast.error("User not found. Please check your email.");
+        toast({title:"User not found. Please check your email.",variant:'warning'});
+        
       } else if (error?.response?.status === 400) {
         setError("Invalid request. Please try again.");
-        toast.error("Invalid request. Please try again.");
+        toast({title:"Invalid request. Please try again.",variant:'destructive'});
       } else if (error?.response?.status === 401) {
         setError("Unauthorized. Please request a new password reset link.");
-        toast.error("Unauthorized. Please request a new password reset link.");
+        toast({title:"Unauthorized. Please request a new password reset link.",variant:'warning'});
       } else if (error?.response?.status >= 500) {
         setError("Server error. Please try again later.");
-        toast.error("Server error. Please try again later.");
+        toast({title:"Server error. Please try again later.",variant:'warning'});
       } else {
-        setError("Failed to update password. Please try again.");
-        toast.error("Failed to update password. Please try again.");
+        setError("Failed to update password. Please try again.");       
+        toast({title:"Failed to update password. Please try again.",variant:'warning'});
       }
     } finally {
       setLoading(false);

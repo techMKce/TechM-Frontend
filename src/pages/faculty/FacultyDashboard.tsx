@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 
 import api from "../../service/api";
 import { useAuth } from '../../hooks/useAuth';
+import { DialogTrigger } from "@radix-ui/react-dialog";
 
 interface Course {
   course_id: number;

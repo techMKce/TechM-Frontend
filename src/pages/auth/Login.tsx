@@ -38,7 +38,7 @@ const Login = () => {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
+      toast({title:"Please enter a valid email address",variant:'destructive'});
       return;
     }
 
@@ -52,22 +52,22 @@ const Login = () => {
       
       if (error?.response?.status === 401) {
         setError("Invalid email or password. Please try again.");
-        toast.error("Invalid email or password. Please try again.");
+        toast({title:"Invalid email or password. Please try again.",variant:'destructive'});
       } else if (error?.response?.status === 404) {
         setError("No account found with this email address.");
-        toast.error("No account found with this email address.");
+        toast({title:"No account found with this email address.",variant:'destructive'});
       } else if (error?.response?.status === 403) {
         setError("Your account has been suspended. Please contact support.");
-        toast.error("Your account has been suspended. Please contact support.");
+        toast({title:"Your account has been suspended. Please contact support.",variant:'destructive'});
       } else if (error?.response?.status === 429) {
         setError("Too many login attempts. Please try again later.");
-        toast.error("Too many login attempts. Please try again later.");
+        toast({title:"Too many login attempts. Please try again later.",variant:'destructive'});
       } else if (error?.response?.status >= 500) {
         setError("Server error. Please try again later.");
-        toast.error("Server error. Please try again later.");
+        toast({title:"Server error. Please try again later.",variant:'destructive'});
       } else {
         setError("Login failed. Please try again.");
-        toast.error("Login failed. Please try again.");
+        toast({title:"Login failed. Please try again.",variant:'destructive'});
       }
     } finally {
       setIsLoading(false);

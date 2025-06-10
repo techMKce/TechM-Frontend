@@ -50,16 +50,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
-          variant: "success", // or "default" if you want to use your theme
-          className: "bg-green-500 text-white", // green background with white text
+          variant: "default", // or "default" if you want to use your theme
         });
         
       } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Login failed",
-          description: error.response?.data?.message || "An error occurred during login",
-          className: "bg-red-500 text-white", // red background with white text
+          description: error.response?.data?.message || "An error occurred during login"
         });
         throw error;
       }
@@ -76,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({
           title: "Welcome to CCEM!",
           description: "Your account has been created successfully.",
-          variant: "success", // or "default" if you want to use your theme
+          variant: "default", // or "default" if you want to use your theme
           className: "bg-green-500 text-white", // green background with white text
         });
       } catch (error: any) {
@@ -99,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({
           title: "Signed out",
           description: "You have been signed out successfully.",
-          className: "bg-blue-500 text-white", // blue background for informational message
+          variant:'info', // blue background for informational message
         });
       } catch (error: any) {
         toast({

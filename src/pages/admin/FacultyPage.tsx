@@ -335,7 +335,7 @@ const FacultyPage = () => {
       }
 
       if (!validateEmail(facultyData.email)) {
-        toast.error(`Row ${i + 1} has invalid email address`);
+        toast({title:`Row ${i + 1} has invalid email address`,variant:'destructive'});
         setIsUploading(false);
         return;
       }

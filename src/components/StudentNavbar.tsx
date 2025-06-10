@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, LogOut, Home, BookOpen, ListTodoIcon, Book } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import profileApi from "@/service/api"
+import { toast } from "@/hooks/use-toast";
 
 interface StudentNavbarProps {
   currentPage?: string;
@@ -36,7 +37,7 @@ const StudentNavbar = ({ currentPage }: StudentNavbarProps) => {
         const response = await profileApi.get(`/profile/student/${profile.profile.id}`);
         setCurrentUser(response.data);
       } catch (error) {
-        toast.error("Failed to load student profile. Please try again later.");
+        toast({title:"Failed to load student profile. Please try again later.",variant:'destructive'});
       } finally {
         setLoading(false);
       }

@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface Course {
   course_id: number;
@@ -246,7 +246,7 @@ const StudentDashboard = () => {
       setSelectedCourse(response.data);
       setShowCourseDetailsModal(true);
     } catch (error) {
-      toast.error("Failed to load course details. Please try again later.");
+      toast({title:"Failed to load course details. Please try again later.",variant:'destructive'});
     } finally {
       setLoading(prev => ({ ...prev, courseDetails: false }));
     }
