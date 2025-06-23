@@ -394,13 +394,44 @@ const PreviousAttendancePage = () => {
     }
   }, [attendanceMode, fetchStudentsForCourse, courses]);
 
+  // Add filtered attendance records for single day
+  const filteredAttendanceRecords = useMemo(() => {
+    let records = attendanceRecords;
+    if (singleFilters.batch) {
+      records = records.filter(r => r.batch === singleFilters.batch);
+    }
+    if (singleFilters.department) {
+      records = records.filter(r => r.deptName === singleFilters.department);
+    }
+    if (singleFilters.semester) {
+      records = records.filter(r => r.sem === singleFilters.semester);
+    }
+    return records;
+  }, [attendanceRecords, singleFilters.batch, singleFilters.department, singleFilters.semester]);
+
+  // Add filtered consolidated attendance for group mode
+  const filteredConsolidatedRangeAttendance = useMemo(() => {
+    let records = consolidatedRangeAttendance;
+    if (groupFilters.batch) {
+      records = records.filter(r => r.batch === groupFilters.batch);
+    }
+    if (groupFilters.department) {
+      records = records.filter(r => r.deptName === groupFilters.department);
+    }
+    if (groupFilters.semester) {
+      records = records.filter(r => r.sem === groupFilters.semester);
+    }
+    return records;
+  }, [consolidatedRangeAttendance, groupFilters.batch, groupFilters.department, groupFilters.semester]);
+
   const downloadSingleDayPDF = useCallback(async (session: string) => {
   if (!singleFilters.course || !singleFilters.singleDate) {
     toast({title:"Please select all required filters",variant:'warning'});
     return;
   }
 
-  const sessionRecords = attendanceRecords.filter(
+  // Use filteredAttendanceRecords for export
+  const sessionRecords = filteredAttendanceRecords.filter(
     record => record.session.toLowerCase() === session.toLowerCase()
   );
 
@@ -494,7 +525,7 @@ const PreviousAttendancePage = () => {
   doc.text(`Absent: ${absent}`, 14, currentY);
 
   doc.save(`attendance-${singleFilters.singleDate}-${session}.pdf`);
-}, [singleFilters, attendanceRecords]);
+}, [singleFilters, filteredAttendanceRecords]);
 
 const downloadRangePDF = useCallback(async () => {
   if (!groupFilters.course || !groupFilters.fromDate || !groupFilters.toDate) {
@@ -502,11 +533,11 @@ const downloadRangePDF = useCallback(async () => {
     return;
   }
 
-  if (consolidatedRangeAttendance.length === 0) {
+  // Use filteredConsolidatedRangeAttendance for export
+  if (filteredConsolidatedRangeAttendance.length === 0) {
     toast({title:"No attendance data available to download",variant:'warning'});
     return;
   }
-
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -551,7 +582,7 @@ const downloadRangePDF = useCallback(async () => {
   if (groupFilters.semester) { doc.text(`Semester: ${groupFilters.semester}`, 14, currentY); currentY += 8; }
 
   const headers = [["Roll Number", "Name", "Conducted", "Attended", "Percentage"]];
-  const tableData = consolidatedRangeAttendance.map(record => [
+  const tableData = filteredConsolidatedRangeAttendance.map(record => [
     record.stdId,
     record.stdName,
     `${record.totalConducted}`,
@@ -580,19 +611,18 @@ const downloadRangePDF = useCallback(async () => {
     },
     margin: { left: 14, right: 14 }
   });
-
+  
   doc.save(`attendance-summary-${groupFilters.fromDate}-to-${groupFilters.toDate}.pdf`);
-
-}, [groupFilters, consolidatedRangeAttendance]);
+}, [groupFilters, filteredConsolidatedRangeAttendance]);
 
   const singleDayFN = useMemo(() => 
-    attendanceRecords.filter(record => record.session.toLowerCase() === "fn"),
-    [attendanceRecords]
+    filteredAttendanceRecords.filter(record => record.session.toLowerCase() === "fn"),
+    [filteredAttendanceRecords]
   );
 
   const singleDayAN = useMemo(() => 
-    attendanceRecords.filter(record => record.session.toLowerCase() === "an"),
-    [attendanceRecords]
+    filteredAttendanceRecords.filter(record => record.session.toLowerCase() === "an"),
+    [filteredAttendanceRecords]
   );
 
   const { totalFNStudents, presentFNCount, absentFNCount } = useMemo(() => {
@@ -614,6 +644,28 @@ const downloadRangePDF = useCallback(async () => {
       absentANCount: total - present
     };
   }, [singleDayAN]);
+
+  // Helper to check if all filters are selected for single/group mode
+  const areAllSingleFiltersSelected = useMemo(() => {
+    return (
+      !!singleFilters.courseId &&
+      !!singleFilters.batch &&
+      !!singleFilters.department &&
+      !!singleFilters.semester &&
+      !!singleFilters.singleDate
+    );
+  }, [singleFilters]);
+
+  const areAllGroupFiltersSelected = useMemo(() => {
+    return (
+      !!groupFilters.courseId &&
+      !!groupFilters.batch &&
+      !!groupFilters.department &&
+      !!groupFilters.semester &&
+      !!groupFilters.fromDate &&
+      !!groupFilters.toDate
+    );
+  }, [groupFilters]);
 
   return (
     <>
@@ -789,9 +841,9 @@ const downloadRangePDF = useCallback(async () => {
               {isLoading ? (
                 <p className="text-center">Loading attendance data...</p>
               ) : attendanceMode === "single" ? (
-                !singleFilters.course || !singleFilters.singleDate ? (
-                  <p className="text-center">Please select a course and date to view attendance.</p>
-                ) : attendanceRecords.length === 0 ? (
+                !areAllSingleFiltersSelected ? (
+                  <p className="text-center">Please select all filters to view attendance.</p>
+                ) : filteredAttendanceRecords.length === 0 ? (
                   <p className="text-center">No attendance records found for the selected filters.</p>
                 ) : (
                   <div className="space-y-6">
@@ -817,6 +869,7 @@ const downloadRangePDF = useCallback(async () => {
                               size="sm"
                               onClick={() => downloadSingleDayPDF("FN")}
                               className="flex items-center gap-1"
+                              disabled={!areAllSingleFiltersSelected}
                             >
                               <Download size={16} />
                               Export PDF
@@ -896,6 +949,7 @@ const downloadRangePDF = useCallback(async () => {
                               size="sm"
                               onClick={() => downloadSingleDayPDF("AN")}
                               className="flex items-center gap-1"
+                              disabled={!areAllSingleFiltersSelected}
                             >
                               <Download size={16} /> 
                               Export PDF
@@ -954,9 +1008,9 @@ const downloadRangePDF = useCallback(async () => {
                     )}
                   </div>
                 )
-              ) : !groupFilters.course || !groupFilters.fromDate || !groupFilters.toDate ? (
-                <p className="text-center">Please select a course and date range to view attendance.</p>
-              ) : consolidatedRangeAttendance.length === 0 ? (
+              ) : !areAllGroupFiltersSelected ? (
+                <p className="text-center">Please select all filters to view attendance.</p>
+              ) : filteredConsolidatedRangeAttendance.length === 0 ? (
                 <p className="text-center">No attendance records found for the selected date range.</p>
               ) : (
                 <Card>
@@ -972,6 +1026,7 @@ const downloadRangePDF = useCallback(async () => {
                       size="sm"
                       onClick={downloadRangePDF}
                       className="flex items-center gap-1"
+                      disabled={!areAllGroupFiltersSelected}
                     >
                       <Download size={16} />
                       Export PDF
@@ -990,7 +1045,7 @@ const downloadRangePDF = useCallback(async () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {consolidatedRangeAttendance.map((record) => (
+                          {filteredConsolidatedRangeAttendance.map((record) => (
                             <tr key={record.stdId} className="hover:bg-gray-50">
                               <td className="py-3 px-4 border-b">{record.stdId}</td>
                               <td className="py-3 px-4 border-b">{record.stdName}</td>
