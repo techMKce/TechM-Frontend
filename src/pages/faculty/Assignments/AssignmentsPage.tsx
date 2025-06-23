@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/FacultyNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {toast} from 'sonner';
+import { toast } from "@/hooks/use-toast";
 import {
   Plus,
   Calendar,
@@ -51,7 +51,7 @@ const AssignmentsPage = () => {
         setAssignments(fetchedAssignments);
       } catch (err) {
         setError("Failed to load assignments.");
-        toast.error("Failed To Load Assignments",{description:"please Check Internet Connection"});
+        toast({title:"Failed To Load Assignments",description:"please Check Internet Connection",variant:'destructive'});
       } finally {
         setLoading(false);
       }
@@ -80,7 +80,7 @@ const AssignmentsPage = () => {
 
       setAssignments((prev) => prev.filter((assignment) => assignment.id !== id));
     } catch (error: any) {
-      toast.error(`Failed to delete assignment with ID: ${id}`);
+      toast({title:`Failed to delete assignment with ID: ${id}`,variant:'destructive'});
     } finally {
       setDeletingId(null);
     }

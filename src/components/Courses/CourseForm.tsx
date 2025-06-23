@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 type CourseFormData = {
   courseCode:string;
@@ -40,7 +40,7 @@ const CourseForm = ({
     departments.length > 0 ? departments : defaultDepartments;
   const { profile } = useAuth();
 
-
+  const [loader,setLoader]=useState(false);
   const [formData, setFormData] = useState<CourseFormData>({
     courseCode:"",
     course_id: "",
@@ -97,22 +97,21 @@ const CourseForm = ({
     const credit = Number(formData.credit);
 
     if (isNaN(duration) || duration <= 0) {
-      toast.warning("Please enter a valid duration (must be positive number)");
+      toast({title:"Please enter a valid duration (must be positive number)",variant:'warning'});
       return;
     }
 
     if (isNaN(credit) || credit <= 0) {
-      toast.warning("Please enter valid credits (must be positive number)");
+      toast({title:"Please enter valid credits (must be positive number)",variant:'warning'});
       return;
     }
-
-    console.log("form data: ", formData);
-
+    setLoader(true);
     onSave({
       ...formData,
       duration,
       credit,
     });
+    setLoader(false);
   };
 
   return (
@@ -184,16 +183,14 @@ const CourseForm = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duration (hours) <span className="text-red-500">*</span>
+                  Duration (hours) {" "} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   name="duration"
                   value={formData.duration}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  min="1"
-                  required
+                  readOnly
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -204,9 +201,18 @@ const CourseForm = ({
                   type="number"
                   name="credit"
                   value={formData.credit}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                        handleChange
+                        const credits = e.target.value;
+                        setFormData({
+                          ...formData,
+                          credit: credits,
+                          duration: (Number(credits) * 15).toString(), // 1 credit = 15 duration
+                        });
+                      }
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  min="1"
+                  min="0"
                   max="10"
                   required
                 />
@@ -237,7 +243,7 @@ const CourseForm = ({
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
             >
-              {isEditMode ? "Save Changes" : "Create Course"}
+              {isEditMode ? "Save Changes" : "Create Course"} {(loader)?<img src='/preloader1.png'  className="w-4 h-4 animate-spin" alt="spinner"/>:""}
             </button>
           </div>
         </form>

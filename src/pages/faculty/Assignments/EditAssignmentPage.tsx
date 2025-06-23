@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +40,7 @@ const EditAssignmentPage: React.FC = () => {
   useEffect(() => {
     const fetchAssignment = async () => {
       if (!assignmentId) {
-        toast.warning("assignment ID Not Found");
+        toast({ title: "assignment ID Not Found", variant: "warning" });
         setLoading(false);
         return;
       }
@@ -61,10 +61,10 @@ const EditAssignmentPage: React.FC = () => {
             resourceLink: found.resourceLink || "",
           });
         } else {
-          toast.warning("Assignment not found");
+          toast({ title: "Assignment not found", variant: "warning" });
         }
       } catch (error: any) {
-        toast.error("Failed to fetch assignment");
+        toast({ title: "Failed to fetch assignment", variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -87,7 +87,7 @@ const EditAssignmentPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assignmentId) {
-      toast.warning("Assignment ID Not Found");
+      toast({ title: "Assignment ID Not Found", variant: "warning" });
       return;
     }
 
@@ -105,10 +105,10 @@ const EditAssignmentPage: React.FC = () => {
       await api.put('/assignments', form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("Assignment updated successfully");
+      toast({ title: "Assignment updated successfully", variant: "default" });
       navigate(-1);
     } catch (error: any) {
-      toast.error("Failed to update assignment");
+      toast({ title: "Failed to update assignment", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

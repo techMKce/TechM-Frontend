@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface Course {
   id: string;
@@ -45,7 +45,7 @@ const CoursesPage = () => {
 
   const handleSubmit = () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.warning("Please fill all fields");
+      toast({ title: "Please fill all fields", variant: "warning" });
       return;
     }
 
@@ -65,7 +65,7 @@ const CoursesPage = () => {
     loadCourses();
     setFormData({ courseId: "", name: "", description: "" });
     setIsAddDialogOpen(false);
-    toast.success("Course added successfully");
+    toast({ title: "Course added successfully", variant: "default" });
   };
 
   const handleEdit = (course: Course) => {
@@ -80,7 +80,7 @@ const CoursesPage = () => {
 
   const handleUpdate = () => {
     if (!formData.courseId || !formData.name || !formData.description) {
-      toast.warning("Please fill all fields");
+      toast({title:"Please fill all fields",variant:'warning'});
       return;
     }
 
@@ -98,7 +98,7 @@ const CoursesPage = () => {
     setFormData({ courseId: "", name: "", description: "" });
     setEditingCourse(null);
     setIsEditDialogOpen(false);
-    toast.success("Course updated successfully");
+    toast({ title: "Course updated successfully", variant: "default" });
   };
 
   return (

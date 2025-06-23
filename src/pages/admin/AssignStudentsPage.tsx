@@ -17,9 +17,8 @@ import {
 } from "../../components/ui/select";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Badge } from "../../components/ui/badge";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import api from "../../service/api";
-
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 
 interface Student {
@@ -46,12 +45,6 @@ interface Course {
   isEnabled: boolean;
 }
 
-interface Enrollment {
-  id: string;
-  studentId: string;
-  courseId: string;
-}
-
 interface Assignment {
   id: string;
   studentId: string;
@@ -66,6 +59,12 @@ interface User {
   status: string;
 }
 
+interface CourseAssignment {
+  facultyId: string;
+  courseId: string;
+  assignedRollNums: string[];
+}
+
 const AssignStudentsPage = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [faculty, setFaculty] = useState<Faculty[]>([]);
@@ -75,18 +74,17 @@ const AssignStudentsPage = () => {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]);
-
+  const [selectAll, setSelectAll] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState<string>("");
-  const [existingAssignments, setExistingAssignments] = useState<Assignment[]>(
-    []
-  );
   const [loading, setLoading] = useState({
     initial: true,
     faculty: false,
     students: false,
     assignment: false,
+    assignments: false,
   });
   const [loader, setLoader] = useState(false);
+  const [courseAssignments, setCourseAssignments] = useState<CourseAssignment[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,7 +96,8 @@ const AssignStudentsPage = () => {
         ]);
 
         if (deptResponse.status !== 200 || courseResponse.status !== 200) {
-          toast.error("Failed to load initial data");
+          toast({title:"Failed to load initial data",variant:'destructive'});
+          setLoader(false);
           return;
         }
 
@@ -118,9 +117,10 @@ const AssignStudentsPage = () => {
         );
         setCourses(coursesData.filter((course) => course.isEnabled));
       } catch (error) {
-        toast.error("Error loading initial data");
+        toast({title:"Error loading initial data",variant:'destructive'});
       } finally {
         setLoading((prev) => ({ ...prev, initial: false }));
+        setLoader(false);
       }
     };
 
@@ -143,7 +143,8 @@ const AssignStudentsPage = () => {
         }
 
         if (response.status !== 200) {
-          toast.error("Failed to load faculty");
+          toast({title:"Failed to load faculty",variant:'destructive'});
+          setLoader(false);
           return;
         }
 
@@ -156,14 +157,36 @@ const AssignStudentsPage = () => {
         }));
         setFaculty(facultyData);
       } catch (error) {
-        toast.error("Error loading faculty data");
+        toast({title:"Error loading faculty data",variant:'destructive'});
       } finally {
         setLoading((prev) => ({ ...prev, faculty: false }));
+        setLoader(false);
       }
     };
 
     fetchFaculty();
   }, [selectedDepartment]);
+
+  const fetchCourseAssignments = async (courseId: string) => {
+    try {
+      setLoading((prev) => ({ ...prev, assignments: true }));
+      const response = await api.get(`/faculty-student-assigning/admin/course/${courseId}`);
+      
+      if (response.status === 200) {
+        const assignmentsData: CourseAssignment[] = response.data.map((assignment: any) => ({
+          facultyId: assignment.facultyId,
+          courseId: assignment.courseId,
+          assignedRollNums: assignment.assignedRollNums || []
+        }));
+        setCourseAssignments(assignmentsData);
+      }
+    } catch (error) {
+      console.warn("Could not fetch course assignments:", error);
+      setCourseAssignments([]);
+    } finally {
+      setLoading((prev) => ({ ...prev, assignments: false }));
+    }
+  };
 
   useEffect(() => {
     if (!selectedCourse) return;
@@ -180,7 +203,9 @@ const AssignStudentsPage = () => {
           enrollmentResponse.status !== 200 ||
           studentsResponse.status !== 200
         ) {
-          toast.error("Failed to load student data");
+          toast({title:"Failed to load student data",variant:'destructive'});
+          setLoader(false);
+
           return;
         }
 
@@ -206,10 +231,13 @@ const AssignStudentsPage = () => {
           }));
 
         setEnrolledUsers(enrollmentData);
+
+        await fetchCourseAssignments(selectedCourse.id);
       } catch (error) {
-        toast.error("Error loading enrolled students");
+        toast({title:"Error loading enrolled students",variant:'destructive'});
       } finally {
         setLoading((prev) => ({ ...prev, students: false }));
+        setLoader(false);
       }
     };
 
@@ -219,6 +247,8 @@ const AssignStudentsPage = () => {
   const handleCourseSelect = (course: Course | null) => {
     setSelectedCourse(course);
     setSelectedUsers([]);
+    setSelectAll(false);
+    setCourseAssignments([]);
   };
 
   const handleUserSelect = (userId: string, checked: boolean) => {
@@ -227,64 +257,65 @@ const AssignStudentsPage = () => {
     );
   };
 
-  // Updated to only check for duplicate assignments within the same course
-  const checkExistingAssignments = (
-    studentIds: string[],
-    facultyId: string,
-    courseId: string
-  ) => {
-    return studentIds.some((studentId) =>
-      existingAssignments.some(
-        (assignment) =>
-          assignment.studentId === studentId && assignment.courseId === courseId
-      )
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const unassignedStudents = enrolledUsers.filter(
+        (student) => !isStudentAssigned(student.id)
+      ).map(student => student.id);
+      setSelectedUsers(unassignedStudents);
+    } else {
+      setSelectedUsers([]);
+    }
+    setSelectAll(checked);
+  };
+
+  const isStudentAssigned = (studentId: string) => {
+    return courseAssignments.some(assignment => 
+      assignment.assignedRollNums.includes(studentId)
     );
   };
 
-  // Find which faculty a student is assigned to for the current course
-  const getAssignedFacultyForStudent = (
-    studentId: string,
-    courseId: string
-  ) => {
-    const assignment = existingAssignments.find(
-      (a) => a.studentId === studentId && a.courseId === courseId
+  const getAssignedFacultyForStudent = (studentId: string) => {
+    const assignment = courseAssignments.find(assignment => 
+      assignment.assignedRollNums.includes(studentId)
     );
 
     if (assignment) {
       const assignedFaculty = faculty.find(
         (f) => f.id === assignment.facultyId
       );
-      return assignedFaculty?.name || "Assigned Faculty";
+      return assignedFaculty?.name || "Unknown Faculty";
     }
+
     return null;
   };
 
   const handleAssignStudents = async () => {
     if (!selectedCourse || selectedUsers.length === 0 || !selectedFaculty) {
-      toast.error(
-        "Please select a course, at least one student, and a faculty member"
+      toast({title:
+        "Please select a course, at least one student, and a faculty member",variant:'warning'}
       );
-
+      setLoader(false);
       return;
     }
 
-    // Check for existing assignments in the same course
-    const hasExistingAssignments = checkExistingAssignments(
-      selectedUsers,
-      selectedFaculty,
-      selectedCourse.id
+    // Check if any selected student is already assigned
+    const alreadyAssignedStudents = selectedUsers.filter(studentId => 
+      isStudentAssigned(studentId)
     );
 
-    if (hasExistingAssignments) {
-      toast.error(
-        "One or more selected students are already assigned to a faculty for this course"
-      );
 
+    if (alreadyAssignedStudents.length > 0) {
+      toast({title:
+        "One or more selected students are already assigned to a faculty for this course",variant:'warning'}
+      );
+      setLoader(false);
       return;
     }
 
     try {
       setLoading((prev) => ({ ...prev, assignment: true }));
+      setLoader(true);
       const response = await api.post(
         "faculty-student-assigning/admin/assign",
         {
@@ -295,42 +326,60 @@ const AssignStudentsPage = () => {
       );
 
       if (response.status !== 200) {
-        toast.error("Failed to assign students to faculty");
+        toast({title:"Failed to assign students to faculty",variant:'destructive'});
+        setLoader(false);
         return;
       }
 
-      // Update existing assignments state
-      const newAssignments = selectedUsers.map((studentId) => ({
-        id: `${studentId}-${selectedFaculty}-${selectedCourse.id}`,
-        studentId,
-        facultyId: selectedFaculty,
-        courseId: selectedCourse.id,
-      }));
+      // Update local state with new assignments
+      const existingAssignment = courseAssignments.find(
+        a => a.facultyId === selectedFaculty && a.courseId === selectedCourse.id
+      );
 
-      setExistingAssignments([...existingAssignments, ...newAssignments]);
-      window.dispatchEvent(new CustomEvent("assignmentsUpdated"));
+      if (existingAssignment) {
+        setCourseAssignments(courseAssignments.map(assignment => 
+          assignment.facultyId === selectedFaculty && assignment.courseId === selectedCourse.id
+            ? {
+                ...assignment,
+                assignedRollNums: [...assignment.assignedRollNums, ...selectedUsers]
+              }
+            : assignment
+        ));
+      } else {
+        setCourseAssignments([
+          ...courseAssignments,
+          {
+            facultyId: selectedFaculty,
+            courseId: selectedCourse.id,
+            assignedRollNums: selectedUsers
+          }
+        ]);
+      }
 
       setSelectedUsers([]);
-      toast.success(`Successfully assigned ${selectedUsers.length} students`);
+      setSelectAll(false);
+      toast({title:`Successfully assigned ${selectedUsers.length} students`});
+
     } catch (error: any) {
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data || "";
 
         if (status === 409) {
-          toast.error(
-            "One or more students are already assigned to another faculty for this course"
+          toast({title:
+            "One or more students are already assigned to another faculty for this course",variant:'warning'}
           );
         } else if (status === 400) {
-          toast.error(message || "Bad request");
+          toast({title:message || "Bad request",variant:'destructive'});
         } else {
-          toast.error("Failed to assign students. Please try again.");
+          toast({title:"Failed to assign students,might Already Enrolled!, Please try again.",variant:'destructive'});
         }
       } else {
-        toast.error("An unexpected error occurred. Please try again.");
+        toast({title:"An unexpected error occurred. Please try again.",variant:'destructive'});
       }
     } finally {
       setLoading((prev) => ({ ...prev, assignment: false }));
+      setLoader(false);
     }
   };
 
@@ -463,9 +512,31 @@ const AssignStudentsPage = () => {
 
               {selectedCourse && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Enrolled Students
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Enrolled Students
+                      {loading.assignments && (
+                        <span className="text-xs text-blue-600 ml-2">
+                          (Loading assignment status...)
+                        </span>
+                      )}
+                    </label>
+                    {enrolledUsers.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="select-all"
+                          checked={selectAll}
+                          onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                        />
+                        <label
+                          htmlFor="select-all"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Select All Unassigned
+                        </label>
+                      </div>
+                    )}
+                  </div>
                   {loading.students ? (
                     <div className="py-4 text-center text-gray-500">
                       Loading students...
@@ -492,20 +563,8 @@ const AssignStudentsPage = () => {
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {enrolledUsers.map((student) => {
-                              const studentData = students.find(
-                                (s) => s.id === student.id
-                              );
-                              // Check if student is assigned to any faculty for the current course
-                              const isAssigned = existingAssignments.some(
-                                (a) =>
-                                  a.studentId === student.id &&
-                                  a.courseId === selectedCourse.id
-                              );
-                              const assignedFaculty =
-                                getAssignedFacultyForStudent(
-                                  student.id,
-                                  selectedCourse.id
-                                );
+                              const isAssigned = isStudentAssigned(student.id);
+                              const assignedFaculty = getAssignedFacultyForStudent(student.id);
 
                               return (
                                 <tr
@@ -535,18 +594,15 @@ const AssignStudentsPage = () => {
                                           variant="secondary"
                                           className="text-xs bg-blue-100 text-blue-800"
                                         >
-                                          Assigned
+                                          {assignedFaculty ? 
+                                            `Assigned to ${assignedFaculty}` : 
+                                            "Already Assigned"}
                                         </Badge>
-                                        {assignedFaculty && (
-                                          <p className="text-xs text-gray-600">
-                                            Faculty: {assignedFaculty}
-                                          </p>
-                                        )}
                                       </div>
                                     ) : (
                                       <Badge
                                         variant="outline"
-                                        className="text-xs bg-green-50 text-green-700"
+                                        className="text-xs bg-green-50 text-green-700 border-green-200"
                                       >
                                         Enrolled
                                       </Badge>
@@ -611,20 +667,23 @@ const AssignStudentsPage = () => {
               <div className="mt-4 pt-4 border-t">
                 <Button
                   onClick={() => {
-                    setLoader(true);
                     handleAssignStudents();
                   }}
                   className="w-full"
                   size="lg"
+                  disabled={loading.assignment || loader}
                 >
-                  Assign Selected Students to Faculty
-                  {loader ? (
-                    <img
-                      src="/preloader1.png"
-                      className="w-5 h-5 animate-spin"
-                    />
+                  {loading.assignment || loader ? (
+                    <div className="flex items-center gap-2">
+                      <span>Assigning Students...</span>
+                      <img
+                        src="/preloader1.png"
+                        className="w-5 h-5 animate-spin"
+                        alt="Loading"
+                      />
+                    </div>
                   ) : (
-                    ""
+                    "Assign Selected Students to Faculty"
                   )}
                 </Button>
               </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import Navbar from "@/components/StudentNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,9 @@ import {
 
 import api from "../../service/api";
 import { useAuth } from "@/hooks/useAuth";
+
 import { toast } from "@/hooks/use-toast";
+
 
 interface Assignment {
   title: string;
@@ -34,6 +36,7 @@ interface SubmittedFile {
 
 const AssignmentSubmitPage = () => {
   const { profile } = useAuth();
+  const [loader,setLoader]=useState(false);
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const [studentName] = useState(profile.profile.name);
   const [studentRollNumber] = useState(profile.profile.id);
@@ -50,10 +53,11 @@ const AssignmentSubmitPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [isDueDateOver, setIsDueDateOver] = useState(false);
   const [rejected, setRejected] = useState(false);
+  const [downloader,setDownloader]=useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewable, setIsPreviewable] = useState(false);
-
+  const {state}=useLocation();
   const checkSubmissionStatusAndGrading = async () => {
     try {
       const response = await api.get("/gradings", {
@@ -94,9 +98,10 @@ const AssignmentSubmitPage = () => {
           err?.response?.data?.message ||
           "Failed to check submission and grading status",
       });
-      console.error("Submission/grading error:", err);
+      // console.error("Submission/grading error:", err);
     }
   };
+
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -120,7 +125,7 @@ const AssignmentSubmitPage = () => {
           title: "Error",
           description: "Error fetching assignment",
         });
-        console.error("Fetch assignment error:", err);
+        // console.error("Fetch assignment error:", err);
 
       } finally {
         setLoading(false);
@@ -179,10 +184,12 @@ const AssignmentSubmitPage = () => {
     }
 
     try {
+      setLoader(true);
       const response = await api.post("/submissions", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast({
+        variant: "default",
         title: "Success",
         description: "Assignment submitted successfully",
       });
@@ -203,6 +210,8 @@ const AssignmentSubmitPage = () => {
           err?.response?.data?.message || "Failed to submit assignment",
       });
 
+    }finally{
+      setLoader(false);
     }
   };
 
@@ -233,7 +242,7 @@ const AssignmentSubmitPage = () => {
       setPreviewUrl(url);
       setIsPreviewOpen(true);
     } catch (err: any) {
-      console.error("Preview error:", err);
+      // console.error("Preview error:", err);
       toast({
         variant: "destructive",
         title: "Error",
@@ -280,6 +289,8 @@ const AssignmentSubmitPage = () => {
         <Button
           onClick={async () => {
             try {
+              await setLoader(true);
+              console.log(loader);
               await api.delete("/submissions", {
                 data: {
                   assignmentId,
@@ -293,7 +304,9 @@ const AssignmentSubmitPage = () => {
               setIsGraded(false);
               setGrade(null);
               setFeedback(null);
+              setLoader(false);
               toast({
+                variant: "default",
                 title: "Success",
                 description: "Assignment unsubmitted successfully",
               });
@@ -306,12 +319,15 @@ const AssignmentSubmitPage = () => {
                   err?.response?.data?.message ||
                   "Failed to unsubmit assignment",
               });
-              console.error("Unsubmit error:", err);
+              // console.error("Unsubmit error:", err);
+            }
+            finally{
+              setLoader(false);
             }
           }}
           className="bg-red-600 text-white hover:bg-red-700"
         >
-          Unsubmit
+          {(loader)?"unSubmitting":"UnSubmit"} {loader}
         </Button>
       ),
       duration: 10000, // 10 seconds for confirmation
@@ -339,6 +355,7 @@ const AssignmentSubmitPage = () => {
     }
 
     try {
+      setDownloader(true);
       const response = await api.get("/assignments/download", {
         params: { assignmentId },
         responseType: "blob",
@@ -358,12 +375,13 @@ const AssignmentSubmitPage = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      setDownloader(false);
       toast({
         title: "Success",
         description: "Document downloaded successfully",
       });
     } catch (err: any) {
-      console.error("Download error:", err);
+      // console.error("Download error:", err);
       toast({
         variant: "destructive",
         title: "Error",
@@ -412,6 +430,8 @@ const AssignmentSubmitPage = () => {
           <div className="flex items-center justify-between mb-6">
             <Link
               to={`/student/courses/${assignment.courseId}`}
+
+              state={state}
               className="flex items-center text-primary hover:text-primary-dark text-lg font-semibold transition-all duration-200"
             >
               <ArrowLeft size={24} className="mr-2" />
@@ -491,7 +511,7 @@ const AssignmentSubmitPage = () => {
                           className="flex items-center space-x-1 text-base text-white"
                         >
                           <Download size={20} />
-                          <span>Download</span>
+                          <span>Download {(downloader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin inline-block" alt="loader"/>:""}</span>
                         </Button>
                       </div>
                     </div>
@@ -777,7 +797,7 @@ const AssignmentSubmitPage = () => {
                         className="w-full bg-primary hover:bg-primary-dark rounded-lg hover:scale-105 transition-all duration-200"
                         disabled={files.length === 0 || isDueDateOver}
                       >
-                        Submit Assignment
+                        Submit Assignment {(loader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin" alt="preloader"/>:""}
                       </Button>
                     </div>
                   </>

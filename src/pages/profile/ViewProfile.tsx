@@ -8,7 +8,7 @@ import StudentNavbar from "@/components/StudentNavbar";
 import FacultyNavbar from "@/components/FacultyNavbar";
 import { useAuth } from "@/hooks/useAuth";
 import profileApi from "@/service/api";
-import { toast } from 'sonner';
+import { toast } from "@/hooks/use-toast";
 
 interface ProfileData {
   // Basic Info
@@ -82,30 +82,31 @@ export default function ViewProfile() {
       return;
     }
 
-
     const fetchProfile = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-
         const endpoint = profile.profile.role === 'STUDENT'
           ? `/profile/student/${profile.profile.id}`
           : `/profile/faculty/${profile.profile.id}`;
 
+        // console.log("Fetching profile from:", endpoint);
         const response = await profileApi.get(endpoint);
 
         if (response.data) {
+          // console.log("Raw API response:", response.data);
           const mappedData = mapBackendToFrontend(response.data);
+          // console.log("Mapped profile data:", mappedData);
           setCurrentUser(mappedData);
         } else {
           throw new Error("No profile data received");
         }
       } catch (err) {
 
-        console.error("Profile fetch error:", err);
-        handleFetchError(err);
+        toast({title:"Failed to load profile data",variant:'destructive'});
 
+        handleFetchError(err);
       } finally {
         setIsLoading(false);
       }
@@ -128,12 +129,10 @@ export default function ViewProfile() {
     } else {
       setError("An unknown error occurred");
     }
-    toast.error("Failed to load profile data");
+    toast({title:"Failed to load profile data",variant:'destructive'});
   };
 
-
   function mapBackendToFrontend(data: any): ProfileData {
-
     return {
       // Basic Info
       image: data.image,
@@ -432,6 +431,8 @@ export default function ViewProfile() {
     );
   };
 
+  const NavbarComponent = profile?.profile.role === 'STUDENT' ? StudentNavbar : FacultyNavbar;
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -463,8 +464,6 @@ export default function ViewProfile() {
       </div>
     );
   }
-
-  const NavbarComponent = profile?.profile.role === 'STUDENT' ? StudentNavbar : FacultyNavbar;
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AuthContext } from "./AuthContext";
 import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { LoginRequest, LoginResponse, SignupRequest } from "@/types";
 import authService from "@/service/authService";
 
@@ -9,14 +9,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [profile, setProfile] = useState<LoginResponse | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const { toast } = useToast();
   
     useEffect(() => {
       const checkAuthStatus = async () => {
         const token = localStorage.getItem("auth_token");
     
         if (!token) {
-          setIsLoading(false); // No token means not logged in
+          setIsLoading(false);
           setIsAuthenticated(false);
           return;
         }
@@ -40,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
     
   
-    const signIn = async (loginData : LoginRequest) => {
+    const signIn = async (loginData: LoginRequest) => {
       try {
         const credentials: LoginRequest = loginData;
         const authData = await authService.login(credentials);
@@ -51,19 +50,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
+          variant: "default", // or "default" if you want to use your theme
         });
         
       } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Login failed",
-          description: error.response?.data?.message || "An error occurred during login",
+          description: error.response?.data?.message || "An error occurred during login"
         });
         throw error;
       }
     };
   
-    const signUp = async (signupData : SignupRequest) => {
+    const signUp = async (signupData: SignupRequest) => {
       try {
         const userData: SignupRequest = signupData;
         const authData = await authService.signup(userData);
@@ -74,12 +74,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({
           title: "Welcome to CCEM!",
           description: "Your account has been created successfully.",
+          variant: "default", // or "default" if you want to use your theme
+          className: "bg-green-500 text-white", // green background with white text
         });
       } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Sign up failed",
           description: error.response?.data?.message || "An error occurred during sign up",
+          className: "bg-red-500 text-white", // red background with white text
         });
         throw error;
       }
@@ -90,11 +93,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await authService.logout();
         setProfile(null);
         setIsAuthenticated(false);
+        // Optional: Add a toast for successful sign out if you want
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully.",
+          variant:'info', // blue background for informational message
+        });
       } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Sign out failed",
           description: error.response?.data?.message || "An error occurred during sign out",
+          className: "bg-red-500 text-white", // red background with white text
         });
         throw error;
       }
@@ -113,5 +123,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       </AuthContext.Provider>
     );
   };
-  
-  

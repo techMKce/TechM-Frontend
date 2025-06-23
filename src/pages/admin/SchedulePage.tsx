@@ -14,8 +14,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 import api from "../../service/api";
-import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
+import { toast } from "@/hooks/use-toast";
 
 
 interface Course {
@@ -92,15 +91,15 @@ const SchedulePage = () => {
   const handleGenerate = async () => {
     if (selectedCourses.length === 0) {
 
-      toast.error("Please select at least one course");
+      toast({ title: "Please select at least one course", variant: "destructive" });
       return;
     }
     if (!fromDate || !toDate) {
-      toast.error("Please select both from and to dates");
+      toast({ title: "Please select both from and to dates", variant: "warning" });
       return;
     }
     if (fromDate >= toDate) {
-      toast.error("From date must be before to date");
+      toast({ title: "From date must be before to date", variant: "destructive" });
 
       return;
     }
@@ -125,11 +124,6 @@ const SchedulePage = () => {
       courseId: entry.courseId,
       name: entry.courseName,
     }));
-    // Adjusting the date format to match the expected input <==> Cause it get yesterDay Date So ,i Adjusted it.
-    // const duration = {
-    //   startDate: fromDate.toISOString().split("T")[0],
-    //   endDate: toDate.toISOString().split("T")[0],
-    // };
     const duration = {
   startDate: new Date(new Date(fromDate).setDate(fromDate.getDate() + 1)).toISOString().split("T")[0],
   endDate: new Date(new Date(toDate).setDate(toDate.getDate() + 1)).toISOString().split("T")[0],
@@ -139,24 +133,24 @@ const SchedulePage = () => {
     formData.append("courses", JSON.stringify(courseArray));
     formData.append("duration", JSON.stringify(duration));
 
-
-    toast.success(`Schedule data prepared for ${courseArray.length} course(s)`);
-
-
     try {
       const response = await api.post('/attendance/postexam', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-
-      toast.success('Upload successful:', response.data);
-      setGeneratedSchedule(response.data);
-      setShowSuccessMessage(true);
-      toast.success("Schedule uploaded successfully");
+      if(response.data=="Warning: Not all courses were scheduled.\nChoose a valid date range based on course counts.")
+        toast({ title: "Warning: Not all courses were scheduled. Choose a valid date range based on course counts.", variant: "warning" });
+      else{
+          toast({ title: `Schedule data prepared for ${courseArray.length} course(s)`, variant: "default" });
+          toast({ title: `Upload successful: ${response.data}`, variant: "default" });
+          setGeneratedSchedule(response.data);
+          setShowSuccessMessage(true);
+          toast({ title: "Schedule uploaded successfully", variant: "default" });
+      }
     } catch (error) {
 
-      toast.error("Failed to upload schedule");
+      toast({ title: "Failed to upload schedule", variant: "destructive" });
 
     } finally {
       setIsGenerating(false);
@@ -165,7 +159,6 @@ const SchedulePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Toaster position="top-right" reverseOrder={false} />
       <AdminNavbar currentPage="/admin/schedule" />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
@@ -205,7 +198,7 @@ const SchedulePage = () => {
                         <label htmlFor={course.id} className="flex-1 cursor-pointer text-sm">
                           <div className="font-medium text-gray-900">
                             <span className="text-blue-600 font-semibold">
-                              {course.courseId}
+                              {course.id}
                             </span>{" "}
                             - {course.name}
                           </div>

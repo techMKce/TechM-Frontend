@@ -8,7 +8,7 @@ import {
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Upload, X, File as FileIcon } from "lucide-react";
 
 interface Section {
@@ -29,6 +29,7 @@ interface Content {
 
 interface SectionContentProps {
   section: Section;
+  course : any;
 }
 
 function getYouTubeEmbedUrl(url: string) {
@@ -41,11 +42,12 @@ function getYouTubeEmbedUrl(url: string) {
     : url;
 }
 
-const SectionContent = ({ section }: SectionContentProps) => {
+const SectionContent = ({ section,course }: SectionContentProps) => {
   const { profile } = useAuth();
   const user: User = {
     role: profile.profile.role,
   };
+  const [loader,setLoader]=useState(false);
   const [contents, setContents] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [showVideoForm, setShowVideoForm] = useState(false);
@@ -66,9 +68,10 @@ const SectionContent = ({ section }: SectionContentProps) => {
           `/course/section/content/details?id=${section.section_id}`
         );
         setContents(response.data);
-        console.log("recevice contents: ", response.data);
+        // console.log("recevice contents: ", response.data);
       } catch (error) {
-        toast.error("Failed to load section content. Please try again.");
+        // console.log("")
+        // toast.error("Failed to load section content. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -89,7 +92,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
 
   const handleUploadVideo = async () => {
     if (!videoUrl) {
-      toast.error("Please enter a video URL");
+      toast({title:"Please enter a video URL",variant:'warning'});
       return;
     }
 
@@ -101,7 +104,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
       // if (videoTitle) {
       //   formData.append("contentType", videoTitle);
       // }
-
+        setLoader(true);
       await api.post("/course/section/content/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -119,16 +122,22 @@ const SectionContent = ({ section }: SectionContentProps) => {
       setVideoUrl("");
       setVideoTitle("");
 
-      toast.success("Video added successfully");
+      toast({title:"Video added successfully",variant:'default'});
     } catch (error) {
+
       console.error("Error adding video:", error);
-      toast.error("Failed to add video. Please try again.");
+      toast({title:"Failed to add video. Please try again.",variant:'destructive'});
+
+    }
+    finally{
+      setLoader(false);
     }
   };
 
   const handleUploadPdf = async () => {
     if (!pdfFile) {
-      toast.error("Please upload a PDF file");
+      toast({title:"Please upload a PDF file",variant:'warning'});
+      setLoader(false);
       return;
     }
 
@@ -137,7 +146,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
       formData.append("file", pdfFile);
       formData.append("sectionId", section.section_id.toString());
 
-      console.log("pdf file got", pdfFile);
+      // console.log("pdf file got", pdfFile);
       // if (pdfTitle) {
       //   formData.append("contentType", pdfTitle);
       // }
@@ -159,12 +168,17 @@ const SectionContent = ({ section }: SectionContentProps) => {
       setPdfFile(null);
       setPdfTitle("");
 
-      toast.success("PDF added successfully");
+      toast({title:"PDF added successfully",variant:'default'});
     } catch (error) {
 
 
-      toast.error(`Failed to add file/video. Please try again.`);
 
+      toast({title:`Failed to add ${pdfTitle}. Please try again.`,variant:'destructive'});
+
+
+    }
+    finally{
+      setLoader(false);
     }
   };
 
@@ -219,10 +233,12 @@ const SectionContent = ({ section }: SectionContentProps) => {
       // console.log("blog url in handleViewPdf: ", blobUrl);
 
       setPdfViewerUrl(fileUrl);
-      toast.info("Document opened for viewing.");
+      toast({title:"Document opened for viewing.",variant:'info'});
     } catch (error) {
+
       console.error("Error loading PDF:", error);
-      toast.error("Failed to load PDF. Please try again.");
+      toast({title:"Failed to load PDF. Please try again.",variant:'destructive'});
+
 
       // Fallback option
       window.open(
@@ -260,11 +276,11 @@ const SectionContent = ({ section }: SectionContentProps) => {
       });
 
       setContents((prev) => prev.filter((c) => c.id !== contentId));
-      toast.success(`${contentType} deleted successfully`);
+      toast({title:`${contentType} deleted successfully`,variant:'default'});
     } catch (error: any) {
 
 
-      toast.error(`Failed to delete ${contentType}`);
+      toast({title:`Failed to delete ${contentType}`,variant:'destructive'});
 
     }
   };
@@ -284,13 +300,13 @@ const SectionContent = ({ section }: SectionContentProps) => {
             <VideoCameraIcon className="w-5 h-5 text-gray-800" />
             Video Lectures
           </h4>
-          {(user.role === "FACULTY" || user.role === "ADMIN") && (
+          {(user.role === "FACULTY" || user.role === "ADMIN") && (profile.profile.name === course.instructorName)&&(
             <button
               onClick={handleAddVideo}
               className="flex items-center gap-1 px-3 py-1 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 font-semibold"
             >
               <PlusIcon className="w-4 h-4" />
-              Add Video
+              Add Video 
             </button>
           )}
         </div>
@@ -304,9 +320,9 @@ const SectionContent = ({ section }: SectionContentProps) => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <h5 className="font-medium text-gray-800">
-                    {video.id || `Video ${index + 1}`}
+                    {`Video ${index + 1}`}
                   </h5>
-                  {(user.role === "FACULTY" || user.role === "ADMIN") && (
+                  {(user.role === "FACULTY" || user.role === "ADMIN")  &&(profile.profile.name === course.instructorName) && (
                     <button
                       onClick={() => handleRemoveContent(video.id, "VIDEO")}
                       className="text-gray-500 hover:text-gray-800"
@@ -338,7 +354,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
             <DocumentTextIcon className="w-5 h-5 text-gray-800" />
             PDF Materials
           </h4>
-          {(user.role === "FACULTY" || user.role === "ADMIN") && (
+          {(user.role === "FACULTY" || user.role === "ADMIN") && (profile.profile.name === course.instructorName)&& (
             <button
               onClick={handleAddPdf}
               className="flex items-center gap-1 px-3 py-1 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 font-semibold"
@@ -358,9 +374,9 @@ const SectionContent = ({ section }: SectionContentProps) => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <h5 className="font-medium text-gray-800">
-                    {pdf.id || `PDF ${index + 1}`}
+                    {`PDF ${index + 1}`}
                   </h5>
-                  {(user.role === "FACULTY" || user.role === "ADMIN") && (
+                  {(user.role === "FACULTY" || user.role === "ADMIN") && (profile.profile.name === course.instructorName) &&(
                     <button
                       onClick={() => handleRemoveContent(pdf.id, "PDF")}
                       className="text-gray-500 hover:text-gray-800"
@@ -426,10 +442,10 @@ const SectionContent = ({ section }: SectionContentProps) => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleUploadVideo}
+                  onClick={()=>{handleUploadVideo()}}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700"
                 >
-                  Add Video
+                  Add Video {(loader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin inline-block"/>:""}
                 </button>
               </div>
             </div>
@@ -471,7 +487,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
                     }
                   } else {
 
-                    toast.warning("Please upload a PDF file only");
+                    toast({title:"Please upload a PDF file only",variant:'warning'});
 
                   }
                 }}
@@ -487,7 +503,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
                     if (file) {
                       if (file.type !== "application/pdf") {
 
-                        toast.warning("Please upload a PDF file only");
+                        toast({title:"Please upload a PDF file only",variant:'warning'});
 
                         return;
                       }
@@ -557,11 +573,11 @@ const SectionContent = ({ section }: SectionContentProps) => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleUploadPdf}
+                  onClick={()=>{setLoader(true);handleUploadPdf()}}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer disabled:bg-blue-300"
                   disabled={!pdfFile}
                 >
-                  Upload PDF
+                  Upload PDF {(loader)?<img src="/preloader1.png" className="w-4 h-4 animate-spin inline-block"/>:""}
                 </button>
               </div>
             </div>

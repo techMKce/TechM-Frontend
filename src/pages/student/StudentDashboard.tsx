@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 interface Course {
   course_id: number;
@@ -107,7 +108,7 @@ const StudentDashboard = () => {
             courseDetails: courseDetailsResponse.data
           });
         } catch (error) {
-          console.error(`Error fetching details for course ${courseId}:`, error);
+          // console.error(`Error fetching details for course ${courseId}:`, error);
           // Fallback to basic course info if details fetch fails
           const fallbackCourse = allCourses.find(c => c.course_id.toString() === courseId) || {
             course_id: parseInt(courseId),
@@ -154,7 +155,7 @@ const StudentDashboard = () => {
       }
 
     } catch (error) {
-      console.error("Error loading dashboard data:", error);
+      // console.error("Error loading dashboard data:", error);
     } finally {
       setLoading({ available: false, enrolled: false, courseDetails: false, attendance: false });
     }
@@ -184,7 +185,7 @@ const StudentDashboard = () => {
             courseDetails: courseDetailsResponse.data
           });
         } catch (error) {
-          console.error(`Error fetching details for course ${courseId}:`, error);
+          // console.error(`Error fetching details for course ${courseId}:`, error);
           // Fallback to basic course info if details fetch fails
           const fallbackCourse = allCourses.find(c => c.course_id.toString() === courseId) || {
             course_id: parseInt(courseId),
@@ -211,7 +212,7 @@ const StudentDashboard = () => {
       setStats(prev => ({ ...prev, enrolledCourses: enrichedEnrollments.length }));
 
     } catch (error) {
-      console.error("Error fetching enrolled courses:", error);
+      // console.error("Error fetching enrolled courses:", error);
     } finally {
       setLoading(prev => ({ ...prev, enrolled: false }));
     }
@@ -232,7 +233,7 @@ const StudentDashboard = () => {
       setAvailableCoursesList(availableCourses);
       setStats(prev => ({ ...prev, availableCourses: availableCourses.length }));
     } catch (error) {
-      console.error("Error fetching available courses:", error);
+      // console.error("Error fetching available courses:", error);
     } finally {
       setLoading(prev => ({ ...prev, available: false }));
     }
@@ -245,7 +246,7 @@ const StudentDashboard = () => {
       setSelectedCourse(response.data);
       setShowCourseDetailsModal(true);
     } catch (error) {
-      console.error("Error fetching course details:", error);
+      toast({title:"Failed to load course details. Please try again later.",variant:'destructive'});
     } finally {
       setLoading(prev => ({ ...prev, courseDetails: false }));
     }

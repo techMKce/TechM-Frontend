@@ -20,8 +20,7 @@ import api from "@/service/api";
 import StudentNavbar from "../StudentNavbar";
 import FacultyNavbar from "../FacultyNavbar";
 import { isAsyncFunction } from "node:util/types";
-// import { toast } from "@/components/ui/sonner";
-import {toast} from 'sonner';
+import { toast } from "@/hooks/use-toast";
 import { Section } from "lucide-react";
 
 function ViewCourse() {
@@ -29,7 +28,6 @@ function ViewCourse() {
   const role = profile.profile.role;
   const { id } = useParams();
   const { state } = useLocation();
-  const navigate = useNavigate();
   const [course, setCourse] = useState<Course>(state?.course);
   const [currentCourseId, setCurrentCourseId] = useState(
     state?.course.course_id
@@ -97,11 +95,17 @@ function ViewCourse() {
           `/course/section/details?id=${course.course_id}`
         );
 
+        const courseResponse = await api.get(`/course/detailsbyId?id=${course.course_id}`)
+
+        // console.log("receive courseResponse: ", courseResponse);
+        setCourse(courseResponse.data[0]);  
+
         const sections = Array.isArray(sectionResponse.data)
           ? sectionResponse.data
           : [sectionResponse.data];
 
         setCourseSection(sections); // Update state
+        // console.log("course details: ", course)
       } catch (error) {
       } finally {
         setLoading(false);
@@ -151,6 +155,7 @@ function ViewCourse() {
 
   interface Course {
     course_id: string;
+    courseCode: string;
     courseTitle: string;
     courseDescription: string;
     instructorName: string;
@@ -180,8 +185,13 @@ function ViewCourse() {
       await api.put("/course/update", updatedCourse);
 
       setIsEditing(false);
+      setCourse(updatedCourse);
+
+      console.log("updated course: ", updatedCourse);
+      toast({title:"Edit Successfully"});
+
     } catch (error: any) {
-      toast.error("Failed to update course. Please try again.");
+      toast({title:"Failed to update course. Please try again.",variant:'destructive'});
     } finally {
       // This shows the state value AT THE TIME OF RENDER
 
@@ -217,8 +227,7 @@ function ViewCourse() {
       // Reset form
       setNewSection({ sectionTitle: "", sectionDesc: "" });
       setShowAddSection(false);
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const handleEditSection = (section) => {
@@ -272,6 +281,7 @@ function ViewCourse() {
         updatedAt: null,
         course: { course_id: null },
       });
+      toast({title:"Section Edit Successfully"});
       setError(null);
     } catch (err) {
       setError(
@@ -294,13 +304,11 @@ function ViewCourse() {
         setCourseSection((prevSections) =>
           prevSections.filter((s) => s.section_id !== sectionId)
         );
-
       } catch (error) {
-
         if (error) {
-          toast.error("Failed to delete section");
+          toast({title:"Failed to delete section",variant:'destructive'});
         } else {
-          toast.error("An unexpected error occurred");
+          toast({title:"An unexpected error occurred",variant:'destructive'});
         }
       }
     }
@@ -314,15 +322,13 @@ function ViewCourse() {
     });
     if (response.status === 200) {
       setIsEnrolled(true);
-      toast.success(
-        "Enrolled Successfully",{
+      toast({title:"Enrolled Successfully", 
         description: `You have successfully enrolled in ${course.courseTitle}.`,
       });
     } else {
-      toast.error(
-        "Enrollment Failed",{
-        description:"An error occurred during enrollment",
-      });
+      toast({title:"Enrollment Failed",
+        description: "An error occurred during enrollment",
+      variant:'destructive'});
     }
     setLoading(false);
   };
@@ -376,19 +382,17 @@ function ViewCourse() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-4 mb-5">
+                <div className="grid grid-cols-2 gap-4 mb-5">
                   <div>
                     <label className="block text-gray-800 mb-2 font-medium">
-                      Duration
+                      Duration{" "}
+                      <span className="text-sm">(auto-calculated)</span>
                     </label>
                     <input
                       type="text"
-                      value={editData.duration}
-                      onChange={(e) =>
-                        setEditData({ ...editData, duration: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      placeholder="e.g., 8 weeks"
+                      value={`${editData.duration || 0} hours`} // Display as "30 hours"
+                      readOnly // Prevent manual editing
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -398,32 +402,19 @@ function ViewCourse() {
                     <input
                       type="number"
                       value={editData.credit}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const credits = e.target.value;
                         setEditData({
                           ...editData,
-                          credit: e.target.value,
-                        })
-                      }
+                          credit: credits,
+                          duration: (Number(credits) * 15).toString(), // 1 credit = 15 duration
+                        });
+                      }}
+                      min="0"
+                      max="10"
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      placeholder="e.g., 2"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-gray-800 mb-2 font-medium">
-                      Status
-                    </label>
-                    <select
-                      value={editData.isActive ? "true" : "false"}
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          isActive: e.target.value === "true",
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                    >
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
-                    </select>
                   </div>
                 </div>
                 <div className="flex justify-end gap-3">
@@ -472,32 +463,41 @@ function ViewCourse() {
                     {course.dept}
                   </span>
                   <span className="text-gray-600 text-sm">
-                    By{" "}
-                    <span className="text-red-600">
-                      {course.instructorName}
-                    </span>
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Duration: {course.duration}
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Credits: {course.credit}
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Status: {course.isActive ? "Active" : "Inactive"}
-                  </span>
-                  <span className="text-gray-600 text-sm">
-                    Created: {new Date(course.createdAt).toLocaleDateString()}
-                  </span>
-                  {course.updatedAt && (
+                    Couse Code:{" "}
                     <span className="text-gray-600 text-sm">
-                      Updated: {new Date(course.updatedAt).toLocaleDateString()}
+                      {course.courseCode}
                     </span>
-                  )}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <span className="text-gray-600 text-sm">
+                      By{" "}
+                      <span className="text-red-600">
+                        {course.instructorName}
+                      </span>
+                    </span>
+                    <span className="text-gray-600 text-sm">
+                      Duration: {`${course.duration} Hours`}
+                    </span>
+                    <span className="text-gray-600 text-sm">
+                      Credits: {course.credit}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                      <span className="text-gray-600 text-sm">
+                        Created:{" "}
+                        {new Date(course.createdAt).toLocaleDateString()}
+                      </span>
+                      {course.updatedAt && (
+                        <span className="text-gray-600 text-sm">
+                          Updated:{" "}
+                          {new Date(course.updatedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-base text-gray-800 mb-6">
+                <pre className="font-sans mb-4 text-gray-800 whitespace-pre-wrap break-words max-h-[9em] overflow-y-auto">
                   {course.courseDescription}
-                </p>
+                </pre>
                 {!isEnrolled && role === "STUDENT" ? (
                   <button
                     onClick={handleEnroll}
@@ -683,50 +683,52 @@ function ViewCourse() {
                                       {section.sectionTitle}
                                     </h3>
                                   )}
-                                  {(role === "FACULTY" || role === "ADMIN") && (
-                                    <div className="flex gap-1">
-                                      {editingSectionId ===
-                                      section.section_id ? (
-                                        <>
-                                          <button
-                                            onClick={handleSaveSection}
-                                            className="text-gray-900 hover:text-gray-800 font-semibold"
-                                          >
-                                            Save
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              setEditingSectionId(null)
-                                            }
-                                            className="text-gray-500 hover:text-gray-800 font-semibold"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <button
-                                            onClick={() =>
-                                              handleEditSection(section)
-                                            }
-                                            className="text-gray-900 hover:text-gray-800"
-                                          >
-                                            <PencilSquareIcon className="w-5 h-5 cursor-pointer" />
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleRemoveSection(
-                                                section.section_id
-                                              )
-                                            }
-                                            className="text-gray-500 hover:text-gray-800"
-                                          >
-                                            <TrashIcon className="w-5 h-5 cursor-pointer " />
-                                          </button>
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
+                                  {(role === "FACULTY" || role === "ADMIN") &&
+                                    profile.profile.name ===
+                                      course.instructorName && (
+                                      <div className="flex gap-1">
+                                        {editingSectionId ===
+                                        section.section_id ? (
+                                          <>
+                                            <button
+                                              onClick={handleSaveSection}
+                                              className="text-gray-900 hover:text-gray-800 font-semibold"
+                                            >
+                                              Save
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                setEditingSectionId(null)
+                                              }
+                                              className="text-gray-500 hover:text-gray-800 font-semibold"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <button
+                                              onClick={() =>
+                                                handleEditSection(section)
+                                              }
+                                              className="text-gray-900 hover:text-gray-800"
+                                            >
+                                              <PencilSquareIcon className="w-5 h-5 cursor-pointer" />
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                handleRemoveSection(
+                                                  section.section_id
+                                                )
+                                              }
+                                              className="text-gray-500 hover:text-gray-800"
+                                            >
+                                              <TrashIcon className="w-5 h-5 cursor-pointer " />
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
                                 </div>
                               </div>
                               <div className="p-6">
@@ -743,13 +745,14 @@ function ViewCourse() {
                                     rows={4}
                                   />
                                 ) : (
-                                  <pre className="font-sans mb-4 text-gray-800">
+                                  <pre className="font-sans mb-4 text-gray-800 whitespace-pre-wrap break-words max-h-[9em] overflow-y-auto">
                                     {section.sectionDesc}
                                   </pre>
                                 )}
                                 <SectionContent
                                   key={section.section_id}
                                   section={section}
+                                  course={course}
                                   // user={user}
                                 />
                               </div>
@@ -770,10 +773,11 @@ function ViewCourse() {
             {showAssignments && (
               <DisplayAssignments
                 courseId={course.course_id}
-                
                 showAssignments={showAssignments}
               />
             )}
+
+            
             {showReport && (
               <div className="mt-4">
                 <StudentProgressReport courseId={course.course_id} />
@@ -827,6 +831,7 @@ function ViewCourse() {
                           state={{
                             course_id: course.course_id,
                             courseTitle: course.courseTitle,
+                            course: course,
                           }}
                         >
                           <button className="w-full flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 cursor-pointer mt-3">
@@ -840,6 +845,20 @@ function ViewCourse() {
               </div>
             </div>
           )}
+          {/* Scrolling Up Feature*/}
+          <div className="flex justify-end">
+                <button
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="fixed bottom-8 right-8 z-50 bg-gray-800 hover:bg-gray-900 text-white rounded-full p-3 shadow-lg transition-all"
+                title="Go to Top"
+                >
+                <img
+                  src="https://img.icons8.com/ios-filled/24/ffffff/up--v1.png"
+                  alt="Go to Top"
+                  className="w-6 h-6"
+                />
+                </button>
+              </div>
         </div>
       </div>
     </>
